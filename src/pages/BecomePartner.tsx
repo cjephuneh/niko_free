@@ -286,7 +286,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-1 mb-3">
+      <div className="max-w-3xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-1 mb-3">
         <div className="p-8 md:p-12">
           
           {/* Step 1: Basic Information */}
@@ -635,71 +635,80 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
                 <p className="text-gray-600 dark:text-gray-400">Review and sign the partner contract</p>
               </div>
 
-              <div className="border-2 rounded-xl p-6 dark:bg-gray-800/50" style={{ backgroundColor: '#e6f7ff', borderColor: '#27aae2' }}>
-                <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
-                  <FileText className="w-5 h-5" />
-                  <span>Partner Terms & Conditions</span>
-                </h3>
-                <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2 mb-4 max-h-60 overflow-y-auto bg-white dark:bg-gray-900 p-4 rounded-lg">
-                  <p className="font-semibold">By signing this agreement, you agree to:</p>
-                  <p>• Pay a 7% commission on all ticket sales processed through Niko Free</p>
-                  <p>• Ensure all events comply with local laws and regulations</p>
-                  <p>• Maintain high quality standards and attendee satisfaction</p>
-                  <p>• Provide accurate event information and timely updates</p>
-                  <p>• Respond to attendee inquiries within 24 hours</p>
-                  <p>• Accept that Niko Free reserves the right to remove events that violate guidelines</p>
-                  <p>• Understand that payment processing takes 2-3 business days</p>
-                  <p>• Maintain ownership of your event content and data</p>
-                  <p>• Comply with our data protection and privacy policies</p>
-                  <p className="pt-2 font-semibold">Cancellation & Refund Policy:</p>
-                  <p>• Refunds must be processed according to your stated event policy</p>
-                  <p>• Partners are responsible for communicating cancellations to attendees</p>
+              {/* Flex container for large screens */}
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Left side: Terms & Conditions */}
+                <div className="lg:flex-1">
+                  <div className="border-2 rounded-xl p-6 dark:bg-gray-800/50 h-full" style={{ backgroundColor: '#e6f7ff', borderColor: '#27aae2' }}>
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-3 flex items-center space-x-2">
+                      <FileText className="w-5 h-5" />
+                      <span>Partner Terms & Conditions</span>
+                    </h3>
+                    <div className="text-sm text-gray-700 dark:text-gray-300 space-y-2 mb-4 max-h-48 overflow-y-auto bg-white dark:bg-gray-900 p-4 rounded-lg">
+                      <p className="font-semibold">By signing this agreement, you agree to:</p>
+                      <p>• Pay a 7% commission on all ticket sales processed through Niko Free</p>
+                      <p>• Ensure all events comply with local laws and regulations</p>
+                      <p>• Maintain high quality standards and attendee satisfaction</p>
+                      <p>• Provide accurate event information and timely updates</p>
+                      <p>• Respond to attendee inquiries within 24 hours</p>
+                      <p>• Accept that Niko Free reserves the right to remove events that violate guidelines</p>
+                      <p>• Understand that payment processing takes 2-3 business days</p>
+                      <p>• Maintain ownership of your event content and data</p>
+                      <p>• Comply with our data protection and privacy policies</p>
+                      <p className="pt-2 font-semibold">Cancellation & Refund Policy:</p>
+                      <p>• Refunds must be processed according to your stated event policy</p>
+                      <p>• Partners are responsible for communicating cancellations to attendees</p>
+                    </div>
+                    <button 
+                      className="text-sm font-medium transition-colors"
+                      style={{ color: '#27aae2' }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                      Read Full Terms & Conditions →
+                    </button>
+                  </div>
                 </div>
-                <button 
-                  className="text-sm font-medium transition-colors"
-                  style={{ color: '#27aae2' }}
-                  onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                  onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                >
-                  Read Full Terms & Conditions →
-                </button>
-              </div>
 
-              <div>
-                <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  <PenTool className="w-4 h-4" />
-                  <span>Digital Signature *</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.signature}
-                  onChange={(e) => setFormData({ ...formData, signature: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl focus:outline-none transition-colors font-cursive text-xl"
-                  onFocus={(e) => e.target.style.borderColor = '#27aae2'}
-                  onBlur={(e) => { if (!formData.signature) e.target.style.borderColor = ''; }}
-                  placeholder="Type your full name as signature"
-                  style={{ fontFamily: 'Brush Script MT, cursive', borderColor: formData.signature ? '#27aae2' : '' }}
-                />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">By typing your name, you agree to sign this contract electronically</p>
-              </div>
+                {/* Right side: Digital Signature & Agreement */}
+                <div className="lg:flex-[1.5] space-y-6">
+                  <div>
+                    <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      <PenTool className="w-4 h-4" />
+                      <span>Digital Signature *</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.signature}
+                      onChange={(e) => setFormData({ ...formData, signature: e.target.value })}
+                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl focus:outline-none transition-colors font-cursive text-xl"
+                      onFocus={(e) => e.target.style.borderColor = '#27aae2'}
+                      onBlur={(e) => { if (!formData.signature) e.target.style.borderColor = ''; }}
+                      placeholder="Type your full name as signature"
+                      style={{ fontFamily: 'Brush Script MT, cursive', borderColor: formData.signature ? '#27aae2' : '' }}
+                    />
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">By typing your name, you agree to sign this contract electronically</p>
+                  </div>
 
-              <div className="bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4">
-                <label className="flex items-start space-x-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.acceptTerms}
-                    onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                    className="mt-1 w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2"
-                    style={{ 
-                      accentColor: '#27aae2',
-                      outlineColor: '#27aae2'
-                    }}
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    I have read and agree to the Partner Terms & Conditions and Privacy Policy. I understand that my digital signature above constitutes a legally binding agreement.
-                  </span>
-                </label>
+                  <div className="bg-gray-50 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl p-4">
+                    <label className="flex items-start space-x-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.acceptTerms}
+                        onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
+                        className="mt-1 w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2"
+                        style={{ 
+                          accentColor: '#27aae2',
+                          outlineColor: '#27aae2'
+                        }}
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        I have read and agree to the Partner Terms & Conditions and Privacy Policy. I understand that my digital signature above constitutes a legally binding agreement.
+                      </span>
+                    </label>
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-between pt-4">
