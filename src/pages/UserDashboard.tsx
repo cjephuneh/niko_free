@@ -8,6 +8,7 @@ import EventDetail from '../components/userDashboard/EventDetail';
 import MyProfile from '../components/userDashboard/MyProfile';
 import Settings from '../components/userDashboard/Settings';
 import EventsBooked from '../components/userDashboard/EventsBooked';
+import BucketList from '../components/userDashboard/BucketList';
 
 interface UserDashboardProps {
   onNavigate: (page: string) => void;
@@ -16,7 +17,7 @@ interface UserDashboardProps {
 export default function UserDashboard({ onNavigate }: UserDashboardProps) {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [activeEventsTab, setActiveEventsTab] = useState<'going' | 'saved'>('going');
-  const [activeView, setActiveView] = useState<'dashboard' | 'tickets' | 'notifications' | 'messages' | 'eventDetail' | 'profile' | 'settings' | 'eventsBooked'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'tickets' | 'notifications' | 'messages' | 'eventDetail' | 'profile' | 'settings' | 'eventsBooked' | 'bucketList'>('dashboard');
   const [selectedEvent, setSelectedEvent] = useState<{
     id: string;
     title: string;
@@ -456,7 +457,12 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Bucket List</h2>
-              <button className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-sm">View All</button>
+              <button 
+                onClick={() => setActiveView('bucketList')}
+                className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-sm"
+              >
+                View All
+              </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {bucketlistEvents.map((event) => (
@@ -563,6 +569,8 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
             <Settings />
           ) : activeView === 'eventsBooked' ? (
             <EventsBooked onEventClick={handleEventClick} />
+          ) : activeView === 'bucketList' ? (
+            <BucketList onEventClick={handleEventClick} />
           ) : (
             <Messages />
           )}

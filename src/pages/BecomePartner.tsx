@@ -362,8 +362,10 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
         </div>
       </div>
 
-      <div className="max-w-3xl lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-1 mb-3">
-        <div className="p-8 md:p-12">
+      <div className="max-w-3xl lg:max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-1 mb-3">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Left side - Form (2 columns) */}
+          <div className="lg:col-span-2 p-8 md:p-12">
           
           {/* Step 1: Basic Information */}
           {currentStep === 1 && (
@@ -868,9 +870,185 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
           )}
 
         </div>
+
+        {/* Mobile Benefits - Shows below form on small screens */}
+        <div className="lg:hidden mt-8 px-4">
+          {/* Benefit 1 - Step 1 */}
+          {currentStep === 1 && (
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(39, 170, 226, 0.1)' }}>
+                <svg className="w-7 h-7" style={{ color: '#27aae2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">Over 2 Million Users</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                Visibility reach on your event with over 2 million active users browsing and discovering amazing experiences daily.
+              </p>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">User Growth</span>
+                  <span className="font-bold" style={{ color: '#27aae2' }}>+75%</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Benefit 2 - Step 2 */}
+          {currentStep === 2 && (
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(39, 170, 226, 0.1)' }}>
+                <svg className="w-7 h-7" style={{ color: '#27aae2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">Instant Notifications</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                On user actions including ticket purchases, RSVPs, and attendee questions sent to you instantly in real-time.
+              </p>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Status</span>
+                  <span className="font-bold" style={{ color: '#27aae2' }}>Live 24/7</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Benefit 3 - Step 3 */}
+          {currentStep === 3 && (
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(39, 170, 226, 0.1)' }}>
+                <svg className="w-7 h-7" style={{ color: '#27aae2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">Know Estimated Event Attendance</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                Get detailed analytics and insights with estimated attendance predictions to help you plan better and maximize success.
+              </p>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Prediction Accuracy</span>
+                  <span className="font-bold" style={{ color: '#27aae2' }}>87%</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Benefit 4 - Step 4 */}
+          {currentStep === 4 && (
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(39, 170, 226, 0.1)' }}>
+                <svg className="w-7 h-7" style={{ color: '#27aae2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-white">Set Attendees Limit</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                Full control over capacity - choose unlimited attendance or set exclusive limits like "Only 100 tickets available" for your events.
+              </p>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Options</span>
+                  <span className="font-bold" style={{ color: '#27aae2' }}>Unlimited / Custom</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right side - Benefits (1 column) - Hidden on mobile, visible on lg+ */}
+        <div className="hidden lg:block lg:col-span-1">
+          <div className="sticky top-24 mt-16">
+            {/* Benefit 1 - Step 1 */}
+            {currentStep === 1 && (
+              <div className="p-8 transition-all duration-300">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(39, 170, 226, 0.1)' }}>
+                  <svg className="w-10 h-10" style={{ color: '#27aae2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Over 2 Million Users</h3>
+                <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed">
+                  Visibility reach on your event with over 2 million active users browsing and discovering amazing experiences daily.
+                </p>
+                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">User Growth</span>
+                    <span className="text-2xl font-bold" style={{ color: '#27aae2' }}>+75%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Benefit 2 - Step 2 */}
+            {currentStep === 2 && (
+              <div className="p-8 transition-all duration-300">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(39, 170, 226, 0.1)' }}>
+                  <svg className="w-10 h-10" style={{ color: '#27aae2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                </div>
+                <h3 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Instant Notifications</h3>
+                <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed">
+                  On user actions including ticket purchases, RSVPs, and attendee questions sent to you instantly in real-time.
+                </p>
+                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Status</span>
+                    <span className="text-2xl font-bold" style={{ color: '#27aae2' }}>Live 24/7</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Benefit 3 - Step 3 */}
+            {currentStep === 3 && (
+              <div className="p-8 transition-all duration-300">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(39, 170, 226, 0.1)' }}>
+                  <svg className="w-10 h-10" style={{ color: '#27aae2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Know Estimated Event Attendance</h3>
+                <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed">
+                  Get detailed analytics and insights with estimated attendance predictions to help you plan better and maximize success.
+                </p>
+                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Prediction Accuracy</span>
+                    <span className="text-2xl font-bold" style={{ color: '#27aae2' }}>87%</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Benefit 4 - Step 4 */}
+            {currentStep === 4 && (
+              <div className="p-8 transition-all duration-300">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ backgroundColor: 'rgba(39, 170, 226, 0.1)' }}>
+                  <svg className="w-10 h-10" style={{ color: '#27aae2' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                  </svg>
+                </div>
+                <h3 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">Set Attendees Limit</h3>
+                <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed">
+                  Full control over capacity - choose unlimited attendance or set exclusive limits like "Only 100 tickets available" for your events.
+                </p>
+                <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600 dark:text-gray-400">Options</span>
+                    <span className="text-2xl font-bold" style={{ color: '#27aae2' }}>Unlimited / Custom</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* <Footer /> */}
+      </div>
       </div>
     </div>
   );

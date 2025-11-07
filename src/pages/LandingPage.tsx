@@ -30,6 +30,7 @@ export default function LandingPage({ onNavigate, onEventClick }: LandingPagePro
   const lastScrollY = React.useRef(0);
   const [categoryRotation, setCategoryRotation] = useState(0);
   const [searchPlaceholder, setSearchPlaceholder] = useState('Search events...');
+  const [heroText, setHeroText] = useState('');
 
   // Ad Configuration (This would come from admin panel in production)
   const adConfig = {
@@ -127,6 +128,42 @@ export default function LandingPage({ onNavigate, onEventClick }: LandingPagePro
         if (charIndex === 0) {
           isDeleting = false;
           categoryIndex = (categoryIndex + 1) % categoryNames.length;
+        }
+      }
+    };
+
+    const typingInterval = setInterval(() => {
+      typeWriter();
+    }, isDeleting ? 50 : 100); // Faster when deleting
+
+    return () => clearInterval(typingInterval);
+  }, []);
+
+  // Typing effect for hero heading
+  React.useEffect(() => {
+    const fullText = 'Discover Amazing Events';
+    let charIndex = 0;
+    let isDeleting = false;
+
+    const typeWriter = () => {
+      if (!isDeleting) {
+        // Typing
+        setHeroText(fullText.substring(0, charIndex + 1));
+        charIndex++;
+        
+        if (charIndex === fullText.length) {
+          // Pause at end before deleting
+          setTimeout(() => {
+            isDeleting = true;
+          }, 2000);
+        }
+      } else {
+        // Deleting
+        setHeroText(fullText.substring(0, charIndex - 1));
+        charIndex--;
+        
+        if (charIndex === 0) {
+          isDeleting = false;
         }
       }
     };
@@ -630,9 +667,9 @@ export default function LandingPage({ onNavigate, onEventClick }: LandingPagePro
                       <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300" />
                       <span className="font-semibold text-[10px] sm:text-xs text-white">Niko Free</span>
                     </div>
-                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-2 sm:mb-3 md:mb-4 leading-tight">
-                      Discover Amazing Events
-                    </h1>
+                                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-2 sm:mb-3 md:mb-4 leading-tight">
+                  {heroText}
+                </h1>
                     <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-100 leading-relaxed mb-3 sm:mb-4 md:mb-6">
                       Join millions of people discovering and attending incredible events every day. From concerts to conferences, find your next adventure with Niko Free.
                     </p>
