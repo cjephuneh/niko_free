@@ -1,5 +1,13 @@
-import { Calendar, Heart, Download, QrCode, Bell, MessageCircle, Users, Check, Bookmark } from 'lucide-react';
+import { Calendar, Heart, Download, QrCode, Bell, MessageCircle, Users, Check, Bookmark, Moon, Sun } from 'lucide-react';
 import { useState } from 'react';
+import { useTheme } from '../context/ThemeContext';
+import MyTickets from '../components/userDashboard/MyTickets';
+import Notifications from '../components/userDashboard/Notifications';
+import Messages from '../components/userDashboard/Messages';
+import EventDetail from '../components/userDashboard/EventDetail';
+import MyProfile from '../components/userDashboard/MyProfile';
+import Settings from '../components/userDashboard/Settings';
+import EventsBooked from '../components/userDashboard/EventsBooked';
 
 interface UserDashboardProps {
   onNavigate: (page: string) => void;
@@ -8,6 +16,30 @@ interface UserDashboardProps {
 export default function UserDashboard({ onNavigate }: UserDashboardProps) {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [activeEventsTab, setActiveEventsTab] = useState<'going' | 'saved'>('going');
+  const [activeView, setActiveView] = useState<'dashboard' | 'tickets' | 'notifications' | 'messages' | 'eventDetail' | 'profile' | 'settings' | 'eventsBooked'>('dashboard');
+  const [selectedEvent, setSelectedEvent] = useState<{
+    id: string;
+    title: string;
+    image: string;
+    date: string;
+    time?: string;
+    location: string;
+    price?: string;
+    ticketId?: string;
+    rating?: number;
+    isOutdated?: boolean;
+  } | null>(null);
+  const { isDarkMode, toggleTheme } = useTheme();
+
+  const handleEventClick = (event: typeof upcomingEvents[0] | typeof bucketlistEvents[0] | typeof eventHistory[0]) => {
+    setSelectedEvent(event);
+    setActiveView('eventDetail');
+  };
+
+  const handleBackToEvents = () => {
+    setSelectedEvent(null);
+    setActiveView('dashboard');
+  };
 
   const userProfile = {
     name: 'Alex Johnson',
@@ -131,13 +163,19 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
             {/* Right - Notifications, Messages, Account */}
             <div className="flex items-center space-x-3">
               {/* Notifications */}
-              <button className="relative p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
+              <button 
+                onClick={() => setActiveView('notifications')}
+                className="relative p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              >
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
 
               {/* Messages */}
-              <button className="relative p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
+              <button 
+                onClick={() => setActiveView('messages')}
+                className="relative p-2.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              >
                 <MessageCircle className="w-5 h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#27aae2] rounded-full"></span>
               </button>
@@ -166,12 +204,40 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">{userProfile.name}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">Joined {userProfile.joinDate}</p>
                     </div>
-                    <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <button 
+                      onClick={() => setActiveView('profile')}
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
                       My Profile
                     </button>
-                    <button className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <button 
+                      onClick={() => setActiveView('settings')}
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
                       Settings
                     </button>
+                    
+                    {/* Dark/Light Mode Toggle */}
+                    <button 
+                      onClick={toggleTheme}
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-between"
+                    >
+                      <span>Theme</span>
+                      <div className="flex items-center space-x-2">
+                        {isDarkMode ? (
+                          <>
+                            <Moon className="w-4 h-4 text-[#27aae2]" />
+                            <span className="text-xs font-semibold text-[#27aae2]">Dark</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sun className="w-4 h-4 text-[#27aae2]" />
+                            <span className="text-xs font-semibold text-[#27aae2]">Light</span>
+                          </>
+                        )}
+                      </div>
+                    </button>
+                    
                     <div className="border-t border-gray-100 mt-2 pt-2">
                       <button 
                         onClick={() => onNavigate('landing')}
@@ -246,7 +312,11 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {activeEventsTab === 'going' ? (
                       upcomingEvents.slice(0, 3).map((event) => (
-                        <div key={event.id} className="bg-white/70 rounded-lg p-2 hover:bg-white transition-colors">
+                        <div 
+                          key={event.id} 
+                          onClick={() => handleEventClick(event)}
+                          className="bg-white/70 rounded-lg p-2 hover:bg-white transition-colors cursor-pointer"
+                        >
                           <div className="flex items-center gap-2">
                             <img
                               src={event.image}
@@ -262,7 +332,11 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                       ))
                     ) : (
                       bucketlistEvents.filter(e => !e.isOutdated).slice(0, 3).map((event) => (
-                        <div key={event.id} className="bg-white/70 rounded-lg p-2 hover:bg-white transition-colors">
+                        <div 
+                          key={event.id} 
+                          onClick={() => handleEventClick(event)}
+                          className="bg-white/70 rounded-lg p-2 hover:bg-white transition-colors cursor-pointer"
+                        >
                           <div className="flex items-center gap-2">
                             <img
                               src={event.image}
@@ -301,10 +375,24 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
 
               {/* Quick Actions */}
               <div className="space-y-2">
-                <button className="w-full py-2.5 bg-[#27aae2] text-white rounded-xl text-sm font-semibold hover:bg-[#1e8bb8] transition-colors">
+                <button 
+                  onClick={() => setActiveView('dashboard')}
+                  className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                    activeView === 'dashboard'
+                      ? 'bg-[#27aae2] text-white'
+                      : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  }`}
+                >
                   Browse Events
                 </button>
-                <button className="w-full py-2.5 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all">
+                <button 
+                  onClick={() => setActiveView('tickets')}
+                  className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    activeView === 'tickets'
+                      ? 'bg-[#27aae2] text-white'
+                      : 'border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-[#27aae2] hover:text-[#27aae2]'
+                  }`}
+                >
                   My Tickets
                 </button>
               </div>
@@ -313,17 +401,25 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
 
           {/* Right Column - Events Content */}
           <main className="lg:col-span-9">
+          {activeView === 'dashboard' ? (
+            <>
           {/* Events Booked Section */}
           <section className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Events Booked</h2>
-              <button className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-sm">View All</button>
+              <button 
+                onClick={() => setActiveView('eventsBooked')}
+                className="text-[#27aae2] hover:text-[#1e8bb8] font-semibold text-sm"
+              >
+                View All
+              </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {upcomingEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700"
+                  onClick={() => handleEventClick(event)}
+                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700 cursor-pointer"
                 >
                   <div className="relative h-36">
                     <img
@@ -366,7 +462,8 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
               {bucketlistEvents.map((event) => (
                 <div
                   key={event.id}
-                  className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700 ${
+                  onClick={() => handleEventClick(event)}
+                  className={`bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700 cursor-pointer ${
                     event.isOutdated ? 'opacity-75' : ''
                   }`}
                 >
@@ -417,7 +514,8 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
               {eventHistory.map((event) => (
                 <div
                   key={event.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700"
+                  onClick={() => handleEventClick(event)}
+                  className="bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700 cursor-pointer"
                 >
                   <div className="relative h-36">
                     <img
@@ -452,6 +550,22 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
               ))}
             </div>
           </section>
+          </>
+          ) : activeView === 'tickets' ? (
+            <MyTickets />
+          ) : activeView === 'notifications' ? (
+            <Notifications />
+          ) : activeView === 'eventDetail' && selectedEvent ? (
+            <EventDetail event={selectedEvent} onBack={handleBackToEvents} />
+          ) : activeView === 'profile' ? (
+            <MyProfile />
+          ) : activeView === 'settings' ? (
+            <Settings />
+          ) : activeView === 'eventsBooked' ? (
+            <EventsBooked onEventClick={handleEventClick} />
+          ) : (
+            <Messages />
+          )}
           </main>
         </div>
       </div>
