@@ -540,19 +540,7 @@ export default function LandingPage({ onNavigate, onEventClick }: LandingPagePro
     };
   }, [adDismissed, adConfig.enabled, adConfig.showFrequency]);
 
-  const handleCloseAd = () => {
-    setShowAd(false);
-    setAdDismissed(true);
-    // Reset dismissed state after 5 minutes
-    setTimeout(() => {
-      setAdDismissed(false);
-    }, 5 * 60 * 1000);
-  };
-
-  const handleAdClick = () => {
-    setShowAd(false);
-    onNavigate(adConfig.buttonLink.replace('/', ''));
-  };
+  
 
   const fetchLocationSuggestions = async (query: string) => {
     if (query.length < 3) {
@@ -739,22 +727,25 @@ export default function LandingPage({ onNavigate, onEventClick }: LandingPagePro
             {/* Center Section - Hero Content */}
             <div className="flex-1 flex items-center">
               <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 w-full py-4">
-                <div className="grid xl:grid-cols-2 gap-6 items-center">
-                  {/* Left Side - Main Content */}
-                  <div className="text-center xl:text-left" data-aos="fade-up">
-                    <div className="inline-flex items-center space-x-2 backdrop-blur-sm px-3 py-1.5 rounded-full mb-2 mx-auto xl:mx-0" style={{ backgroundColor: 'rgba(39, 170, 226, 0.3)' }}>
+                <div className="items-center">
+                  {/* Main Content Centered - Updated for full centering on all screens */}
+                  <div
+                    className="w-full flex flex-col items-center justify-center text-center"
+                    data-aos="fade-up"
+                  >
+                    <div className="inline-flex items-center space-x-2 backdrop-blur-sm px-3 py-1.5 rounded-full mb-2 mx-auto" style={{ backgroundColor: 'rgba(39, 170, 226, 0.3)' }}>
                       <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300" />
                       <span className="font-semibold text-[10px] sm:text-xs text-white">Niko Free</span>
                     </div>
-                                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-2 sm:mb-3 md:mb-4 leading-tight">
-                  {heroText}
-                </h1>
+                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-2 sm:mb-3 md:mb-4 leading-tight">
+                      {heroText}
+                    </h1>
                     <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-100 leading-relaxed mb-3 sm:mb-4 md:mb-6">
                       Join millions of people discovering and attending incredible events every day. From concerts to conferences, find your next adventure with Niko Free.
                     </p>
 
                     {/* Stats */}
-                    <div className="flex flex-wrap justify-center xl:justify-start gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4 md:mb-6">
+                    <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4 md:mb-6">
                       <div className="flex items-center space-x-1.5 sm:space-x-2">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
                           <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
@@ -785,7 +776,7 @@ export default function LandingPage({ onNavigate, onEventClick }: LandingPagePro
                     </div>
 
                     {/* CTA Buttons */}
-                    <div className="flex flex-wrap justify-center xl:justify-start gap-2 sm:gap-3">
+                    <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
                       <button 
                         onClick={() => onNavigate('become-partner')}
                         className="px-4 sm:px-6 py-2 sm:py-3 bg-white rounded-lg sm:rounded-xl font-bold text-sm sm:text-base transform hover:scale-105 transition-all shadow-xl"
@@ -812,58 +803,7 @@ export default function LandingPage({ onNavigate, onEventClick }: LandingPagePro
                     </div>
                   </div>
 
-                  {/* Right Side - Dynamic Ad */}
-                  {showAd && adConfig.enabled && (
-                    <div 
-                      className="hidden xl:block"
-                      data-aos="fade-left"
-                      data-aos-duration="500"
-                    >
-                      <div className="relative bg-white/95 dark:bg-gray-800/95 backdrop-blur-lg rounded-2xl shadow-2xl overflow-hidden max-w-md ml-auto">
-                        {/* Close Button */}
-                        <button
-                          onClick={handleCloseAd}
-                          className="absolute top-3 right-3 z-10 w-8 h-8 bg-gray-900/50 hover:bg-gray-900/70 backdrop-blur-sm rounded-full flex items-center justify-center transition-all group"
-                        >
-                          <span className="text-white text-xl group-hover:scale-110 transition-transform">×</span>
-                        </button>
-
-                        {/* Ad Image */}
-                        {adConfig.imageUrl && (
-                          <div className="relative h-40 overflow-hidden">
-                            <img
-                              src={adConfig.imageUrl}
-                              alt="Advertisement"
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                          </div>
-                        )}
-
-                        {/* Ad Content */}
-                        <div className="p-6">
-                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                            {adConfig.title}
-                          </h3>
-                          <p className="text-gray-600 dark:text-gray-300 mb-4 leading-relaxed">
-                            {adConfig.description}
-                          </p>
-                          <button
-                            onClick={handleAdClick}
-                            className="w-full py-3 text-white rounded-xl font-bold transition-all transform hover:scale-105 shadow-lg"
-                            style={{ backgroundColor: '#27aae2' }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1a8ec4'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#27aae2'}
-                          >
-                            {adConfig.buttonText}
-                          </button>
-                        </div>
-
-                        {/* Decorative Corner */}
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-yellow-400/20 to-transparent rounded-bl-full"></div>
-                      </div>
-                    </div>
-                  )}
+                  {/* Dynamic Ad removed */}
                 </div>
               </div>
             </div>
@@ -1070,7 +1010,7 @@ export default function LandingPage({ onNavigate, onEventClick }: LandingPagePro
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-16" data-aos="fade-up">
+      <div className="max-w-7xl mx-auto px-1 sm:px-6 lg:px-10 py-16" data-aos="fade-up">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-200">Browse by Category</h2>
           <p className="text-xl text-gray-600 dark:text-gray-400 transition-colors duration-200">Find events that match your interests</p>

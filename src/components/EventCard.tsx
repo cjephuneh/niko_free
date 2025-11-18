@@ -72,9 +72,9 @@ export default function EventCard({
       </div>
 
       <div className="p-2 sm:p-2.5 md:p-3 lg:p-5">
-        <h3 className="font-bold text-[7px] sm:text-sm md:text-base lg:text-lg text-gray-900 dark:text-white mb-1 sm:mb-1.5 md:mb-2 lg:mb-3 truncate transition-colors" style={{ color: '' }} onMouseEnter={(e) => e.currentTarget.style.color = '#27aae2'} onMouseLeave={(e) => e.currentTarget.style.color = ''}>
+  <h6 className="font-bold lg:text-lg text-gray-900 dark:text-white mb-1 sm:mb-1.5 md:mb-2 lg:mb-3 truncate transition-colors" style={{ color: '' }} onMouseEnter={(e) => e.currentTarget.style.color = '#27aae2'} onMouseLeave={(e) => e.currentTarget.style.color = ''}>
           {title}
-        </h3>
+        </h6>
 
         <div className="space-y-0.5 sm:space-y-1 md:space-y-1.5 lg:space-y-2 text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">
           <div className="flex items-center space-x-1 sm:space-x-1.5 md:space-x-2">

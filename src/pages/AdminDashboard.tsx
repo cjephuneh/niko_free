@@ -1,6 +1,8 @@
 import { Settings, Menu, X, Search, User, LogOut, Shield, FileText, DollarSign, BarChart3, Users, Calendar } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { Users as UsersIcon } from 'lucide-react';
 import { Sun, Moon } from 'lucide-react';
+import MessagesPage from '../components/adminDashboard/MessagesPage';
 import { useState } from 'react';
 import { useRef, useEffect } from 'react';
 import OverviewStats from '../components/adminDashboard/OverviewStats';
@@ -23,7 +25,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   // Example notification count
   const [notificationCount, setNotificationCount] = useState(3);
   const [darkMode, setDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'partners' | 'events' | 'settings' | 'reports' | 'revenue' | 'users' | 'profile' | 'notifications'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'partners' | 'events' | 'settings' | 'reports' | 'revenue' | 'users' | 'profile' | 'notifications' | 'messages'>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   // Ref for account menu
@@ -283,6 +285,16 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                 >
                   {darkMode ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />}
                 </button>
+                {/* Message Icon */}
+                <button
+                  className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  aria-label="Messages"
+                  onClick={() => setActiveTab('messages')}
+                >
+                  <MessageSquare className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                  {/* Example: message count badge (optional) */}
+                  {/* <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center shadow">2</span> */}
+                </button>
                 {/* Notification Icon with Counter */}
                 <button
                   className="relative p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -350,6 +362,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-x-hidden p-6 lg:p-8">
+          {activeTab === 'messages' && <MessagesPage />}
           {activeTab === 'notifications' && <NotificationsPage />}
           {activeTab === 'users' && <UsersPage />}
           {activeTab === 'overview' && (

@@ -26,6 +26,41 @@ interface PartnersProps {
 
 export default function PartnersSection({ pendingPartners, approvedPartners }: PartnersProps) {
   const [selectedPartner, setSelectedPartner] = React.useState<PendingPartner | ApprovedPartner | null>(null);
+  const [confirmAction, setConfirmAction] = React.useState<{
+    type: 'flag' | 'delete' | 'suspend';
+    partner: PendingPartner | ApprovedPartner | null;
+  } | null>(null);
+  const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
+
+  // Handler for showing confirmation modal
+  const handleFlagPartner = (partner: PendingPartner | ApprovedPartner) => {
+    setConfirmAction({ type: 'flag', partner });
+  };
+  const handleDeletePartner = (partner: PendingPartner | ApprovedPartner) => {
+    setConfirmAction({ type: 'delete', partner });
+  };
+  const handleSuspendPartner = (partner: ApprovedPartner | PendingPartner) => {
+    setConfirmAction({ type: 'suspend', partner });
+  };
+
+  // Handler for confirming action
+  const handleConfirmAction = () => {
+    if (!confirmAction) return;
+    // Simulate async success
+    setTimeout(() => {
+      if (confirmAction.type === 'flag') {
+        setSuccessMessage('Successfully flagged the partner.');
+      } else if (confirmAction.type === 'delete') {
+        setSuccessMessage('Successfully deleted the partner.');
+      } else if (confirmAction.type === 'suspend') {
+        setSuccessMessage('Successfully suspended the partner.');
+      }
+      setConfirmAction(null);
+    }, 700);
+  };
+
+  // Handler for closing success message
+  const handleCloseSuccess = () => setSuccessMessage(null);
 
   return (
     <div className="space-y-8">
@@ -199,9 +234,74 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                   >
                     View Details
                   </button>
-                  <button className="px-6 py-2.5 border-2 border-red-200 dark:border-red-700 text-red-600 rounded-lg font-semibold hover:border-red-500 transition-all flex items-center space-x-2">
+                  <button
+                    className="px-6 py-2.5 border-2 border-red-200 dark:border-red-700 text-red-600 rounded-lg font-semibold hover:border-red-500 transition-all flex items-center space-x-2"
+                    onClick={() => handleSuspendPartner(partner)}
+                  >
                     <span>Suspend</span>
                   </button>
+                  <button
+                    className="px-6 py-2.5 border-2 border-yellow-200 dark:border-yellow-700 text-yellow-600 rounded-lg font-semibold hover:border-yellow-500 transition-all flex items-center space-x-2"
+                    onClick={() => handleFlagPartner(partner)}
+                  >
+                    <span role="img" aria-label="flag">🚩</span>
+                    <span>Flag</span>
+                  </button>
+  {/* Confirmation Modal for Flag/Delete/Suspend */}
+  {confirmAction && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 max-w-sm w-full text-center relative">
+        <button
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white text-2xl font-bold"
+          onClick={() => setConfirmAction(null)}
+        >
+          &times;
+        </button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Confirm Action</h2>
+        <p className="mb-6 text-gray-700 dark:text-gray-300">
+          {confirmAction.type === 'flag' && 'Do you want to flag this partner?'}
+          {confirmAction.type === 'delete' && 'Do you want to delete this partner?'}
+          {confirmAction.type === 'suspend' && 'Do you want to suspend this partner?'}
+        </p>
+        <div className="flex justify-center gap-4">
+          <button
+            className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            onClick={() => setConfirmAction(null)}
+          >
+            Cancel
+          </button>
+          <button
+            className="px-6 py-2.5 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1a8ec4] transition-colors"
+            onClick={handleConfirmAction}
+          >
+            Yes
+          </button>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* Success Message Modal */}
+  {successMessage && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 max-w-sm w-full text-center relative">
+        <button
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white text-2xl font-bold"
+          onClick={handleCloseSuccess}
+        >
+          &times;
+        </button>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Success</h2>
+        <p className="mb-6 text-gray-700 dark:text-gray-300">{successMessage}</p>
+        <button
+          className="px-6 py-2.5 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1a8ec4] transition-colors"
+          onClick={handleCloseSuccess}
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  )}
                 </div>
               </div>
             </div>

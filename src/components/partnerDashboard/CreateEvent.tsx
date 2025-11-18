@@ -570,7 +570,7 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
                   {/* Open Interests */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Add Custom Interests (Max 10)
+                      Add Custom Interests/Tag (Max 10)
                     </label>
                     <div className="flex gap-2 mb-3">
                       <input
@@ -580,18 +580,23 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
                         className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                         onKeyPress={(e) => {
                           if (e.key === 'Enter') {
-                            handleInterestAdd((e.target as HTMLInputElement).value);
-                            (e.target as HTMLInputElement).value = '';
+                            if (formData.openInterests.length < 10) {
+                              handleInterestAdd((e.target as HTMLInputElement).value);
+                              (e.target as HTMLInputElement).value = '';
+                            }
                           }
                         }}
+                        disabled={formData.openInterests.length >= 10}
                       />
                       <button
                         onClick={() => {
                           const input = document.getElementById('interestInput') as HTMLInputElement;
-                          handleInterestAdd(input.value);
-                          input.value = '';
+                          if (formData.openInterests.length < 10) {
+                            handleInterestAdd(input.value);
+                            input.value = '';
+                          }
                         }}
-                        disabled={formData.openInterests.length >= 5}
+                        disabled={formData.openInterests.length >= 10}
                         className="px-4 py-2 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bb8] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         <Plus className="w-5 h-5" />
@@ -614,7 +619,7 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
                       ))}
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      {formData.openInterests.length}/5 interests added
+                      {formData.openInterests.length}/10 interests added
                     </p>
                   </div>
                 </div>
@@ -741,9 +746,14 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
 
                     {!formData.isUnlimited && (
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={formData.attendeeLimit || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, attendeeLimit: parseInt(e.target.value) || null }))}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, '');
+                          setFormData(prev => ({ ...prev, attendeeLimit: val ? parseInt(val) : null }));
+                        }}
                         placeholder="Maximum attendees"
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                       />
