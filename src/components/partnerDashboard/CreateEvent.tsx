@@ -144,6 +144,47 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
 
   const totalSteps = 7;
 
+  // Custom ticket form (Step 6)
+  const [showCustomTicketForm, setShowCustomTicketForm] = useState(false);
+  const [customTicket, setCustomTicket] = useState<Partial<TicketType>>({
+    name: '',
+    ticketStructure: 'basic',
+    price: 0,
+    quantity: 0
+  });
+
+  const handleCustomTicketSave = () => {
+    const name = (customTicket.name || '').trim();
+    const price = Number(customTicket.price) || 0;
+    const quantity = Number(customTicket.quantity) || 0;
+    if (!name) {
+      alert('Please enter a ticket name');
+      return;
+    }
+
+    const newTicket: TicketType = {
+      id: Date.now().toString(),
+      name,
+      ticketStructure: (customTicket.ticketStructure as TicketType['ticketStructure']) || 'basic',
+      price,
+      quantity,
+      classType: customTicket.classType,
+      loyaltyType: customTicket.loyaltyType,
+      seasonType: customTicket.seasonType,
+      seasonDuration: customTicket.seasonDuration,
+      timeslot: customTicket.timeslot
+    };
+
+  setFormData(prev => ({ ...prev, ticketTypes: [newTicket, ...prev.ticketTypes] }));
+    setShowCustomTicketForm(false);
+    setCustomTicket({ name: '', ticketStructure: 'basic', price: 0, quantity: 0 });
+  };
+
+  const handleCustomTicketCancel = () => {
+    setShowCustomTicketForm(false);
+    setCustomTicket({ name: '', ticketStructure: 'basic', price: 0, quantity: 0 });
+  };
+
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
@@ -166,7 +207,7 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
   };
 
   const handleInterestAdd = (interest: string) => {
-    if (formData.openInterests.length < 5 && interest.trim() && !formData.openInterests.includes(interest.trim())) {
+    if (formData.openInterests.length < 10 && interest.trim() && !formData.openInterests.includes(interest.trim())) {
       setFormData(prev => ({
         ...prev,
         openInterests: [...prev.openInterests, interest.trim()]
@@ -216,7 +257,7 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
     };
     setFormData(prev => ({
       ...prev,
-      ticketTypes: [...prev.ticketTypes, newTicket]
+      ticketTypes: [newTicket, ...prev.ticketTypes]
     }));
   };
 
@@ -333,8 +374,8 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
           onClick={onClose}
         />
 
-        {/* Modal panel */}
-        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+  {/* Modal panel */}
+  <div className="inline-block align-bottom bg-white dark:bg-gray-800 dark:text-gray-100 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
           {/* Header */}
           <div className="bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] px-6 py-4">
             <div className="flex items-center justify-between">
@@ -360,7 +401,7 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
           </div>
 
           {/* Content */}
-          <div className="px-6 py-6 max-h-[60vh] overflow-y-auto">
+          <div className="px-6 py-6 max-h-[60vh] overflow-y-auto text-gray-900 dark:text-gray-100">
             {/* Step 1: Location */}
             {currentStep === 1 && (
               <div className="space-y-6">
@@ -811,14 +852,92 @@ export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                           Ticket Types
                         </label>
-                        <button
-                          onClick={addTicketType}
-                          className="flex items-center gap-1 px-3 py-1 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bb8] transition-colors text-sm"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add Ticket
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={addTicketType}
+                            className="flex items-center gap-1 px-3 py-1 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bb8] transition-colors text-sm"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add Ticket
+                          </button>
+                          <button
+                            onClick={() => setShowCustomTicketForm(s => !s)}
+                            className="flex items-center gap-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          >
+                            Add Custom Ticket
+                          </button>
+                        </div>
                       </div>
+
+                      {showCustomTicketForm && (
+                        <div className="p-4 mb-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Name</label>
+                              <input
+                                type="text"
+                                value={customTicket.name || ''}
+                                onChange={(e) => setCustomTicket(prev => ({ ...prev, name: e.target.value }))}
+                                placeholder="e.g., Early Bird"
+                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Structure</label>
+                              <select
+                                value={customTicket.ticketStructure || 'basic'}
+                                onChange={(e) => setCustomTicket(prev => ({ ...prev, ticketStructure: e.target.value as TicketType['ticketStructure'] }))}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                              >
+                                <option value="basic">Basic</option>
+                                <option value="class">Class</option>
+                                <option value="loyalty">Loyalty</option>
+                                <option value="season">Season</option>
+                                <option value="timeslot">Time Slot</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Price (KES)</label>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={customTicket.price ?? 0}
+                                onChange={(e) => setCustomTicket(prev => ({ ...prev, price: Number(e.target.value) }))}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Quantity</label>
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={customTicket.quantity ?? 0}
+                                onChange={(e) => setCustomTicket(prev => ({ ...prev, quantity: Number(e.target.value) }))}
+                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Extra fields for timeslot / class / loyalty can be added here if needed */}
+
+                          <div className="flex items-center justify-end gap-2 mt-3">
+                            <button
+                              onClick={handleCustomTicketCancel}
+                              className="px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={handleCustomTicketSave}
+                              className="px-4 py-1 bg-[#27aae2] text-white rounded-lg text-sm hover:bg-[#1e8bb8] transition-colors"
+                            >
+                              Save Ticket
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="space-y-4">
                         {formData.ticketTypes.map((ticket) => (

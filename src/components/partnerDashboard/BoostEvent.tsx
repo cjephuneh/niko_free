@@ -4,6 +4,7 @@ import { useState } from 'react';
 export default function BoostEvent() {
   const [selectedEvent, setSelectedEvent] = useState('');
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [durationCount, setDurationCount] = useState<number>(1);
 
   const events = [
     { id: '1', name: 'Summer Music Festival 2024' },
@@ -158,7 +159,7 @@ export default function BoostEvent() {
 
               {/* Select Button */}
               <button
-                onClick={() => setSelectedTier(tier.id)}
+                onClick={() => { setSelectedTier(tier.id); setDurationCount(1); }}
                 disabled={!selectedEvent}
                 className={`w-full py-3 rounded-xl font-semibold transition-all ${
                   selectedTier === tier.id
@@ -203,7 +204,8 @@ export default function BoostEvent() {
                 <input
                   type="number"
                   min="1"
-                  defaultValue="1"
+                  value={durationCount}
+                  onChange={(e) => setDurationCount(Math.max(1, parseInt(e.target.value || '1')))}
                   className="w-20 px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-center"
                 />
                 <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
@@ -215,7 +217,10 @@ export default function BoostEvent() {
             <div className="flex justify-between items-center pt-4">
               <span className="text-xl font-bold text-gray-900 dark:text-white">Total</span>
               <span className="text-2xl font-bold text-[#27aae2]">
-                Ksh {boostTiers.find(t => t.id === selectedTier)?.price.toLocaleString()}
+                Ksh {( (() => {
+                  const tier = boostTiers.find(t => t.id === selectedTier);
+                  return tier ? (tier.price * durationCount).toLocaleString() : '0';
+                })() )}
               </span>
             </div>
 

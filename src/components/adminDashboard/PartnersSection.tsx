@@ -17,11 +17,19 @@ interface ApprovedPartner {
   totalRevenue: string;
   rating: number;
   status: string;
+  category?: string;
 }
 
 interface PartnersProps {
   pendingPartners: PendingPartner[];
   approvedPartners: ApprovedPartner[];
+}
+
+interface PartnerNote {
+  text: string;
+  type: 'note' | 'flag' | 'suspend' | 'delete';
+  date: string; // ISO
+  author?: string;
 }
 
 export default function PartnersSection({ pendingPartners, approvedPartners }: PartnersProps) {
@@ -52,8 +60,7 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
     'Gaming'
   ];
 
-  // Get unique categories from approved partners
-  const categories = Array.from(new Set(approvedPartners.map(p => p.category).filter(Boolean)));
+  // (categories not used right now)
 
   // Filtered and searched partners
   const filteredPartners = approvedPartners.filter(partner => {
@@ -66,22 +73,55 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
     type: 'flag' | 'delete' | 'suspend';
     partner: PendingPartner | ApprovedPartner | null;
   } | null>(null);
+  const [confirmNoteText, setConfirmNoteText] = React.useState('');
+  const [partnerNotes, setPartnerNotes] = React.useState<Record<string, PartnerNote[]>>({});
+  const [detailsNoteText, setDetailsNoteText] = React.useState('');
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
 
   // Handler for showing confirmation modal
   const handleFlagPartner = (partner: PendingPartner | ApprovedPartner) => {
+    setConfirmNoteText('');
     setConfirmAction({ type: 'flag', partner });
   };
-  const handleDeletePartner = (partner: PendingPartner | ApprovedPartner) => {
-    setConfirmAction({ type: 'delete', partner });
-  };
+  // delete handler removed (not used currently)
   const handleSuspendPartner = (partner: ApprovedPartner | PendingPartner) => {
+    setConfirmNoteText('');
     setConfirmAction({ type: 'suspend', partner });
+  };
+
+  // Load/save notes to localStorage so different admins see them on the same machine
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem('partnerNotes');
+      if (raw) setPartnerNotes(JSON.parse(raw));
+    } catch (err) {
+      console.warn('Failed to load partner notes', err);
+    }
+  }, []);
+
+  const saveNotes = (notes: Record<string, PartnerNote[]>) => {
+    setPartnerNotes(notes);
+    try { localStorage.setItem('partnerNotes', JSON.stringify(notes)); } catch (err) { console.warn('Failed to save partner notes', err); }
+  };
+
+  const addNoteForPartner = (partnerId: string, note: PartnerNote) => {
+    const next = { ...partnerNotes };
+    next[partnerId] = next[partnerId] ? [note, ...next[partnerId]] : [note];
+    saveNotes(next);
   };
 
   // Handler for confirming action
   const handleConfirmAction = () => {
     if (!confirmAction) return;
+    // If admin provided a note during confirmation, save it with the action type
+    const partnerId = confirmAction.partner?.id;
+    if (partnerId && confirmNoteText.trim()) {
+      addNoteForPartner(partnerId, {
+        text: confirmNoteText.trim(),
+        type: confirmAction.type,
+        date: new Date().toISOString(),
+      });
+    }
     // Simulate async success
     setTimeout(() => {
       if (confirmAction.type === 'flag') {
@@ -92,6 +132,7 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
         setSuccessMessage('Successfully suspended the partner.');
       }
       setConfirmAction(null);
+      setConfirmNoteText('');
     }, 700);
   };
 
@@ -156,7 +197,7 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
         {/* Partner Details Modal */}
         {selectedPartner && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-8 max-w-lg w-full relative">
+            <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-8 max-w-lg w-full relative">
               <button
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white text-2xl font-bold"
                 onClick={() => setSelectedPartner(null)}
@@ -179,8 +220,18 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                 {/* Category */}
                 {'category' in selectedPartner && (
                   <div>
-                    <p className="font-semibold mb-1">Category:</p>
-                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium mr-2">
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Category:</p>
+                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 dark:text-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium mr-2">
+                      {selectedPartner.category}
+                    </span>
+                  </div>
+                )}
+
+                {/* Category */}
+                {'category' in selectedPartner && (
+                  <div>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Category:</p>
+                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 dark:text-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium mr-2">
                       {selectedPartner.category}
                     </span>
                   </div>
@@ -189,7 +240,7 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                 {/* Email (pending partner) */}
                 {'email' in selectedPartner && (
                   <div>
-                    <p className="font-semibold mb-1">Email to receive RSVPs:</p>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Email to receive RSVPs:</p>
                     <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.email}</span>
                   </div>
                 )}
@@ -197,7 +248,7 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                 {/* Total Events (approved partner) */}
                 {'totalEvents' in selectedPartner && (
                   <div>
-                    <p className="font-semibold mb-1">Total Events:</p>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Total Events:</p>
                     <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.totalEvents}</span>
                   </div>
                 )}
@@ -205,7 +256,7 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                 {/* Total Revenue (approved partner) */}
                 {'totalRevenue' in selectedPartner && (
                   <div>
-                    <p className="font-semibold mb-1">Total Revenue:</p>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Total Revenue:</p>
                     <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.totalRevenue}</span>
                   </div>
                 )}
@@ -213,7 +264,7 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                 {/* Rating (approved partner) */}
                 {'rating' in selectedPartner && (
                   <div>
-                    <p className="font-semibold mb-1">Rating:</p>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Rating:</p>
                     <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.rating}/5.0</span>
                   </div>
                 )}
@@ -221,20 +272,20 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                 {/* Submitted Date (pending partner) */}
                 {'submittedDate' in selectedPartner && (
                   <div>
-                    <p className="font-semibold mb-1">Submitted:</p>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Submitted:</p>
                     <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.submittedDate}</span>
                   </div>
                 )}
 
                 {/* Interests (placeholder) */}
                 <div>
-                  <p className="font-semibold mb-1">Interests (Open Ended):</p>
+                  <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Interests (Open Ended):</p>
                   <span className="inline-block px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full text-xs font-medium">Not Provided</span>
                 </div>
 
                 {/* Contact Phone Number (placeholder) */}
                 <div>
-                  <p className="font-semibold mb-1">Contact Phone Number:</p>
+                  <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Contact Phone Number:</p>
                   <span className="text-sm text-gray-700 dark:text-gray-300">Not Provided</span>
                 </div>
 
@@ -242,6 +293,41 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                 <div className="flex items-center gap-2 mt-2">
                   <span className="font-semibold text-gray-900 dark:text-white">Partner Contract:</span>
                   <span className="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Signed Digitally</span>
+                </div>
+                {/* Partner notes (moved to bottom) */}
+                <div>
+                  <p className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Admin Notes:</p>
+                  <div className="space-y-2 max-h-36 overflow-y-auto mb-2">
+                    {(selectedPartner && partnerNotes[selectedPartner.id]) ? (
+                      partnerNotes[selectedPartner.id].map((n, i) => (
+                        <div key={i} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-100 dark:border-gray-700 text-sm">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(n.date).toLocaleString()} · {n.type.toUpperCase()}</div>
+                          <div className="text-gray-700 dark:text-gray-200">{n.text}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-600 dark:text-gray-400">No notes yet.</div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={detailsNoteText}
+                      onChange={e => setDetailsNoteText(e.target.value)}
+                      placeholder="Add a note about this partner..."
+                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white"
+                    />
+                    <button
+                      className="px-3 py-2 bg-[#27aae2] text-white rounded-lg"
+                      onClick={() => {
+                        if (!selectedPartner) return;
+                        if (!detailsNoteText.trim()) return;
+                        addNoteForPartner(selectedPartner.id, { text: detailsNoteText.trim(), type: 'note', date: new Date().toISOString() });
+                        setDetailsNoteText('');
+                      }}
+                    >Add</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -326,6 +412,16 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                           {confirmAction.type === 'delete' && 'Do you want to delete this partner?'}
                           {confirmAction.type === 'suspend' && 'Do you want to suspend this partner?'}
                         </p>
+                        <div className="mb-4">
+                          <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Add a note (optional)</label>
+                          <textarea
+                            value={confirmNoteText}
+                            onChange={e => setConfirmNoteText(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white"
+                            placeholder="Explain why you're flagging / suspending this partner..."
+                            rows={3}
+                          />
+                        </div>
                         <div className="flex justify-center gap-4">
                           <button
                             className="px-6 py-2.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"

@@ -72,7 +72,7 @@ export default function EventCard({
       </div>
 
       <div className="p-2 sm:p-2.5 md:p-3 lg:p-5">
-  <h6 className="font-bold lg:text-lg text-gray-900 dark:text-white mb-1 sm:mb-1.5 md:mb-2 lg:mb-3 truncate transition-colors" style={{ color: '' }} onMouseEnter={(e) => e.currentTarget.style.color = '#27aae2'} onMouseLeave={(e) => e.currentTarget.style.color = ''}>
+  <h6 className="font-bold text-[13px] md:text-[20px] text-gray-900 dark:text-white mb-1 sm:mb-1.5 md:mb-2 lg:mb-3 truncate transition-colors" style={{ color: '' }} onMouseEnter={(e) => e.currentTarget.style.color = '#27aae2'} onMouseLeave={(e) => e.currentTarget.style.color = ''}>
           {title}
         </h6>
 
@@ -120,12 +120,14 @@ export default function EventCard({
             });
           }
         }}
-        className="absolute bottom-2 sm:bottom-2.5 md:bottom-3 lg:bottom-5 right-2 sm:right-2.5 md:right-3 lg:right-5 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 lg:w-9 lg:h-9 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg z-10"
+        className="absolute bottom-2 sm:bottom-2.5 md:bottom-3 lg:bottom-5 right-1 sm:right-4 md:right-3 lg:right-5 w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8 lg:w-9 lg:h-9 text-white rounded-full flex items-center justify-center shadow-lg z-10
+        md:opacity-0 md:group-hover:opacity-100 md:transition-opacity md:duration-300
+        opacity-100"
         style={{ backgroundColor: '#27aae2' }}
         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1a8ec4'}
         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#27aae2'}
       >
-        <Share2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4" />
+        <Share2 className="w-2 h-2 sm:w-2.5 sm:h-2.5 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4" />
       </button>
     </div>
   );
