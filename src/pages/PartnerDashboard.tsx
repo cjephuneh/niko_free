@@ -2,6 +2,7 @@ import { Calendar, Users, Zap, Home, Bell, UserPlus, QrCode, Award, Menu, X, Sea
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { getPartnerToken, getPartner, getPartnerProfile, logoutPartner } from '../services/partnerService';
 import AskSupport from '../components/partnerDashboard/AskSupport';
 import Overview from '../components/partnerDashboard/Overview';
 import MyEvents from '../components/partnerDashboard/MyEvents';
@@ -32,6 +33,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
   const { isDarkMode, toggleTheme } = useTheme();
   const [partnerData, setPartnerData] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const navigate = useNavigate();
 
   // Check authentication on mount
   useEffect(() => {

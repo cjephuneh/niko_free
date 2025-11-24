@@ -103,7 +103,7 @@ interface PromoCode {
 
 // Categories will be fetched from API
 
-export default function CreateEvent({ isOpen, onClose }: CreateEventProps) {
+export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }: CreateEventProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);

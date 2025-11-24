@@ -1,7 +1,69 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Clock, Calendar, TrendingUp } from 'lucide-react';
+import { getPartnerAnalytics } from '../../services/partnerService';
+
+interface AnalyticsData {
+	summary: {
+		total_bookings: number;
+		total_events: number;
+		active_events: number;
+		total_revenue: number;
+	};
+	last_7_days: {
+		bookings: number;
+		revenue: number;
+	};
+	last_24_hours: {
+		bookings: number;
+		revenue: number;
+	};
+}
 
 export default function Analytics() {
+	const [data, setData] = useState<AnalyticsData | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState('');
+
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				setLoading(true);
+				setError('');
+				const response = await getPartnerAnalytics(30);
+				setData(response);
+			} catch (err: any) {
+				console.error('Error fetching analytics:', err);
+				setError(err.message || 'Failed to load analytics');
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchData();
+	}, []);
+
+	const formatCurrency = (value?: number) =>
+		`KES ${(value || 0).toLocaleString()}`;
+
+	if (loading) {
+		return (
+			<div className="p-6 flex items-center justify-center">
+				<div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#27aae2]" />
+			</div>
+		);
+	}
+
+	if (error) {
+		return (
+			<div className="p-6">
+				<h2 className="text-2xl font-bold mb-4 text-[#27aae2]">Analytics</h2>
+				<p className="text-red-600 dark:text-red-400 text-sm">
+					{error}
+				</p>
+			</div>
+		);
+	}
+
 	return (
 		<div className="p-6">
 			<h2 className="text-2xl font-bold mb-4 text-[#27aae2]">Analytics</h2>
@@ -14,7 +76,9 @@ export default function Analytics() {
 					</div>
 					<div>
 						<div className="text-sm text-gray-500 dark:text-gray-400">Total Bookings</div>
-						<div className="text-2xl font-semibold text-gray-900 dark:text-white">1,245</div>
+						<div className="text-2xl font-semibold text-gray-900 dark:text-white">
+							{data?.summary.total_bookings ?? 0}
+						</div>
 					</div>
 				</div>
 
@@ -24,7 +88,9 @@ export default function Analytics() {
 					</div>
 					<div>
 						<div className="text-sm text-gray-500 dark:text-gray-400">Active Events</div>
-						<div className="text-2xl font-semibold text-gray-900 dark:text-white">32</div>
+						<div className="text-2xl font-semibold text-gray-900 dark:text-white">
+							{data?.summary.active_events ?? 0}
+						</div>
 					</div>
 				</div>
 
@@ -34,7 +100,9 @@ export default function Analytics() {
 					</div>
 					<div>
 						<div className="text-sm text-gray-500 dark:text-gray-400">Revenue</div>
-						<div className="text-2xl font-semibold text-gray-900 dark:text-white">KES 254,000</div>
+						<div className="text-2xl font-semibold text-gray-900 dark:text-white">
+							{formatCurrency(data?.summary.total_revenue)}
+						</div>
 					</div>
 				</div>
 			</div>
@@ -51,7 +119,9 @@ export default function Analytics() {
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-xs text-gray-500 dark:text-gray-400">All time earnings</p>
-								<div className="mt-2 text-2xl font-bold text-[#27aae2]">KES 254,000</div>
+								<div className="mt-2 text-2xl font-bold text-[#27aae2]">
+									{formatCurrency(data?.summary.total_revenue)}
+								</div>
 							</div>
 						</div>
 						<p className="text-xs text-gray-500 dark:text-gray-400 mt-3">Total earnings since launch.</p>
@@ -61,7 +131,9 @@ export default function Analytics() {
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-xs text-gray-500 dark:text-gray-400">Last 7 days</p>
-								<div className="mt-2 text-2xl font-bold text-[#27aae2]">KES 18,400</div>
+								<div className="mt-2 text-2xl font-bold text-[#27aae2]">
+									{formatCurrency(data?.last_7_days.revenue)}
+								</div>
 							</div>
 							<div className="text-sm text-green-500 font-medium">+12%</div>
 						</div>
@@ -72,7 +144,9 @@ export default function Analytics() {
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-xs text-gray-500 dark:text-gray-400">Last 24 hours</p>
-								<div className="mt-2 text-2xl font-bold text-[#27aae2]">KES 2,100</div>
+								<div className="mt-2 text-2xl font-bold text-[#27aae2]">
+									{formatCurrency(data?.last_24_hours.revenue)}
+								</div>
 							</div>
 							<div className="text-sm text-red-500 font-medium">-4%</div>
 						</div>

@@ -159,10 +159,11 @@ export const removeFromBucketlist = async (eventId: number): Promise<any> => {
 };
 
 /**
- * Get user notifications
+ * Get user/admin notifications
+ * Uses /api/notifications/user behind the scenes
  */
 export const getUserNotifications = async (unreadOnly: boolean = false): Promise<any> => {
-  const url = new URL(`${API_BASE_URL}${API_ENDPOINTS.users.notifications}`);
+  const url = new URL(`${API_BASE_URL}/api/notifications/user`);
   if (unreadOnly) {
     url.searchParams.append('unread_only', 'true');
   }
@@ -185,7 +186,7 @@ export const getUserNotifications = async (unreadOnly: boolean = false): Promise
  * Mark notification as read
  */
 export const markNotificationRead = async (notificationId: number): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.users.notifications}/${notificationId}/read`, {
+  const response = await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
     method: 'PUT',
     headers: getAuthHeaders(),
   });
@@ -203,7 +204,7 @@ export const markNotificationRead = async (notificationId: number): Promise<any>
  * Mark all notifications as read
  */
 export const markAllNotificationsRead = async (): Promise<any> => {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.users.notifications}/read-all`, {
+  const response = await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
     method: 'PUT',
     headers: getAuthHeaders(),
   });

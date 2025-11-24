@@ -200,6 +200,32 @@ export const updateEvent = async (eventId: number, eventData: FormData): Promise
 };
 
 /**
+ * Delete event
+ */
+export const deleteEvent = async (eventId: number): Promise<any> => {
+  const token = getPartnerToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.event(eventId)}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to delete event');
+  }
+
+  return data;
+};
+
+/**
  * Get all attendees for partner
  */
 export const getPartnerAttendees = async (eventId?: number): Promise<any> => {
@@ -253,6 +279,131 @@ export const getPartnerVerification = async (): Promise<any> => {
   }
 
   return data;
+};
+
+/**
+ * Send support message to admin from partner
+ */
+export const sendSupportMessage = async (subject: string, message: string): Promise<any> => {
+  const token = getPartnerToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.profile.replace('/profile', '/support')}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({ subject, message }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to send support message');
+  }
+
+  return data;
+};
+
+/**
+ * Get partner analytics (dashboard-style stats)
+ */
+export const getPartnerAnalytics = async (days: number = 30): Promise<any> => {
+  const token = getPartnerToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const url = `${API_BASE_URL}${API_ENDPOINTS.partner.analytics}?days=${days}`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch analytics');
+  }
+
+  return data;
+};
+
+/**
+ * Team members (roles)
+ */
+export const getTeamMembers = async (): Promise<any[]> => {
+  const token = getPartnerToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/partners/team`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch team members');
+  }
+
+  return data.members || [];
+};
+
+export const addTeamMember = async (payload: { name: string; email: string; phone?: string; role?: string; permissions?: string[] }): Promise<any> => {
+  const token = getPartnerToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/partners/team`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to add team member');
+  }
+
+  return data.member;
+};
+
+export const removeTeamMember = async (memberId: number): Promise<void> => {
+  const token = getPartnerToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/partners/team/${memberId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || 'Failed to remove team member');
+  }
 };
 
 /**

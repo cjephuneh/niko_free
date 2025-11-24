@@ -1,6 +1,6 @@
 import { Calendar, MapPin, Users, Eye, Plus, Trash2, Edit } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getPartnerEvents } from '../../services/partnerService';
+import { getPartnerEvents, deleteEvent } from '../../services/partnerService';
 import { API_BASE_URL } from '../../config/api';
 import CreateEvent from './CreateEvent';
 
@@ -77,10 +77,20 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
     }
   };
 
-  const handleDeleteEvent = (eventId: number) => {
-    if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-      // TODO: Call delete API
-      setEvents(events.filter(event => event.id !== eventId));
+  const handleDeleteEvent = async (eventId: number) => {
+    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      setIsLoading(true);
+      setError('');
+      await deleteEvent(eventId);
+      setEvents(prev => prev.filter(event => event.id !== eventId));
+    } catch (err: any) {
+      console.error('Error deleting event:', err);
+      setError(err.message || 'Failed to delete event');
+    } finally {
+      setIsLoading(false);
     }
   };
 
