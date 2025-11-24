@@ -12,10 +12,10 @@ export default function UsersPage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+        const { API_ENDPOINTS } = await import('../../config/api');
         const { getToken } = await import('../../services/authService');
 
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.users}`, {
+        const response = await fetch(API_ENDPOINTS.admin.users, {
           headers: {
             'Content-Type': 'application/json',
             ...(getToken() && { Authorization: `Bearer ${getToken()}` }),

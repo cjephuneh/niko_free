@@ -65,7 +65,7 @@ export interface DashboardData {
 
 // Get dashboard data
 export const getDashboard = async (): Promise<DashboardData> => {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.dashboard}`, {
+  const response = await fetch(API_ENDPOINTS.admin.dashboard, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -81,7 +81,7 @@ export const getDashboard = async (): Promise<DashboardData> => {
 
 // Get pending partners
 export const getPendingPartners = async (): Promise<any[]> => {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=pending`, {
+  const response = await fetch(`${API_ENDPOINTS.admin.partners}?status=pending`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });
@@ -97,7 +97,7 @@ export const getPendingPartners = async (): Promise<any[]> => {
 
 // Get pending events
 export const getPendingEvents = async (): Promise<any[]> => {
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.events}?status=pending`, {
+  const response = await fetch(`${API_ENDPOINTS.admin.events}?status=pending`, {
     method: 'GET',
     headers: getAuthHeaders(),
   });

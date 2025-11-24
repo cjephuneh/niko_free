@@ -24,11 +24,11 @@ export default function EventsSection({}: EventsSectionProps) {
   React.useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+        const { API_ENDPOINTS } = await import('../../config/api');
         const { getToken } = await import('../../services/authService');
 
         const statusParam = statusFilter === 'all' ? '' : `?status=${statusFilter}`;
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.events}${statusParam}`, {
+        const response = await fetch(`${API_ENDPOINTS.admin.events}${statusParam}`, {
           headers: {
             'Content-Type': 'application/json',
             ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
@@ -43,7 +43,6 @@ export default function EventsSection({}: EventsSectionProps) {
             category: e.category?.name || 'N/A',
             date: e.start_date ? new Date(e.start_date).toLocaleDateString() : 'TBD',
             status: e.status,
-            ...e, // Include full event data
           }));
           setAllEvents(events);
           setPendingEvents(events.filter((e: any) => e.status === 'pending'));
@@ -61,10 +60,10 @@ export default function EventsSection({}: EventsSectionProps) {
   const handleApproveEvent = async (eventId: string) => {
     setActionLoading(eventId);
     try {
-      const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+      const { API_ENDPOINTS } = await import('../../config/api');
       const { getToken } = await import('../../services/authService');
 
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.approveEvent(Number(eventId))}`, {
+      const response = await fetch(API_ENDPOINTS.admin.approveEvent(Number(eventId)), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,7 +76,7 @@ export default function EventsSection({}: EventsSectionProps) {
         // Refresh events list
         const fetchEvents = async () => {
           const statusParam = statusFilter === 'all' ? '' : `?status=${statusFilter}`;
-          const eventsResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.events}${statusParam}`, {
+          const eventsResponse = await fetch(`${API_ENDPOINTS.admin.events}${statusParam}`, {
             headers: {
               'Content-Type': 'application/json',
               ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
@@ -92,7 +91,6 @@ export default function EventsSection({}: EventsSectionProps) {
               category: e.category?.name || 'N/A',
               date: e.start_date ? new Date(e.start_date).toLocaleDateString() : 'TBD',
               status: e.status,
-              ...e,
             }));
             setAllEvents(events);
             setPendingEvents(events.filter((e: any) => e.status === 'pending'));
@@ -115,10 +113,10 @@ export default function EventsSection({}: EventsSectionProps) {
     const reason = prompt('Enter rejection reason (optional):') || 'Event does not meet requirements';
     setActionLoading(eventId);
     try {
-      const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+      const { API_ENDPOINTS } = await import('../../config/api');
       const { getToken } = await import('../../services/authService');
 
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.rejectEvent(Number(eventId))}`, {
+      const response = await fetch(API_ENDPOINTS.admin.rejectEvent(Number(eventId)), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +130,7 @@ export default function EventsSection({}: EventsSectionProps) {
         // Refresh events list
         const fetchEvents = async () => {
           const statusParam = statusFilter === 'all' ? '' : `?status=${statusFilter}`;
-          const eventsResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.events}${statusParam}`, {
+          const eventsResponse = await fetch(`${API_ENDPOINTS.admin.events}${statusParam}`, {
             headers: {
               'Content-Type': 'application/json',
               ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
@@ -147,7 +145,6 @@ export default function EventsSection({}: EventsSectionProps) {
               category: e.category?.name || 'N/A',
               date: e.start_date ? new Date(e.start_date).toLocaleDateString() : 'TBD',
               status: e.status,
-              ...e,
             }));
             setAllEvents(events);
             setPendingEvents(events.filter((e: any) => e.status === 'pending'));

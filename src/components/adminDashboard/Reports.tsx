@@ -17,7 +17,7 @@ export default function Reports() {
 				setDashboardData(dashboard);
 
 				// Fetch analytics
-				const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.analytics}?days=30`, {
+				const response = await fetch(`${API_ENDPOINTS.admin.analytics}?days=30`, {
 					headers: {
 						'Content-Type': 'application/json',
 						...(getToken() && { Authorization: `Bearer ${getToken()}` }),

@@ -38,11 +38,11 @@ export default function PartnersSection({}: PartnersProps) {
     const fetchPartners = async () => {
       try {
         const { getPendingPartners } = await import('../../services/adminService');
-        const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+        const { API_ENDPOINTS } = await import('../../config/api');
         const { getToken } = await import('../../services/authService');
 
         // Fetch pending partners
-        const pendingResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=pending`, {
+        const pendingResponse = await fetch(`${API_ENDPOINTS.admin.partners}?status=pending`, {
           headers: {
             'Content-Type': 'application/json',
             ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
@@ -61,7 +61,7 @@ export default function PartnersSection({}: PartnersProps) {
         }
 
         // Fetch approved partners
-        const approvedResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=approved`, {
+        const approvedResponse = await fetch(`${API_ENDPOINTS.admin.partners}?status=approved`, {
           headers: {
             'Content-Type': 'application/json',
             ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
@@ -138,10 +138,10 @@ export default function PartnersSection({}: PartnersProps) {
   const handleApprovePartner = async (partnerId: string) => {
     setActionLoading(partnerId);
     try {
-      const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+      const { API_ENDPOINTS } = await import('../../config/api');
       const { getToken } = await import('../../services/authService');
 
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.approvePartner(Number(partnerId))}`, {
+      const response = await fetch(API_ENDPOINTS.admin.approvePartner(Number(partnerId)), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ export default function PartnersSection({}: PartnersProps) {
         setSuccessMessage('Partner approved successfully. Email sent to partner.');
         // Refresh partners list
         const fetchPartners = async () => {
-          const pendingResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=pending`, {
+          const pendingResponse = await fetch(`${API_ENDPOINTS.admin.partners}?status=pending`, {
             headers: {
               'Content-Type': 'application/json',
               ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
@@ -189,10 +189,10 @@ export default function PartnersSection({}: PartnersProps) {
     const reason = prompt('Enter rejection reason (optional):') || 'Application does not meet requirements';
     setActionLoading(partnerId);
     try {
-      const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+      const { API_ENDPOINTS } = await import('../../config/api');
       const { getToken } = await import('../../services/authService');
 
-      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.rejectPartner(Number(partnerId))}`, {
+      const response = await fetch(API_ENDPOINTS.admin.rejectPartner(Number(partnerId)), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +206,7 @@ export default function PartnersSection({}: PartnersProps) {
         setSuccessMessage('Partner rejected. Email sent to partner.');
         // Refresh partners list
         const fetchPartners = async () => {
-          const pendingResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=pending`, {
+          const pendingResponse = await fetch(`${API_ENDPOINTS.admin.partners}?status=pending`, {
             headers: {
               'Content-Type': 'application/json',
               ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
@@ -276,12 +276,12 @@ export default function PartnersSection({}: PartnersProps) {
     setActionLoading(partnerId);
     
     try {
-      const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+      const { API_ENDPOINTS } = await import('../../config/api');
       const { getToken } = await import('../../services/authService');
 
       let response;
       if (confirmAction.type === 'suspend') {
-        response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.suspendPartner(Number(partnerId))}`, {
+        response = await fetch(API_ENDPOINTS.admin.suspendPartner(Number(partnerId)), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -315,7 +315,7 @@ export default function PartnersSection({}: PartnersProps) {
         }
         // Refresh partners list
         const fetchPartners = async () => {
-          const approvedResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=approved`, {
+          const approvedResponse = await fetch(`${API_ENDPOINTS.admin.partners}?status=approved`, {
             headers: {
               'Content-Type': 'application/json',
               ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
