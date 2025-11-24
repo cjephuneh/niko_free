@@ -28,6 +28,7 @@ class User(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     email_verified = db.Column(db.Boolean, default=False)
     phone_verified = db.Column(db.Boolean, default=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
     
     # Preferences
     keep_logged_in = db.Column(db.Boolean, default=False)
@@ -75,6 +76,7 @@ class User(db.Model):
         if include_sensitive:
             data['email_verified'] = self.email_verified
             data['phone_verified'] = self.phone_verified
+            data['is_admin'] = self.is_admin
             
         return data
     

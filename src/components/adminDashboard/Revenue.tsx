@@ -1,7 +1,42 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { DollarSign, BarChart3, Download } from 'lucide-react';
+import { getDashboard, formatCurrency } from '../../services/adminService';
+import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
+import { getToken } from '../../services/authService';
 
 export default function Revenue() {
+	const [analytics, setAnalytics] = useState<any>(null);
+	const [dashboardData, setDashboardData] = useState<any>(null);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				// Fetch dashboard data
+				const dashboard = await getDashboard();
+				setDashboardData(dashboard);
+
+				// Fetch analytics for last 30 days
+				const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.analytics}?days=30`, {
+					headers: {
+						'Content-Type': 'application/json',
+						...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+					},
+				});
+				const data = await response.json();
+				if (response.ok) {
+					setAnalytics(data);
+				}
+			} catch (error) {
+				console.error('Failed to fetch revenue data:', error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchData();
+	}, []);
+
 	return (
 		<div className="space-y-8">
 			<div className="flex items-center justify-between mb-6">
@@ -15,29 +50,39 @@ export default function Revenue() {
 			</div>
 
 			{/* Revenue Summary Cards */}
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-				<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-					<DollarSign className="w-8 h-8 text-[#27aae2]" />
-					<div>
-						<p className="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
-						<p className="text-2xl font-bold text-gray-900 dark:text-white">KES 2,480,000</p>
+			{loading ? (
+				<div className="text-center py-8 text-gray-500">Loading revenue data...</div>
+			) : (
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+						<DollarSign className="w-8 h-8 text-[#27aae2]" />
+						<div>
+							<p className="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
+							<p className="text-2xl font-bold text-gray-900 dark:text-white">
+								{formatCurrency(dashboardData?.stats?.total_revenue || 0)}
+							</p>
+						</div>
+					</div>
+					<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+						<BarChart3 className="w-8 h-8 text-[#27aae2]" />
+						<div>
+							<p className="text-sm text-gray-500 dark:text-gray-400">Last 30 Days</p>
+							<p className="text-2xl font-bold text-gray-900 dark:text-white">
+								{formatCurrency(analytics?.revenue || 0)}
+							</p>
+						</div>
+					</div>
+					<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
+						<BarChart3 className="w-8 h-8 text-[#27aae2]" />
+						<div>
+							<p className="text-sm text-gray-500 dark:text-gray-400">Platform Fees (30 days)</p>
+							<p className="text-2xl font-bold text-gray-900 dark:text-white">
+								{formatCurrency(analytics?.platform_fees || 0)}
+							</p>
+						</div>
 					</div>
 				</div>
-				<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-					<BarChart3 className="w-8 h-8 text-[#27aae2]" />
-					<div>
-						<p className="text-sm text-gray-500 dark:text-gray-400">This Month</p>
-						<p className="text-2xl font-bold text-gray-900 dark:text-white">KES 210,000</p>
-					</div>
-				</div>
-				<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center gap-4">
-					<BarChart3 className="w-8 h-8 text-[#27aae2]" />
-					<div>
-						<p className="text-sm text-gray-500 dark:text-gray-400">Commission Earned</p>
-						<p className="text-2xl font-bold text-gray-900 dark:text-white">KES 17,500</p>
-					</div>
-				</div>
-			</div>
+			)}
 
 			{/* Revenue Trend Chart (Placeholder) */}
 			<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 mt-8">
@@ -50,43 +95,34 @@ export default function Revenue() {
 				</div>
 			</div>
 
-			{/* Recent Transactions Table (Placeholder) */}
+			{/* Recent Transactions */}
 			<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 mt-8">
 				<h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-					<DollarSign className="w-5 h-5" /> Recent Transactions
+					<DollarSign className="w-5 h-5" /> Revenue Summary
 				</h3>
-				<div className="overflow-x-auto">
-					<table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-						<thead>
-							<tr>
-								<th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Event</th>
-								<th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Date</th>
-								<th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Amount</th>
-								<th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400">Type</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr>
-								<td className="px-4 py-2 text-sm text-gray-900 dark:text-white">Nairobi Innovation Week</td>
-								<td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">Nov 15, 2025</td>
-								<td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">KES 50,000</td>
-								<td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">Ticket Sales</td>
-							</tr>
-							<tr>
-								<td className="px-4 py-2 text-sm text-gray-900 dark:text-white">Marathon for Health</td>
-								<td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">Nov 10, 2025</td>
-								<td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">KES 35,000</td>
-								<td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">Ticket Sales</td>
-							</tr>
-							<tr>
-								<td className="px-4 py-2 text-sm text-gray-900 dark:text-white">Music Matters</td>
-								<td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">Nov 5, 2025</td>
-								<td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">KES 18,000</td>
-								<td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">Ticket Sales</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
+				{loading ? (
+					<div className="text-center py-8 text-gray-500">Loading...</div>
+				) : (
+					<div className="space-y-4">
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+							<div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+								<p className="text-sm text-gray-500 dark:text-gray-400">Total Bookings</p>
+								<p className="text-xl font-bold text-gray-900 dark:text-white">
+									{analytics?.total_bookings || 0}
+								</p>
+								<p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+									{analytics?.new_bookings || 0} new in last 30 days
+								</p>
+							</div>
+							<div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+								<p className="text-sm text-gray-500 dark:text-gray-400">New Users (30 days)</p>
+								<p className="text-xl font-bold text-gray-900 dark:text-white">
+									{analytics?.new_users || 0}
+								</p>
+							</div>
+						</div>
+					</div>
+				)}
 			</div>
 		</div>
 	);

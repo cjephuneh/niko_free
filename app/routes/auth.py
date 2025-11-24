@@ -328,10 +328,12 @@ def verify_token():
     # Try to find user first
     user = User.query.get(current_user_id)
     if user:
+        user_dict = user.to_dict(include_sensitive=True)
+        user_type = 'admin' if user.is_admin else 'user'
         return jsonify({
             'valid': True,
-            'user_type': 'user',
-            'user': user.to_dict()
+            'user_type': user_type,
+            'user': user_dict
         }), 200
     
     # Try partner
@@ -344,4 +346,55 @@ def verify_token():
         }), 200
     
     return jsonify({'error': 'Invalid token'}), 401
+
+
+# ============ ADMIN AUTHENTICATION ============
+
+@bp.route('/admin/login', methods=['POST', 'OPTIONS'])
+def admin_login():
+    """Admin login"""
+    # Handle preflight OPTIONS request FIRST - return immediately
+    if request.method == 'OPTIONS':
+        response = jsonify({'status': 'ok'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response, 200
+    
+    # POST request handling (rate limiting handled globally, OPTIONS exempted)
+    data = request.get_json()
+    
+    if not data.get('email') or not data.get('password'):
+        return jsonify({'error': 'Email and password are required'}), 400
+    
+    email = data['email'].lower().strip()
+    
+    # Find user
+    user = User.query.filter_by(email=email).first()
+    
+    if not user or not user.check_password(data['password']):
+        return jsonify({'error': 'Invalid email or password'}), 401
+    
+    if not user.is_active:
+        return jsonify({'error': 'Account is deactivated'}), 403
+    
+    if not user.is_admin:
+        return jsonify({'error': 'Admin access required'}), 403
+    
+    # Update last login
+    user.last_login = datetime.utcnow()
+    db.session.commit()
+    
+    # Generate tokens
+    expires_delta = timedelta(days=30) if data.get('keep_logged_in') else None
+    access_token = create_access_token(identity=user.id, expires_delta=expires_delta)
+    refresh_token = create_refresh_token(identity=user.id)
+    
+    return jsonify({
+        'message': 'Login successful',
+        'user': user.to_dict(include_sensitive=True),
+        'access_token': access_token,
+        'refresh_token': refresh_token
+    }), 200
 

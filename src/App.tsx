@@ -9,6 +9,7 @@ import BecomePartner from './pages/BecomePartner';
 import AboutUs from './pages/AboutUs';
 import ThisWeekend from './pages/ThisWeekend';
 import CalendarPage from './pages/CalendarPage';
+import AdminRoute from './components/AdminRoute';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
@@ -65,7 +66,7 @@ function AppContent() {
         />
         <Route 
           path="/admin-dashboard" 
-          element={<AdminDashboard onNavigate={navigateTo} />} 
+          element={<AdminRoute onNavigate={navigateTo} />} 
         />
         <Route 
           path="/become-partner" 

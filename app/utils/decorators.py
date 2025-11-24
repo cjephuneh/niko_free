@@ -57,10 +57,11 @@ def admin_required(fn):
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
-        # Check if user is admin (you can add an is_admin field to User model)
-        # For now, checking if email matches admin email from config
-        from flask import current_app
-        if user.email != current_app.config.get('ADMIN_EMAIL'):
+        if not user.is_active:
+            return jsonify({'error': 'Account is deactivated'}), 403
+        
+        # Check if user is admin
+        if not user.is_admin:
             return jsonify({'error': 'Admin access required'}), 403
             
         return fn(current_admin=user, *args, **kwargs)

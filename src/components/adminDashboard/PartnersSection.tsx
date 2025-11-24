@@ -20,10 +20,7 @@ interface ApprovedPartner {
   category?: string;
 }
 
-interface PartnersProps {
-  pendingPartners: PendingPartner[];
-  approvedPartners: ApprovedPartner[];
-}
+interface PartnersProps {}
 
 interface PartnerNote {
   text: string;
@@ -32,7 +29,65 @@ interface PartnerNote {
   author?: string;
 }
 
-export default function PartnersSection({ pendingPartners, approvedPartners }: PartnersProps) {
+export default function PartnersSection({}: PartnersProps) {
+  const [pendingPartners, setPendingPartners] = React.useState<PendingPartner[]>([]);
+  const [approvedPartners, setApprovedPartners] = React.useState<ApprovedPartner[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchPartners = async () => {
+      try {
+        const { getPendingPartners } = await import('../../services/adminService');
+        const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+        const { getToken } = await import('../../services/authService');
+
+        // Fetch pending partners
+        const pendingResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=pending`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        const pendingData = await pendingResponse.json();
+        if (pendingResponse.ok) {
+          setPendingPartners((pendingData.partners || []).map((p: any) => ({
+            id: String(p.id),
+            name: p.business_name || p.name,
+            email: p.email,
+            category: p.category?.name || 'N/A',
+            submittedDate: new Date(p.created_at).toLocaleDateString(),
+            status: p.status,
+          })));
+        }
+
+        // Fetch approved partners
+        const approvedResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=approved`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        const approvedData = await approvedResponse.json();
+        if (approvedResponse.ok) {
+          setApprovedPartners((approvedData.partners || []).map((p: any) => ({
+            id: String(p.id),
+            name: p.business_name || p.name,
+            totalEvents: p.total_events || 0,
+            totalRevenue: `KES ${(p.total_revenue || 0).toLocaleString()}`,
+            rating: p.rating || 0,
+            status: p.status,
+            category: p.category?.name,
+          })));
+        }
+      } catch (error) {
+        console.error('Failed to fetch partners:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPartners();
+  }, []);
   // Search and filter state for active partners
   const [searchTerm, setSearchTerm] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState('All');
@@ -77,6 +132,109 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
   const [partnerNotes, setPartnerNotes] = React.useState<Record<string, PartnerNote[]>>({});
   const [detailsNoteText, setDetailsNoteText] = React.useState('');
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
+  const [actionLoading, setActionLoading] = React.useState<string | null>(null);
+
+  // Handle approve partner
+  const handleApprovePartner = async (partnerId: string) => {
+    setActionLoading(partnerId);
+    try {
+      const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+      const { getToken } = await import('../../services/authService');
+
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.approvePartner(Number(partnerId))}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setSuccessMessage('Partner approved successfully. Email sent to partner.');
+        // Refresh partners list
+        const fetchPartners = async () => {
+          const pendingResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=pending`, {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+            },
+          });
+          const pendingData = await pendingResponse.json();
+          if (pendingResponse.ok) {
+            setPendingPartners((pendingData.partners || []).map((p: any) => ({
+              id: String(p.id),
+              name: p.business_name || p.name,
+              email: p.email,
+              category: p.category?.name || 'N/A',
+              submittedDate: new Date(p.created_at).toLocaleDateString(),
+              status: p.status,
+            })));
+          }
+        };
+        fetchPartners();
+      } else {
+        setSuccessMessage(data.error || 'Failed to approve partner');
+      }
+    } catch (error) {
+      console.error('Error approving partner:', error);
+      setSuccessMessage('Error approving partner');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Handle reject partner
+  const handleRejectPartner = async (partnerId: string) => {
+    const reason = prompt('Enter rejection reason (optional):') || 'Application does not meet requirements';
+    setActionLoading(partnerId);
+    try {
+      const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+      const { getToken } = await import('../../services/authService');
+
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.rejectPartner(Number(partnerId))}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setSuccessMessage('Partner rejected. Email sent to partner.');
+        // Refresh partners list
+        const fetchPartners = async () => {
+          const pendingResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=pending`, {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+            },
+          });
+          const pendingData = await pendingResponse.json();
+          if (pendingResponse.ok) {
+            setPendingPartners((pendingData.partners || []).map((p: any) => ({
+              id: String(p.id),
+              name: p.business_name || p.name,
+              email: p.email,
+              category: p.category?.name || 'N/A',
+              submittedDate: new Date(p.created_at).toLocaleDateString(),
+              status: p.status,
+            })));
+          }
+        };
+        fetchPartners();
+      } else {
+        setSuccessMessage(data.error || 'Failed to reject partner');
+      }
+    } catch (error) {
+      console.error('Error rejecting partner:', error);
+      setSuccessMessage('Error rejecting partner');
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   // Handler for showing confirmation modal
   const handleFlagPartner = (partner: PendingPartner | ApprovedPartner) => {
@@ -111,29 +269,83 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
   };
 
   // Handler for confirming action
-  const handleConfirmAction = () => {
-    if (!confirmAction) return;
-    // If admin provided a note during confirmation, save it with the action type
-    const partnerId = confirmAction.partner?.id;
-    if (partnerId && confirmNoteText.trim()) {
-      addNoteForPartner(partnerId, {
-        text: confirmNoteText.trim(),
-        type: confirmAction.type,
-        date: new Date().toISOString(),
-      });
-    }
-    // Simulate async success
-    setTimeout(() => {
-      if (confirmAction.type === 'flag') {
+  const handleConfirmAction = async () => {
+    if (!confirmAction || !confirmAction.partner) return;
+    
+    const partnerId = confirmAction.partner.id;
+    setActionLoading(partnerId);
+    
+    try {
+      const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+      const { getToken } = await import('../../services/authService');
+
+      let response;
+      if (confirmAction.type === 'suspend') {
+        response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.suspendPartner(Number(partnerId))}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+          body: JSON.stringify({ reason: confirmNoteText.trim() || 'Suspended by admin' }),
+        });
+      } else if (confirmAction.type === 'flag') {
+        // Flag is just a note for now - you can add a flag API endpoint if needed
+        if (partnerId && confirmNoteText.trim()) {
+          addNoteForPartner(partnerId, {
+            text: confirmNoteText.trim(),
+            type: confirmAction.type,
+            date: new Date().toISOString(),
+          });
+        }
         setSuccessMessage('Successfully flagged the partner.');
-      } else if (confirmAction.type === 'delete') {
-        setSuccessMessage('Successfully deleted the partner.');
-      } else if (confirmAction.type === 'suspend') {
-        setSuccessMessage('Successfully suspended the partner.');
+        setConfirmAction(null);
+        setConfirmNoteText('');
+        setActionLoading(null);
+        return;
+      } else {
+        setActionLoading(null);
+        return;
       }
+
+      const data = await response.json();
+      if (response.ok) {
+        if (confirmAction.type === 'suspend') {
+          setSuccessMessage('Successfully suspended the partner.');
+        }
+        // Refresh partners list
+        const fetchPartners = async () => {
+          const approvedResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.partners}?status=approved`, {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+            },
+          });
+          const approvedData = await approvedResponse.json();
+          if (approvedResponse.ok) {
+            setApprovedPartners((approvedData.partners || []).map((p: any) => ({
+              id: String(p.id),
+              name: p.business_name || p.name,
+              totalEvents: p.total_events || 0,
+              totalRevenue: `KES ${(p.total_revenue || 0).toLocaleString()}`,
+              rating: p.rating || 0,
+              status: p.status,
+              category: p.category?.name,
+            })));
+          }
+        };
+        fetchPartners();
+      } else {
+        setSuccessMessage(data.error || 'Failed to perform action');
+      }
+    } catch (error) {
+      console.error('Error performing action:', error);
+      setSuccessMessage('Error performing action');
+    } finally {
       setConfirmAction(null);
       setConfirmNoteText('');
-    }, 700);
+      setActionLoading(null);
+    }
   };
 
   // Handler for closing success message
@@ -144,8 +356,13 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
       {/* Pending Partner Applications */}
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Pending Partner Applications</h2>
-        <div className="flex flex-col gap-y-4">
-          {pendingPartners.map((partner) => (
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading...</div>
+        ) : pendingPartners.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">No pending partner applications</div>
+        ) : (
+          <div className="flex flex-col gap-y-4">
+            {pendingPartners.map((partner) => (
             <div
               key={partner.id}
               className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border border-gray-100 dark:border-gray-700 cursor-pointer w-full"
@@ -172,19 +389,23 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                   <button
-                    className="px-6 py-2.5 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center space-x-2 w-full sm:w-auto"
-                    onClick={(e) => {
+                    className="px-6 py-2.5 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center space-x-2 w-full sm:w-auto disabled:opacity-50"
+                    onClick={async (e) => {
                       e.stopPropagation();
+                      await handleApprovePartner(partner.id);
                     }}
+                    disabled={loading || actionLoading === partner.id}
                   >
                     <CheckCircle className="w-4 h-4" />
-                    <span>Approve</span>
+                    <span>{actionLoading === partner.id ? 'Processing...' : 'Approve'}</span>
                   </button>
                   <button
-                    className="px-6 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center space-x-2 w-full sm:w-auto"
-                    onClick={(e) => {
+                    className="px-6 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center space-x-2 w-full sm:w-auto disabled:opacity-50"
+                    onClick={async (e) => {
                       e.stopPropagation();
+                      await handleRejectPartner(partner.id);
                     }}
+                    disabled={loading || actionLoading === partner.id}
                   >
                     <XCircle className="w-4 h-4" />
                     <span>Reject</span>
@@ -193,7 +414,8 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
               </div>
             </div>
           ))}
-        </div>
+          </div>
+        )}
         {/* Partner Details Modal */}
         {selectedPartner && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
@@ -357,8 +579,13 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
             ))}
           </select>
         </div>
-        <div className="flex flex-col gap-y-4">
-          {filteredPartners.map((partner) => (
+        {loading ? (
+          <div className="text-center py-8 text-gray-500">Loading...</div>
+        ) : filteredPartners.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">No active partners found</div>
+        ) : (
+          <div className="flex flex-col gap-y-4">
+            {filteredPartners.map((partner) => (
             <div
               key={partner.id}
               className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border border-gray-100 dark:border-gray-700 w-full"
@@ -464,8 +691,9 @@ export default function PartnersSection({ pendingPartners, approvedPartners }: P
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
