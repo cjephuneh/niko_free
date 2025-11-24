@@ -1,10 +1,10 @@
-import { Menu, X, LogIn, Moon, Sun, User } from 'lucide-react';
+import { Menu, X, LogIn, Moon, Sun, User, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import LoginModal from './LoginModal';
 import logo from '../images/Niko Free Logo.png';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { getUser } from '../services/authService';
+import { getUser, isAdmin } from '../services/authService';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
@@ -28,6 +28,8 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
       setUser(null);
     }
   }, [isAuthenticated]);
+
+  const userIsAdmin = user && isAdmin();
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -210,27 +212,47 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
                   <User className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5" />
                   <span className="hidden lg:inline text-xs md:text-sm">
                     {user.first_name || user.email?.split('@')[0] || 'User'}
+                    {userIsAdmin && (
+                      <span className="ml-1.5 px-1.5 py-0.5 text-[10px] bg-[#27aae2] text-white rounded">Admin</span>
+                    )}
                   </span>
                 </button>
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50 user-menu-container">
                     <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                        {user.first_name} {user.last_name}
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                        <span>{user.first_name} {user.last_name}</span>
+                        {userIsAdmin && (
+                          <span className="px-2 py-0.5 text-xs bg-[#27aae2] text-white rounded-full">Admin</span>
+                        )}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {user.email}
                       </p>
                     </div>
-                    <button
-                      onClick={() => {
-                        onNavigate('user-dashboard');
-                        setShowUserMenu(false);
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      Dashboard
-                    </button>
+                    {userIsAdmin && (
+                      <button
+                        onClick={() => {
+                          onNavigate('admin-dashboard');
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-2"
+                      >
+                        <Shield className="w-4 h-4" />
+                        <span>Admin Dashboard</span>
+                      </button>
+                    )}
+                    {!userIsAdmin && (
+                      <button
+                        onClick={() => {
+                          onNavigate('user-dashboard');
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        Dashboard
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         logout();
@@ -354,20 +376,37 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
                 <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
                     {user.first_name} {user.last_name}
+                    {userIsAdmin && (
+                      <span className="ml-2 px-2 py-0.5 text-xs bg-[#27aae2] text-white rounded-full">Admin</span>
+                    )}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {user.email}
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    onNavigate('user-dashboard');
-                    setMobileMenuOpen(false);
-                  }}
-                  className="block w-full px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium text-left"
-                >
-                  Dashboard
-                </button>
+                {userIsAdmin && (
+                  <button
+                    onClick={() => {
+                      onNavigate('admin-dashboard');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block w-full px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium text-left flex items-center space-x-2"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span>Admin Dashboard</span>
+                  </button>
+                )}
+                {!userIsAdmin && (
+                  <button
+                    onClick={() => {
+                      onNavigate('user-dashboard');
+                      setMobileMenuOpen(false);
+                    }}
+                    className="block w-full px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium text-left"
+                  >
+                    Dashboard
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     logout();

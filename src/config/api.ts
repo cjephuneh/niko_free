@@ -4,7 +4,7 @@
  */
 
 // Base URL for the API - defaults to localhost:5001 for development
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://nikofree-server.onrender.com';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 
 // API Endpoints
@@ -13,12 +13,35 @@ export const API_ENDPOINTS = {
   auth: {
     register: `${API_BASE_URL}/api/auth/register`,
     login: `${API_BASE_URL}/api/auth/login`,
+    adminLogin: `${API_BASE_URL}/api/auth/admin/login`,
     googleLogin: `${API_BASE_URL}/api/auth/google`,
     appleLogin: `${API_BASE_URL}/api/auth/apple`,
     refresh: `${API_BASE_URL}/api/auth/refresh`,
     verify: `${API_BASE_URL}/api/auth/verify`,
     forgotPassword: `${API_BASE_URL}/api/auth/forgot-password`,
     resetPassword: `${API_BASE_URL}/api/auth/reset-password`,
+  },
+  
+  // Admin
+  admin: {
+    dashboard: `${API_BASE_URL}/api/admin/dashboard`,
+    partners: `${API_BASE_URL}/api/admin/partners`,
+    partner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}`,
+    approvePartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/approve`,
+    rejectPartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/reject`,
+    suspendPartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/suspend`,
+    activatePartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/activate`,
+    events: `${API_BASE_URL}/api/admin/events`,
+    approveEvent: (id: number) => `${API_BASE_URL}/api/admin/events/${id}/approve`,
+    rejectEvent: (id: number) => `${API_BASE_URL}/api/admin/events/${id}/reject`,
+    featureEvent: (id: number) => `${API_BASE_URL}/api/admin/events/${id}/feature`,
+    users: `${API_BASE_URL}/api/admin/users`,
+    categories: `${API_BASE_URL}/api/admin/categories`,
+    locations: `${API_BASE_URL}/api/admin/locations`,
+    analytics: `${API_BASE_URL}/api/admin/analytics`,
+    payouts: `${API_BASE_URL}/api/admin/payouts`,
+    approvePayout: (id: number) => `${API_BASE_URL}/api/admin/payouts/${id}/approve`,
+    logs: `${API_BASE_URL}/api/admin/logs`,
   },
   
   // Partner

@@ -29,7 +29,7 @@ class Config:
     JWT_HEADER_TYPE = 'Bearer'
     
     # CORS
-    CORS_ORIGINS = os.getenv('FRONTEND_URL', 'http://localhost:3000').split(',')
+    CORS_ORIGINS = os.getenv('FRONTEND_URL', 'http://localhost:5173').split(',')
     
     # File Upload
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB

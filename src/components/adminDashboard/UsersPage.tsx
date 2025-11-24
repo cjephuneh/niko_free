@@ -1,41 +1,60 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { User } from 'lucide-react';
 
 import UserDetailPage from './UserDetailPage';
 
-// Dummy user data for demonstration
-const users = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@email.com',
-    joined: '2024-01-15',
-    status: 'Active',
-    flagged: false,
-    phone: '+1 555-123-4567',
-  },
-  {
-    id: '4',
-    name: 'John Doe',
-    email: 'john.doe@email.com',
-    joined: '2024-03-22',
-    status: 'Active',
-    flagged: false,
-    phone: '+1 555-987-6543',
-  },
-];
-
 export default function UsersPage() {
   const [viewUser, setViewUser] = React.useState<any | null>(null);
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [userList, setUserList] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+        const { getToken } = await import('../../services/authService');
+
+        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.admin.users}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          // Filter out admin users (check if email matches ADMIN_EMAIL or if is_admin is true)
+          const regularUsers = (data.users || []).map((u: any) => ({
+            id: String(u.id),
+            name: `${u.first_name} ${u.last_name}`,
+            email: u.email,
+            joined: u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A',
+            status: u.is_active ? 'Active' : 'Inactive',
+            flagged: false, // You can add a flagged field to the User model if needed
+            phone: u.phone_number || 'No phone',
+            first_name: u.first_name,
+            last_name: u.last_name,
+            is_active: u.is_active,
+            is_verified: u.is_verified,
+            created_at: u.created_at,
+            phone_number: u.phone_number,
+          }));
+          setUserList(regularUsers);
+        }
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleSelect = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
-  // Only show users who are not partners or admins
-  const regularUsers = users.filter(user => !user.email.includes('admin') && !user.email.includes('partner'));
-
-  const [userList, setUserList] = React.useState(regularUsers);
 
   const handleFlag = (id: string) => {
     setUserList(prev => prev.map(u => u.id === id ? { ...u, flagged: !u.flagged } : u));
@@ -56,6 +75,12 @@ export default function UsersPage() {
         <User className="w-6 h-6 text-[#27aae2]" />
         All Users
       </h2>
+      {loading ? (
+        <div className="text-center py-8 text-gray-500">Loading users...</div>
+      ) : userList.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">No users found</div>
+      ) : (
+        <>
       {/* Mobile Card Layout */}
       <div className="block sm:hidden space-y-4">
         {userList.map(user => (
@@ -171,6 +196,8 @@ export default function UsersPage() {
           </tbody>
         </table>
       </div>
+        </>
+      )}
     </div>
   );
 }

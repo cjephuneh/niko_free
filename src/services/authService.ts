@@ -199,3 +199,55 @@ export const partnerLogin = async (data: PartnerLoginData): Promise<PartnerAuthR
   return responseData;
 };
 
+// Admin login
+interface AdminLoginData {
+  email: string;
+  password: string;
+  keep_logged_in?: boolean;
+}
+
+interface AdminAuthResponse {
+  access_token: string;
+  refresh_token?: string;
+  user: {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+    is_admin: boolean;
+  };
+}
+
+export const adminLogin = async (data: AdminLoginData): Promise<AdminAuthResponse> => {
+  const response = await fetch(API_ENDPOINTS.auth.adminLogin, {
+    method: 'POST',
+    mode: 'cors',
+    credentials: 'omit',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  const responseData = await response.json();
+
+  if (!response.ok) {
+    throw new Error(responseData.error || 'Login failed');
+  }
+
+  // Store token and admin user data
+  if (responseData.access_token) {
+    setToken(responseData.access_token);
+    setUser(responseData.user);
+  }
+
+  return responseData;
+};
+
+// Check if user is admin
+export const isAdmin = (): boolean => {
+  const user = getUser();
+  return user?.is_admin === true;
+};
+

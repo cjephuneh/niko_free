@@ -1,9 +1,8 @@
-from flask import Flask
+from flask import Flask, request, jsonify, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
 from flask_mail import Mail
-from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from config import config
@@ -16,7 +15,8 @@ mail = Mail()
 limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://"
+    storage_uri="memory://",
+    exempt_methods=["OPTIONS"]
 )
 
 
@@ -30,7 +30,9 @@ def create_app(config_name='default'):
     migrate.init_app(app, db)
     jwt.init_app(app)
     mail.init_app(app)
-    CORS(app, origins=app.config['CORS_ORIGINS'])
+    # Disable strict slashes to prevent redirects
+    app.url_map.strict_slashes = False
+    
     limiter.init_app(app)
     
     # Register blueprints
@@ -45,10 +47,53 @@ def create_app(config_name='default'):
     app.register_blueprint(payments.bp, url_prefix='/api/payments')
     app.register_blueprint(notifications.bp, url_prefix='/api/notifications')
     
+    # Catch-all OPTIONS handler - must be after blueprints
+    @app.route('/', defaults={'path': ''}, methods=['OPTIONS'])
+    @app.route('/<path:path>', methods=['OPTIONS'])
+    def handle_options(path):
+        """Handle all OPTIONS requests"""
+        response = Response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response, 200
+    
+    # Handle OPTIONS in before_request as backup
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            response = Response()
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers')
+            response.headers.add('Access-Control-Max-Age', '3600')
+            return response, 200
+    
+    # Add CORS headers to all responses
+    @app.after_request
+    def after_request(response):
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers')
+        response.headers.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD')
+        response.headers.add('Access-Control-Max-Age', '3600')
+        return response
+    
     # Health check endpoint
     @app.route('/health')
     def health_check():
         return {'status': 'healthy', 'message': 'Niko Free API is running'}, 200
+    
+    # Test CORS endpoint
+    @app.route('/test-cors', methods=['GET', 'POST', 'OPTIONS'])
+    def test_cors():
+        if request.method == 'OPTIONS':
+            response = jsonify({'message': 'CORS test'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            return response
+        return jsonify({'message': 'CORS is working', 'method': request.method}), 200
     
     @app.route('/')
     def index():
@@ -59,4 +104,5 @@ def create_app(config_name='default'):
         }, 200
     
     return app
+
 
