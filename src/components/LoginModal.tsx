@@ -1,7 +1,7 @@
 import { X, Mail, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { register, login, forgotPassword } from '../services/authService';
+import { register, login, forgotPassword, partnerLogin } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
 
 interface LoginModalProps {
@@ -26,6 +26,13 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
   const [error, setError] = useState('');
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  // Partner login state (moved from PartnerLoginModal)
+  const [showPartnerLogin, setShowPartnerLogin] = useState(false);
+  const [partnerEmail, setPartnerEmail] = useState('');
+  const [partnerPassword, setPartnerPassword] = useState('');
+  const [partnerShowPassword, setPartnerShowPassword] = useState(false);
+  const [partnerIsLoading, setPartnerIsLoading] = useState(false);
+  const [partnerError, setPartnerError] = useState('');
 
   if (!isOpen) return null;
 
@@ -222,6 +229,26 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
                 >
                   <Mail className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                   <span className="font-medium text-gray-700 dark:text-gray-300">Continue with Email</span>
+                </button>
+              </div>
+
+              {/* OR divider + Partner Login */}
+              <div className="flex items-center my-4">
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                <div className="px-3 text-xs text-gray-400">OR</div>
+                <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+              </div>
+
+              <div className="mb-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Open partner login modal inside this component
+                    setShowPartnerLogin(true);
+                  }}
+                  className="w-full px-4 py-3.5 bg-white dark:bg-gray-700 border border-[#27aae2] text-[#27aae2] rounded-xl font-medium hover:bg-[#27aae2]/10 transition-colors"
+                >
+                  Partner Login
                 </button>
               </div>
 
@@ -663,6 +690,127 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
                     </div>
                   </>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Partner Login Modal (moved here) */}
+      {showPartnerLogin && (
+        <div className="fixed inset-0 z-[10000] overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-80 backdrop-blur-sm"
+              onClick={() => {
+                setShowPartnerLogin(false);
+                setPartnerEmail('');
+                setPartnerPassword('');
+                setPartnerError('');
+                setPartnerIsLoading(false);
+              }}
+            ></div>
+
+            {/* Center modal */}
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full relative z-10">
+              {/* Close button */}
+              <button
+                onClick={() => {
+                  setShowPartnerLogin(false);
+                  setPartnerEmail('');
+                  setPartnerPassword('');
+                  setPartnerError('');
+                  setPartnerIsLoading(false);
+                }}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors z-10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="bg-white dark:bg-gray-800 px-8 pt-8 pb-8">
+                {/* Title */}
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
+                  Partner Login
+                </h2>
+                <p className="text-center text-gray-600 dark:text-gray-400 mb-6">Log in to your partner dashboard</p>
+
+                {partnerError && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 rounded-xl p-3 flex items-start space-x-2 mb-4">
+                    <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700 dark:text-red-400">{partnerError}</p>
+                  </div>
+                )}
+
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setPartnerError('');
+                    setPartnerIsLoading(true);
+                    try {
+                      await partnerLogin({ email: partnerEmail.trim().toLowerCase(), password: partnerPassword });
+                      setShowPartnerLogin(false);
+                      setPartnerEmail('');
+                      setPartnerPassword('');
+                      onClose();
+                      onNavigate('partner-dashboard');
+                    } catch (err: any) {
+                      console.error('Partner login error:', err);
+                      setPartnerError(err.message || 'An error occurred. Please try again.');
+                    } finally {
+                      setPartnerIsLoading(false);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label htmlFor="partnerEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email</label>
+                    <input
+                      id="partnerEmail"
+                      type="email"
+                      value={partnerEmail}
+                      onChange={(e) => setPartnerEmail(e.target.value)}
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="partnerPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
+                    <div className="relative">
+                      <input
+                        id="partnerPassword"
+                        type={partnerShowPassword ? 'text' : 'password'}
+                        value={partnerPassword}
+                        onChange={(e) => setPartnerPassword(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setPartnerShowPassword(s => !s)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        {partnerShowPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={partnerIsLoading}
+                    className={`w-full px-4 py-3.5 text-white rounded-xl font-medium transition-all flex items-center justify-center space-x-2 mt-6 ${partnerIsLoading ? 'opacity-70 cursor-not-allowed' : 'hover:shadow-lg transform hover:scale-105'}`}
+                    style={{ background: 'linear-gradient(to right, #27aae2, #1a8ec4)' }}
+                  >
+                    {partnerIsLoading ? (
+                      <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    ) : (
+                      'Log In'
+                    )}
+                  </button>
+                </form>
               </div>
             </div>
           </div>
