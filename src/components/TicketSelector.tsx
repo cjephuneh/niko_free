@@ -47,7 +47,7 @@ interface TicketSelectorProps {
   onSelectTicketType: (ticketId: string) => void;
   onSelectTimeSlot: (slotId: string) => void;
   isRSVPed: boolean;
-  onBuyTicket: () => void;
+  onBuyTicket: (ticketId?: string, quantity?: number) => void;
 }
 
 export default function TicketSelector({
@@ -318,7 +318,24 @@ export default function TicketSelector({
       )}
 
       <button
-        onClick={onBuyTicket}
+        onClick={() => {
+          // Get the selected ticket ID and quantity
+          let ticketId: string | undefined;
+          let qty: number = 1;
+          
+          if (ticketType === 'uniform' && tickets.uniform && tickets.uniform.length > 0) {
+            ticketId = tickets.uniform[0].id;
+            qty = getQuantity(tickets.uniform[0].id);
+          } else if (selectedTicketType) {
+            ticketId = selectedTicketType;
+            qty = getQuantity(selectedTicketType);
+          } else if (selectedTimeSlot) {
+            ticketId = selectedTimeSlot;
+            qty = getQuantity(selectedTimeSlot);
+          }
+          
+          onBuyTicket(ticketId, qty);
+        }}
         disabled={ticketType !== 'uniform' && !selectedTicketType && !selectedTimeSlot}
         className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform hover:scale-105 ${
           isRSVPed

@@ -5,7 +5,10 @@ import Footer from '../components/Footer';
 import LoginModal from '../components/LoginModal';
 import TicketSelector from '../components/TicketSelector';
 import EventActions from '../components/EventActions';
+import PaymentModal from '../components/PaymentModal';
 import { getEventDetails } from '../services/eventService';
+import { bookTicket } from '../services/paymentService';
+import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../config/api';
 
 interface EventDetailPageProps {
@@ -14,13 +17,19 @@ interface EventDetailPageProps {
 }
 
 export default function EventDetailPage({ eventId, onNavigate }: EventDetailPageProps) {
+  const { isAuthenticated } = useAuth();
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedTicketType, setSelectedTicketType] = useState<string>('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
+  const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
   const [copyLinkText, setCopyLinkText] = useState('Copy Link');
   const [eventData, setEventData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBooking, setIsBooking] = useState(false);
+  const [bookingData, setBookingData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Fetch event details from API
   useEffect(() => {
@@ -115,6 +124,77 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       }
       document.body.removeChild(textArea);
     }
+  };
+
+  // Handle ticket booking
+  const handleBuyTicket = async (ticketId?: string, quantity: number = 1) => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (!eventData) return;
+
+    // Get selected ticket type
+    const ticketTypes = eventData.ticket_types || [];
+    let ticketTypeId: number | null = null;
+
+    if (ticketTypes.length > 0) {
+      // If a specific ticket type is selected, use it
+      if (selectedTicketType) {
+        const selected = ticketTypes.find((tt: any) => tt.id?.toString() === selectedTicketType);
+        ticketTypeId = selected?.id || ticketTypes[0].id;
+      } else {
+        // Use first available ticket type
+        ticketTypeId = ticketTypes[0].id;
+      }
+    }
+
+    if (!ticketTypeId && !eventData.is_free) {
+      setError('Please select a ticket type');
+      return;
+    }
+
+    setIsBooking(true);
+    setError(null);
+    setSuccessMessage(null);
+    setSelectedQuantity(quantity);
+
+    try {
+      // Book the ticket
+      const bookingResult = await bookTicket({
+        event_id: parseInt(eventId),
+        ticket_type_id: ticketTypeId || 1, // Default to 1 if free event
+        quantity: quantity,
+      });
+
+      setBookingData(bookingResult);
+
+      // If event is free, booking is automatically confirmed
+      if (eventData.is_free || !bookingResult.requires_payment) {
+        setSuccessMessage('Booking confirmed! Check your email for tickets.');
+        // Refresh event data to update attendee count
+        const updatedData = await getEventDetails(parseInt(eventId));
+        setEventData(updatedData);
+      } else {
+        // Show payment modal for paid events
+        setShowPaymentModal(true);
+      }
+    } catch (err: any) {
+      console.error('Booking error:', err);
+      setError(err.message || 'Failed to book ticket. Please try again.');
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
+  // Handle payment success
+  const handlePaymentSuccess = () => {
+    setSuccessMessage('Payment successful! Your tickets have been confirmed. Check your email.');
+    setShowPaymentModal(false);
+    // Refresh event data
+    getEventDetails(parseInt(eventId)).then(setEventData).catch(console.error);
   };
 
   // Loading state
@@ -389,16 +469,56 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                 )}
 
                 {/* Ticketing Section */}
-                <TicketSelector
-                  ticketType={ticketType}
-                  tickets={tickets}
-                  selectedTicketType={selectedTicketType}
-                  selectedTimeSlot={selectedTimeSlot}
-                  onSelectTicketType={setSelectedTicketType}
-                  onSelectTimeSlot={setSelectedTimeSlot}
-                  isRSVPed={false}
-                  onBuyTicket={() => setShowLoginModal(true)}
-                />
+                {successMessage ? (
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-green-500">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Success!</h3>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">{successMessage}</p>
+                      <button
+                        onClick={() => {
+                          setSuccessMessage(null);
+                          onNavigate('user-dashboard');
+                        }}
+                        className="px-6 py-2 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bb8] transition-colors"
+                      >
+                        View My Tickets
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <TicketSelector
+                    ticketType={ticketType}
+                    tickets={tickets}
+                    selectedTicketType={selectedTicketType}
+                    selectedTimeSlot={selectedTimeSlot}
+                    onSelectTicketType={setSelectedTicketType}
+                    onSelectTimeSlot={setSelectedTimeSlot}
+                    isRSVPed={false}
+                    onBuyTicket={handleBuyTicket}
+                  />
+                )}
+
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mt-4">
+                    <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                  </div>
+                )}
+
+                {/* Loading State */}
+                {isBooking && (
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg mt-4">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27aae2] mx-auto mb-2"></div>
+                      <p className="text-gray-600 dark:text-gray-400">Processing booking...</p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Event Actions */}
                 <EventActions />
@@ -441,6 +561,18 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
         onClose={() => setShowLoginModal(false)}
         onNavigate={onNavigate}
       />
+
+      {/* Payment Modal */}
+      {bookingData && bookingData.booking && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          bookingId={bookingData.booking.id}
+          amount={parseFloat(bookingData.booking.total_amount || bookingData.amount || 0)}
+          eventTitle={eventData.title}
+          onPaymentSuccess={handlePaymentSuccess}
+        />
+      )}
     </div>
   );
 }

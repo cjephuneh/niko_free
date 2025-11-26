@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { createEvent, getEvent, updateEvent } from '../../services/partnerService';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
+import { getCategories } from '../../services/eventService';
 
 interface CreateEventProps {
   isOpen: boolean;
@@ -62,8 +63,9 @@ interface EventFormData {
   isFree: boolean;
   ticketTypes: TicketType[];
   
-  // Step 7: Promo Codes (Hosts removed)
+  // Step 7: Promo Codes & Hosts
   promoCodes: PromoCode[];
+  hosts: Host[];
 }
 
 interface TicketType {
@@ -109,6 +111,14 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
   const [error, setError] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showCustomTicketForm, setShowCustomTicketForm] = useState(false);
+  const [customTicket, setCustomTicket] = useState<Partial<TicketType>>({
+    name: '',
+    ticketStructure: 'basic',
+    price: 0,
+    quantity: 0,
+  });
   const isEditMode = !!eventId;
   const [formData, setFormData] = useState<EventFormData>({
     locationType: 'physical',
@@ -130,10 +140,60 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
     isUnlimited: true,
     isFree: true,
     ticketTypes: [],
-    promoCodes: []
+    promoCodes: [],
+    hosts: []
   });
 
   const totalSteps = 7;
+
+  // Fetch categories on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await getCategories();
+        if (response.categories) {
+          setCategories(response.categories);
+        } else if (Array.isArray(response)) {
+          setCategories(response);
+        }
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+      }
+    };
+    
+    if (isOpen) {
+      fetchCategories();
+    }
+  }, [isOpen]);
+
+  // Load event data if editing
+  useEffect(() => {
+    const loadEventData = async () => {
+      if (isEditMode && eventId) {
+        setIsLoadingEvent(true);
+        try {
+          const eventData = await getEvent(eventId);
+          // Populate form with event data
+          // This is a simplified version - you may need to adjust based on your API response
+          setFormData(prev => ({
+            ...prev,
+            eventName: eventData.title || '',
+            description: eventData.description || '',
+            // Add other fields as needed
+          }));
+        } catch (err) {
+          console.error('Failed to load event:', err);
+          setError('Failed to load event data');
+        } finally {
+          setIsLoadingEvent(false);
+        }
+      }
+    };
+    
+    if (isOpen && isEditMode && eventId) {
+      loadEventData();
+    }
+  }, [isOpen, isEditMode, eventId]);
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
@@ -280,25 +340,207 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
     }));
   };
 
-  const handleSubmit = () => {
-    // Submit event for approval
-    console.log('Event submitted:', formData);
-    alert('Event submitted for approval! You will be notified once it\'s approved.');
+  const handleCustomTicketSave = () => {
+    if (!customTicket.name || customTicket.price === undefined || customTicket.quantity === undefined) {
+      alert('Please fill in all required fields for the ticket.');
+      return;
+    }
+    
+    const newTicket: TicketType = {
+      id: Date.now().toString(),
+      name: customTicket.name,
+      ticketStructure: customTicket.ticketStructure || 'basic',
+      classType: customTicket.classType,
+      loyaltyType: customTicket.loyaltyType,
+      seasonType: customTicket.seasonType,
+      seasonDuration: customTicket.seasonDuration,
+      timeslot: customTicket.timeslot,
+      price: customTicket.price || 0,
+      quantity: customTicket.quantity || 0,
+      vatIncluded: false,
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      ticketTypes: [...prev.ticketTypes, newTicket]
+    }));
+    
+    // Reset custom ticket form
+    setCustomTicket({
+      name: '',
+      ticketStructure: 'basic',
+      price: 0,
+      quantity: 0,
+    });
+    setShowCustomTicketForm(false);
+  };
+
+  const handleCustomTicketCancel = () => {
+    setCustomTicket({
+      name: '',
+      ticketStructure: 'basic',
+      price: 0,
+      quantity: 0,
+    });
+    setShowCustomTicketForm(false);
+  };
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Validate required fields
+      if (!formData.eventName) {
+        setError('Event name is required');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!formData.startDate || !formData.startTime) {
+        setError('Start date and time are required');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (formData.closedCategories.length === 0) {
+        setError('Please select at least one category');
+        setIsLoading(false);
+        return;
+      }
+      
+      if (!formData.isFree && formData.ticketTypes.length === 0) {
+        setError('Please add at least one ticket type for paid events');
+        setIsLoading(false);
+        return;
+      }
+      
+      // Prepare form data
+      const formDataToSend = new FormData();
+      
+      // Add all form fields
+      formDataToSend.append('title', formData.eventName);
+      formDataToSend.append('description', formData.description || '');
+      formDataToSend.append('category_id', formData.closedCategories[0] || '');
+      formDataToSend.append('location_type', formData.locationType);
+      
+      if (formData.locationName) {
+        formDataToSend.append('venue_name', formData.locationName);
+        formDataToSend.append('venue_address', formData.locationName);
+      }
+      
+      if (formData.coordinates) {
+        formDataToSend.append('latitude', formData.coordinates.lat.toString());
+        formDataToSend.append('longitude', formData.coordinates.lng.toString());
+      }
+      
+      if (formData.onlineLink) {
+        formDataToSend.append('online_link', formData.onlineLink);
+      }
+      
+      // Date and time
+      const startDateTime = `${formData.startDate}T${formData.startTime}:00`;
+      formDataToSend.append('start_date', startDateTime);
+      
+      if (formData.endDate) {
+        const endDateTime = `${formData.endDate}T${formData.endTime || '23:59'}:00`;
+        formDataToSend.append('end_date', endDateTime);
+      }
+      
+      formDataToSend.append('is_free', formData.isFree ? 'true' : 'false');
+      
+      // Add poster image if available
+      if (formData.eventPhoto) {
+        formDataToSend.append('poster_image', formData.eventPhoto);
+      }
+      
+      // Add interests
+      if (formData.openInterests.length > 0) {
+        formDataToSend.append('interests', JSON.stringify(formData.openInterests));
+      }
+      
+      // Add ticket types
+      if (formData.ticketTypes.length > 0) {
+        formDataToSend.append('ticket_types', JSON.stringify(formData.ticketTypes.map(t => ({
+          name: t.name,
+          ticket_structure: t.ticketStructure,
+          class_type: t.classType,
+          loyalty_type: t.loyaltyType,
+          season_type: t.seasonType,
+          season_duration: t.seasonDuration,
+          timeslot: t.timeslot,
+          price: t.price,
+          quantity: t.quantity,
+        }))));
+      }
+      
+      // Add promo codes
+      if (formData.promoCodes.length > 0) {
+        formDataToSend.append('promo_codes', JSON.stringify(formData.promoCodes.map(p => ({
+          code: p.code,
+          discount_type: p.discountType,
+          discount: p.discount,
+          max_uses: p.maxUses,
+          expiry_date: p.expiryDate,
+        }))));
+      }
+      
+      // Submit event
+      if (isEditMode && eventId) {
+        await updateEvent(eventId, formDataToSend);
+      } else {
+        await createEvent(formDataToSend);
+      }
+      
+      setShowSuccess(true);
+      if (onEventCreated) {
+        onEventCreated();
+      }
+      
+      // Auto-close after 3 seconds
+      setTimeout(() => {
+        setShowSuccess(false);
     onClose();
+      }, 3000);
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to submit event. Please try again.');
+      console.error('Error submitting event:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isOpen) return null;
   if (showSuccess) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 max-w-md w-full text-center relative">
+          <button
+            onClick={() => {
+              setShowSuccess(false);
+              onClose();
+            }}
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
           <h2 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-4">Successfully created your event!</h2>
           <p className="text-gray-700 dark:text-gray-300 mb-6">Wait for admin approval. You will be notified once your event is approved.</p>
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-6">
             <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2l4-4m5 2a9 9 0 11-18 0a9 9 0 0118 0z" />
             </svg>
           </div>
+          <button
+            onClick={() => {
+              setShowSuccess(false);
+              onClose();
+            }}
+            className="px-6 py-2 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bb8] transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     );
@@ -338,6 +580,20 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
               />
             </div>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mx-6 mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+              <button
+                onClick={() => setError('')}
+                className="ml-auto text-red-500 hover:text-red-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
 
           {/* Content */}
           <div className="px-6 py-6 max-h-[60vh] overflow-y-auto">
