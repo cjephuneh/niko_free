@@ -1,6 +1,6 @@
 import { TrendingUp, DollarSign, Wallet, ArrowDownRight, Calendar, Users, Eye, Download, ArrowUpRight, ChevronLeft, ChevronRight, X, MapPin, Clock, Tag, Ticket, Sparkles, Globe, Video } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getPartnerEvents, getPartnerToken } from '../../services/partnerService';
+import { getPartnerEvents, getPartnerToken, getPartnerProfile } from '../../services/partnerService';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
 import { createPortal } from 'react-dom';
 
@@ -37,12 +37,56 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
   const [eventHistory, setEventHistory] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<EventDetails | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [financialData, setFinancialData] = useState({
+    netEarnings: 0,
+    amountWithdrawn: 0,
+    currentBalance: 0,
+    grossRevenue: 0
+  });
   const eventsPerPage = 5;
 
   // Fetch data on mount
   useEffect(() => {
     fetchData();
+    fetchFinancialData();
   }, []);
+
+  const fetchFinancialData = async () => {
+    try {
+      const token = getPartnerToken();
+      if (!token) return;
+
+      // Fetch dashboard data which includes financial stats
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.dashboard}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const stats = data.stats || {};
+        
+        // Calculate financial metrics
+        const totalEarnings = parseFloat(stats.total_earnings || 0); // Net earnings (after 7% deduction)
+        const withdrawnEarnings = parseFloat(stats.withdrawn_earnings || 0);
+        const pendingEarnings = parseFloat(stats.pending_earnings || 0); // Available to withdraw
+        
+        // Gross revenue = net earnings / 0.93 (since 7% is deducted: net = gross * 0.93)
+        const grossRevenue = totalEarnings > 0 ? totalEarnings / 0.93 : 0;
+
+        setFinancialData({
+          netEarnings: totalEarnings,
+          amountWithdrawn: withdrawnEarnings,
+          currentBalance: pendingEarnings,
+          grossRevenue: grossRevenue
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching financial data:', err);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -123,11 +167,16 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
     }
   };
 
-  // Financial Stats - Net earnings after 7% deduction (using 0 for now)
+  // Format currency helper
+  const formatCurrency = (amount: number) => {
+    return `Ksh ${Math.round(amount).toLocaleString()}`;
+  };
+
+  // Financial Stats - Pulled from API
   const financialStats = [
     {
       label: 'Net Earnings',
-      value: 'Ksh 0',
+      value: formatCurrency(financialData.netEarnings),
       subtext: 'After 7% deduction',
       icon: TrendingUp,
       color: 'from-green-500 to-emerald-600',
@@ -136,21 +185,21 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
     },
     {
       label: 'Amount Withdrawn',
-      value: 'Ksh 0',
+      value: formatCurrency(financialData.amountWithdrawn),
       subtext: 'Total withdrawals',
       icon: ArrowDownRight,
       color: 'from-blue-500 to-cyan-600',
     },
     {
       label: 'Current Balance',
-      value: 'Ksh 0',
+      value: formatCurrency(financialData.currentBalance),
       subtext: 'Available to withdraw',
       icon: Wallet,
       color: 'from-purple-500 to-pink-600',
     },
     {
       label: 'Gross Revenue',
-      value: 'Ksh 0',
+      value: formatCurrency(financialData.grossRevenue),
       subtext: 'Before deductions',
       icon: DollarSign,
       color: 'from-orange-500 to-red-600',

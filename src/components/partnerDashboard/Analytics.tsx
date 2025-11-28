@@ -30,7 +30,12 @@ export default function Analytics() {
 				setLoading(true);
 				setError('');
 				const response = await getPartnerAnalytics(30);
-				setData(response);
+				console.log('Analytics response:', response);
+				if (response && (response.summary || response.last_7_days || response.last_24_hours)) {
+					setData(response);
+				} else {
+					throw new Error('Invalid response format from analytics API');
+				}
 			} catch (err: any) {
 				console.error('Error fetching analytics:', err);
 				setError(err.message || 'Failed to load analytics');
@@ -57,9 +62,22 @@ export default function Analytics() {
 		return (
 			<div className="p-6">
 				<h2 className="text-2xl font-bold mb-4 text-[#27aae2]">Analytics</h2>
-				<p className="text-red-600 dark:text-red-400 text-sm">
-					{error}
-				</p>
+				<div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+					<p className="text-red-600 dark:text-red-400 text-sm">
+						{error}
+					</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (!data) {
+		return (
+			<div className="p-6">
+				<h2 className="text-2xl font-bold mb-4 text-[#27aae2]">Analytics</h2>
+				<div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
+					<p className="text-gray-500 dark:text-gray-400">No analytics data available</p>
+				</div>
 			</div>
 		);
 	}

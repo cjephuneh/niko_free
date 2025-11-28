@@ -17,13 +17,14 @@ import Settings from '../components/partnerDashboard/Settings';
 import MyProfile from '../components/partnerDashboard/MyProfile';
 import CreateEvent from '../components/partnerDashboard/CreateEvent';
 import WithdrawFunds from '../components/partnerDashboard/WithdrawFunds';
+import Analytics from '../components/partnerDashboard/Analytics';
 
 interface PartnerDashboardProps {
   onNavigate: (page: string) => void;
 }
 
 export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'attendees' | 'boost' | 'notifications' | 'roles' | 'scanner' | 'verification' | 'settings' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'attendees' | 'boost' | 'analytics' | 'notifications' | 'roles' | 'scanner' | 'verification' | 'settings' | 'profile'>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [createEventOpen, setCreateEventOpen] = useState(false);
@@ -353,6 +354,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
             )}
             {activeTab === 'attendees' && <Attendees />}
             {activeTab === 'boost' && <BoostEvent />}
+            {activeTab === 'analytics' && <Analytics />}
             {activeTab === 'notifications' && <Notifications />}
             {activeTab === 'roles' && <AssignRoles />}
             {activeTab === 'scanner' && <TicketScanner />}
