@@ -48,6 +48,11 @@ interface TicketSelectorProps {
   onSelectTimeSlot: (slotId: string) => void;
   isRSVPed: boolean;
   onBuyTicket: (ticketId?: string, quantity?: number) => void;
+  promoCode?: string;
+  onPromoCodeChange?: (code: string) => void;
+  promoCodeError?: string;
+  isValidatingPromo?: boolean;
+  onValidatePromo?: () => void;
 }
 
 export default function TicketSelector({
@@ -58,7 +63,12 @@ export default function TicketSelector({
   onSelectTicketType,
   onSelectTimeSlot,
   isRSVPed,
-  onBuyTicket
+  onBuyTicket,
+  promoCode = '',
+  onPromoCodeChange,
+  promoCodeError = '',
+  isValidatingPromo = false,
+  onValidatePromo
 }: TicketSelectorProps) {
   // quantities keyed by ticket/slot id so each item can have its own count
   const [quantities, setQuantities] = React.useState<Record<string, number>>({});
@@ -93,7 +103,19 @@ export default function TicketSelector({
 
   const selectedTicket = getSelectedTicket();
   const selectedQuantity = selectedTicket ? getQuantity(selectedTicket.id) : 1;
-  const totalPrice = selectedTicket ? getTotalPrice(selectedTicket, selectedQuantity) : 0;
+  
+  // Get the actual selected ticket for uniform type (handle multiple ticket types)
+  let actualSelectedTicket = selectedTicket;
+  if (ticketType === 'uniform' && tickets.uniform && tickets.uniform.length > 0) {
+    // If multiple ticket types, find the selected one
+    if (selectedTicketType && tickets.uniform.length > 1) {
+      actualSelectedTicket = tickets.uniform.find((t: any) => t.id === selectedTicketType) || tickets.uniform[0];
+    } else {
+      actualSelectedTicket = tickets.uniform[0];
+    }
+  }
+  
+  const totalPrice = actualSelectedTicket ? getTotalPrice(actualSelectedTicket, getQuantity(actualSelectedTicket.id)) : 0;
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
@@ -321,32 +343,98 @@ export default function TicketSelector({
       {/* Uniform Ticket (Single Price) */}
       {ticketType === 'uniform' && tickets.uniform && tickets.uniform.length > 0 && (
         <div className="mb-6">
-          <div className="flex items-baseline justify-between mb-2">
-            <span className="text-3xl font-bold text-gray-900 dark:text-white">
-              {getTotalPrice(tickets.uniform[0], getQuantity(tickets.uniform[0].id)) === 0 ? 'Free' : `KES ${getTotalPrice(tickets.uniform[0], getQuantity(tickets.uniform[0].id)).toLocaleString()}`}
-            </span>
-            <span className="text-sm text-gray-600 dark:text-gray-400">total ({getQuantity(tickets.uniform[0].id)} × KES {tickets.uniform[0].price.toLocaleString()})</span>
+          {/* Ticket Type Selector - Show dropdown if multiple ticket types */}
+          {tickets.uniform.length > 1 && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select the type of ticket
+              </label>
+              <select
+                value={selectedTicketType || tickets.uniform[0].id}
+                onChange={(e) => {
+                  onSelectTicketType(e.target.value);
+                  setQuantityFor(e.target.value, 1);
+                }}
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#27aae2] focus:border-transparent"
+              >
+                {tickets.uniform.map((ticket) => (
+                  <option key={ticket.id} value={ticket.id}>
+                    {ticket.name} - KES {ticket.price.toLocaleString()} {ticket.available !== undefined && ticket.available !== null ? `(${ticket.available} available)` : '(Unlimited)'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          {(() => {
+            // Get the currently selected ticket (or first one if none selected)
+            const currentTicket = tickets.uniform.find((t: any) => t.id === (selectedTicketType || tickets.uniform[0].id)) || tickets.uniform[0];
+            const currentQuantity = getQuantity(currentTicket.id);
+            const currentTotal = getTotalPrice(currentTicket, currentQuantity);
+            
+            return (
+              <>
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {currentTotal === 0 ? 'Free' : `KES ${currentTotal.toLocaleString()}`}
+                  </span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">total ({currentQuantity} × KES {currentTicket.price.toLocaleString()})</span>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {currentTicket.available !== undefined && currentTicket.available !== null ? `${currentTicket.available} tickets available` : 'Unlimited tickets available'}
+                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    onClick={() => { const id = currentTicket.id; const cur = getQuantity(id); setQuantityFor(id, Math.max(1, cur - 1)); }}
+                    className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
+                    disabled={currentQuantity <= 1}
+                  >
+                    −
+                  </button>
+                  <div className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-gray-50 dark:bg-gray-700 dark:text-white">{currentQuantity}</div>
+                  <button
+                    onClick={() => { const id = currentTicket.id; const cur = getQuantity(id); setQuantityFor(id, Math.min(currentTicket.available !== undefined && currentTicket.available !== null ? currentTicket.available : 999, cur + 1)); }}
+                    className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
+                    disabled={currentTicket.available !== undefined && currentTicket.available !== null && currentQuantity >= currentTicket.available}
+                  >
+                    +
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* Promo Code Section */}
+      {onPromoCodeChange && (
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Promo Code (Optional)
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={promoCode}
+              onChange={(e) => {
+                onPromoCodeChange(e.target.value);
+              }}
+              placeholder="Enter promo code"
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#27aae2] focus:border-transparent uppercase"
+            />
+            {onValidatePromo && (
+              <button
+                onClick={onValidatePromo}
+                disabled={!promoCode.trim() || isValidatingPromo}
+                className="px-4 py-2 bg-[#27aae2] text-white rounded-lg font-medium hover:bg-[#1e8bb8] transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {isValidatingPromo ? 'Validating...' : 'Apply'}
+              </button>
+            )}
           </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {tickets.uniform[0].available || 'Unlimited'} tickets available
-          </p>
-          <div className="mt-3 flex items-center gap-2">
-            <button
-              onClick={() => { const id = tickets.uniform[0].id; const cur = getQuantity(id); setQuantityFor(id, Math.max(1, cur - 1)); }}
-              className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-              disabled={getQuantity(tickets.uniform[0].id) <= 1}
-            >
-              −
-            </button>
-            <div className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-gray-50 dark:bg-gray-700 dark:text-white">{getQuantity(tickets.uniform[0].id)}</div>
-            <button
-              onClick={() => { const id = tickets.uniform[0].id; const cur = getQuantity(id); setQuantityFor(id, Math.min(tickets.uniform[0].available || 1, cur + 1)); }}
-              className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 flex items-center justify-center text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none"
-              disabled={getQuantity(tickets.uniform[0].id) >= tickets.uniform[0].available}
-            >
-              +
-            </button>
-          </div>
+          {promoCodeError && (
+            <p className="text-sm text-red-600 dark:text-red-400 mt-1">{promoCodeError}</p>
+          )}
         </div>
       )}
 
@@ -378,8 +466,14 @@ export default function TicketSelector({
           let qty: number = 1;
           
           if (ticketType === 'uniform' && tickets.uniform && tickets.uniform.length > 0) {
-            ticketId = tickets.uniform[0].id;
-            qty = getQuantity(tickets.uniform[0].id);
+            // For uniform type, use selected ticket type or first one
+            if (selectedTicketType && tickets.uniform.length > 1) {
+              ticketId = selectedTicketType;
+              qty = getQuantity(selectedTicketType);
+            } else {
+              ticketId = tickets.uniform[0].id;
+              qty = getQuantity(tickets.uniform[0].id);
+            }
           } else if (selectedTicketType) {
             ticketId = selectedTicketType;
             qty = getQuantity(selectedTicketType);

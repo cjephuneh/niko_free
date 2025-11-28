@@ -281,6 +281,28 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
                   </div>
 
                   <div className="space-y-2">
+                    {/* Promo Codes Display */}
+                    {event.promo_codes && event.promo_codes.length > 0 && (
+                      <div className="mb-2">
+                        <div className="flex flex-wrap gap-1">
+                          {event.promo_codes.slice(0, 3).map((promo: any, idx: number) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-xs font-medium"
+                              title={`${promo.code}: ${promo.discount_type === 'percentage' ? promo.discount_value + '%' : 'KES ' + promo.discount_value} off`}
+                            >
+                              {promo.code}
+                            </span>
+                          ))}
+                          {event.promo_codes.length > 3 && (
+                            <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs">
+                              +{event.promo_codes.length - 3} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {totalTickets > 0 && (
                       <>
                         <div className="flex justify-between items-center text-xs">

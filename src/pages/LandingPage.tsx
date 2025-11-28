@@ -79,9 +79,11 @@ export default function LandingPage({
   const [heroText, setHeroText] = useState("");
   const [cantMissEvents, setCantMissEvents] = useState<any[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([]);
+  const [categoryEvents, setCategoryEvents] = useState<any[]>([]); // Events for selected category
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingCategoryEvents, setIsLoadingCategoryEvents] = useState(false);
 
   // Ad Configuration (This would come from admin panel in production)
   const adConfig = {
@@ -258,160 +260,113 @@ export default function LandingPage({
     return () => clearInterval(intervalId);
   }, []);
 
+  // Helper function to map event data
+  const mapEventData = (event: any) => {
+    const startDate = event.start_date
+      ? new Date(event.start_date)
+      : new Date();
+    const now = new Date();
+    const today = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+    const eventDate = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate()
+    );
+    const daysDiff = Math.floor(
+      (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    let dateStr = "TBA";
+    if (startDate) {
+      if (daysDiff === 0) {
+        dateStr = "Today";
+      } else if (daysDiff === 1) {
+        dateStr = "Tomorrow";
+      } else if (daysDiff > 1) {
+        dateStr = startDate.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        });
+      }
+    }
+
+    const timeStr = startDate
+      ? startDate.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : "TBA";
+
+    return {
+      id: event.id.toString(),
+      title: event.title,
+      image: event.poster_image
+        ? event.poster_image.startsWith("http")
+          ? event.poster_image
+          : `${API_BASE_URL}${
+              event.poster_image.startsWith("/") ? "" : "/"
+            }${event.poster_image}`
+        : "https://images.pexels.com/photos/3822647/pexels-photo-3822647.jpeg?auto=compress&cs=tinysrgb&w=600",
+      date: dateStr,
+      time: timeStr,
+      location: event.venue_name || event.venue_address || "Online",
+      attendees: event.attendee_count || 0,
+      category: event.category?.name || "General",
+      categorySlug: event.category?.slug || event.category?.name?.toLowerCase().replace(/\s+/g, "-") || "general",
+      price: event.is_free
+        ? "Free"
+        : event.ticket_types?.[0]?.price
+        ? `KES ${parseInt(event.ticket_types[0].price).toLocaleString()}`
+        : "TBA",
+      is_free: event.is_free || false,
+      inBucketlist: event.in_bucketlist || false,
+    };
+  };
+
   // Fetch events by category when category is selected
   useEffect(() => {
     if (selectedCategory && selectedCategory !== "All") {
       const fetchCategoryEvents = async () => {
         try {
+          setIsLoadingCategoryEvents(true);
           // Find the category slug from the categories list
-          const categoryObj = categories.find(cat => cat.name === selectedCategory || cat.displayName === selectedCategory);
-          const categorySlug = categoryObj?.slug || categoryObj?.name || selectedCategory;
-          
+          const categoryObj = categories.find(
+            (cat) =>
+              cat.name === selectedCategory ||
+              cat.displayName === selectedCategory ||
+              cat.slug === selectedCategory
+          );
+          const categorySlug =
+            categoryObj?.slug ||
+            categoryObj?.name ||
+            selectedCategory.toLowerCase().replace(/\s+/g, "-");
+
           const response = await getEvents({
             category: categorySlug, // Use slug for API call
-            per_page: 20,
+            per_page: 100, // Get more events to ensure we show all
           });
-          const events = (response.events || []).map((event: any) => {
-            const startDate = event.start_date
-              ? new Date(event.start_date)
-              : new Date();
-            const now = new Date();
-            const today = new Date(
-              now.getFullYear(),
-              now.getMonth(),
-              now.getDate()
-            );
-            const eventDate = new Date(
-              startDate.getFullYear(),
-              startDate.getMonth(),
-              startDate.getDate()
-            );
-            const daysDiff = Math.floor(
-              (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-            );
 
-            let dateStr = "Tomorrow";
-            if (daysDiff === 0) {
-              dateStr = "Today";
-            } else if (daysDiff > 1) {
-              dateStr = startDate.toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              });
-            }
-
-            const timeStr = startDate.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            });
-
-            return {
-              id: event.id.toString(),
-              title: event.title,
-              image: event.poster_image
-                ? event.poster_image.startsWith("http")
-                  ? event.poster_image
-                  : `${API_BASE_URL}${
-                      event.poster_image.startsWith("/") ? "" : "/"
-                    }${event.poster_image}`
-                : "https://images.pexels.com/photos/3822647/pexels-photo-3822647.jpeg?auto=compress&cs=tinysrgb&w=600",
-              date: dateStr,
-              time: timeStr,
-              location: event.venue_name || event.venue_address || "Online",
-              attendees: event.attendee_count || 0,
-              category: event.category?.name || "General",
-              price: event.is_free
-                ? "Free"
-                : event.ticket_types?.[0]?.price
-                ? `KES ${parseInt(
-                    event.ticket_types[0].price
-                  ).toLocaleString()}`
-                : "TBA",
-              inBucketlist: event.in_bucketlist || false,
-            };
-          });
-          setUpcomingEvents(events);
+          const events = (response.events || []).map(mapEventData);
+          setCategoryEvents(events);
         } catch (err) {
           console.error("Error fetching category events:", err);
+          setCategoryEvents([]);
+        } finally {
+          setIsLoadingCategoryEvents(false);
         }
       };
 
       fetchCategoryEvents();
-    } else if (selectedCategory === null) {
-      // Fetch all events when "All" is selected
-      const fetchAllEvents = async () => {
-        try {
-          const response = await getEvents({ per_page: 20 });
-          const events = (response.events || []).map((event: any) => {
-            const startDate = event.start_date
-              ? new Date(event.start_date)
-              : new Date();
-            const now = new Date();
-            const today = new Date(
-              now.getFullYear(),
-              now.getMonth(),
-              now.getDate()
-            );
-            const eventDate = new Date(
-              startDate.getFullYear(),
-              startDate.getMonth(),
-              startDate.getDate()
-            );
-            const daysDiff = Math.floor(
-              (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-            );
-
-            let dateStr = "Tomorrow";
-            if (daysDiff === 0) {
-              dateStr = "Today";
-            } else if (daysDiff > 1) {
-              dateStr = startDate.toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              });
-            }
-
-            const timeStr = startDate.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            });
-
-            return {
-              id: event.id.toString(),
-              title: event.title,
-              image: event.poster_image
-                ? event.poster_image.startsWith("http")
-                  ? event.poster_image
-                  : `${API_BASE_URL}${
-                      event.poster_image.startsWith("/") ? "" : "/"
-                    }${event.poster_image}`
-                : "https://images.pexels.com/photos/3822647/pexels-photo-3822647.jpeg?auto=compress&cs=tinysrgb&w=600",
-              date: dateStr,
-              time: timeStr,
-              location: event.venue_name || event.venue_address || "Online",
-              attendees: event.attendee_count || 0,
-              category: event.category?.name || "General",
-              price: event.is_free
-                ? "Free"
-                : event.ticket_types?.[0]?.price
-                ? `KES ${parseInt(
-                    event.ticket_types[0].price
-                  ).toLocaleString()}`
-                : "TBA",
-              inBucketlist: event.in_bucketlist || false,
-            };
-          });
-          setUpcomingEvents(events);
-        } catch (err) {
-          console.error("Error fetching all events:", err);
-        }
-      };
-
-      fetchAllEvents();
+    } else {
+      // Clear category events when "All" is selected
+      setCategoryEvents([]);
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, categories]);
 
   // Fetch promoted events (Can't Miss)
   useEffect(() => {
@@ -423,16 +378,47 @@ export default function LandingPage({
         const events = (response.events || []).map((event: any) => {
           const startDate = event.start_date
             ? new Date(event.start_date)
-            : new Date();
-          const dateStr = startDate.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          });
-          const timeStr = startDate.toLocaleTimeString("en-US", {
-            hour: "numeric",
-            minute: "2-digit",
-          });
+            : null;
+          
+          // Format date
+          let dateStr = "TBA";
+          if (startDate) {
+            const now = new Date();
+            const today = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate()
+            );
+            const eventDate = new Date(
+              startDate.getFullYear(),
+              startDate.getMonth(),
+              startDate.getDate()
+            );
+            const daysDiff = Math.floor(
+              (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+            );
+
+            if (daysDiff === 0) {
+              dateStr = "Today";
+            } else if (daysDiff === 1) {
+              dateStr = "Tomorrow";
+            } else {
+              dateStr = startDate.toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              });
+            }
+          }
+          
+          // Format time - always show time if start_date exists
+          let timeStr = "TBA";
+          if (startDate) {
+            timeStr = startDate.toLocaleTimeString("en-US", {
+              hour: "numeric",
+              minute: "2-digit",
+            });
+          }
 
           return {
             id: event.id.toString(),
@@ -454,6 +440,7 @@ export default function LandingPage({
               : event.ticket_types?.[0]?.price
               ? `KES ${parseInt(event.ticket_types[0].price).toLocaleString()}`
               : "TBA",
+            is_free: event.is_free || false, // Add is_free flag for button logic
             inBucketlist: event.in_bucketlist || false,
           };
         });
@@ -576,21 +563,26 @@ export default function LandingPage({
           };
 
           return {
-            name: cat.slug || cat.name.toLowerCase().replace(/\s+/g, "-"), // Use slug for filtering
+            name: cat.name, // Store original name for matching
             displayName: cat.name === "Travel" ? "Explore- 🇰🇪" : cat.name, // Display name for UI
-            slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, "-"), // Store slug separately
+            slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, "-"), // Store slug for API calls
             icon: iconMap[cat.name] || Users,
-            count: cat.event_count || 0,
+            count: cat.event_count || 0, // Use count from API
             iconColor: "#27aae2", // Default color
           };
         });
 
+        // Calculate total event count from all categories
+        const totalEventCount = cats.reduce((sum, cat) => sum + (cat.count || 0), 0);
+        
         // Add "All" category at the beginning
         setCategories([
           {
             name: "All",
+            displayName: "All",
+            slug: "all",
             icon: Users,
-            count: upcomingEvents.length,
+            count: totalEventCount, // Use sum of all category counts
             iconColor: "#6B7280",
           },
           ...cats,
@@ -1403,7 +1395,7 @@ export default function LandingPage({
                                   "#27aae2")
                               }
                             >
-                              {event.price === "Free" ? "RSVP" : "Get Tickets"}
+                              {event.is_free ? "RSVP" : "Get Tickets"}
                             </button>
                           </div>
                         </div>
@@ -1498,23 +1490,27 @@ export default function LandingPage({
 
               {/* Other Categories - Scrollable */}
               <div className="flex-1 overflow-y-auto hide-scrollbar space-y-1.5 pr-0.5">
-                {rotatedCategories.slice(1).map((category, idx) => {
-                  const Icon = category.icon;
-                  const isSelected = selectedCategory === category.name;
-                  return (
-                    <button
-                      key={`${category.name}-${categoryRotation}-${idx}`}
-                      onClick={() =>
-                        setSelectedCategory(
-                          category.name === "All" ? null : category.name
-                        )
-                      }
-                      className={`w-full flex flex-col items-center rounded-lg px-1 py-2 transition-all duration-200 ${
-                        isSelected
-                          ? "bg-white dark:bg-gray-800"
-                          : "bg-gray-50 dark:bg-gray-800/50"
-                      }`}
-                    >
+                  {rotatedCategories.slice(1).map((category, idx) => {
+                    const Icon = category.icon;
+                    // Match by name, displayName, or slug
+                    const isSelected =
+                      selectedCategory === category.name ||
+                      selectedCategory === category.displayName ||
+                      selectedCategory === category.slug;
+                    return (
+                      <button
+                        key={`${category.name}-${categoryRotation}-${idx}`}
+                        onClick={() =>
+                          setSelectedCategory(
+                            category.name === "All" ? null : category.name
+                          )
+                        }
+                        className={`w-full flex flex-col items-center rounded-lg px-1 py-2 transition-all duration-200 ${
+                          isSelected
+                            ? "bg-white dark:bg-gray-800"
+                            : "bg-gray-50 dark:bg-gray-800/50"
+                        }`}
+                      >
                       <div
                         className={`flex items-center justify-center w-7 h-7 rounded-full mb-1 transition-transform ${
                           isSelected ? "scale-110" : ""
@@ -1552,26 +1548,32 @@ export default function LandingPage({
 
             {/* Events Grid - Right */}
             <div className="flex-1 overflow-y-auto hide-scrollbar">
-              <div className="grid grid-cols-2 gap-2">
-                {(selectedCategory
-                  ? upcomingEvents.filter(
-                      (event) => event.category === selectedCategory
-                    )
-                  : upcomingEvents
-                ).map((event) => (
-                  <EventCard key={event.id} {...event} onClick={onEventClick} />
-                ))}
-              </div>
-              {selectedCategory &&
-                upcomingEvents.filter(
-                  (event) => event.category === selectedCategory
-                ).length === 0 && (
-                  <div className="text-center py-12">
-                    <p className="text-gray-600 dark:text-gray-400 text-sm transition-colors duration-200">
-                      No events found in this category
-                    </p>
+              {isLoadingCategoryEvents ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27aae2]"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(selectedCategory ? categoryEvents : upcomingEvents).map(
+                      (event) => (
+                        <EventCard
+                          key={event.id}
+                          {...event}
+                          onClick={onEventClick}
+                        />
+                      )
+                    )}
                   </div>
-                )}
+                  {selectedCategory && categoryEvents.length === 0 && (
+                    <div className="text-center py-12">
+                      <p className="text-gray-600 dark:text-gray-400 text-sm transition-colors duration-200">
+                        No events found in this category
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
 
@@ -1647,31 +1649,33 @@ export default function LandingPage({
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
-              {(selectedCategory
-                ? upcomingEvents.filter(
-                    (event) => event.category === selectedCategory
-                  )
-                : upcomingEvents
-              ).map((event) => (
-                <div
-                  key={event.id}
-                  className="bg-white dark:bg-gray-800 rounded-xl p-6 transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  <EventCard {...event} onClick={onEventClick} />
+            {isLoadingCategoryEvents ? (
+              <div className="flex items-center justify-center py-12 mt-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27aae2]"></div>
+              </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-4">
+                  {(selectedCategory ? categoryEvents : upcomingEvents).map(
+                    (event) => (
+                      <div
+                        key={event.id}
+                        className="bg-white dark:bg-gray-800 rounded-xl p-6 transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
+                        <EventCard {...event} onClick={onEventClick} />
+                      </div>
+                    )
+                  )}
                 </div>
-              ))}
-            </div>
-            {selectedCategory &&
-              upcomingEvents.filter(
-                (event) => event.category === selectedCategory
-              ).length === 0 && (
-                <div className="text-center py-12">
-                  <p className="text-gray-600 dark:text-gray-400 transition-colors duration-200">
-                    No events found in this category
-                  </p>
-                </div>
-              )}
+                {selectedCategory && categoryEvents.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-gray-600 dark:text-gray-400 transition-colors duration-200">
+                      No events found in this category
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
 

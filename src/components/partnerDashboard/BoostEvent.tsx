@@ -1,19 +1,12 @@
-<<<<<<< HEAD
 import { Zap, TrendingUp, Star, Loader2, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getPartnerEvents, promoteEvent } from '../../services/partnerService';
 import { checkPaymentStatus } from '../../services/paymentService';
-=======
-import { Zap, TrendingUp, Star } from 'lucide-react';
-import { useState } from 'react';
-import { addDays, format } from 'date-fns';
->>>>>>> b79800313fe7f2ffab3bf79e330d805c343bfa5b
 
 export default function BoostEvent() {
   const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [durationCount, setDurationCount] = useState<number>(1);
-<<<<<<< HEAD
   const [events, setEvents] = useState<any[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -22,10 +15,8 @@ export default function BoostEvent() {
   const [paymentInitiated, setPaymentInitiated] = useState(false);
   const [paymentId, setPaymentId] = useState<number | null>(null);
   const [success, setSuccess] = useState(false);
-=======
   const [startDate, setStartDate] = useState<string>('');
   const [startTime, setStartTime] = useState<string>('');
->>>>>>> b79800313fe7f2ffab3bf79e330d805c343bfa5b
 
   useEffect(() => {
     fetchEvents();
@@ -34,15 +25,33 @@ export default function BoostEvent() {
   const fetchEvents = async () => {
     try {
       setIsLoadingEvents(true);
+      setError('');
       const response = await getPartnerEvents('approved');
-      if (response.events) {
-        // Filter to only show published events
-        const publishedEvents = response.events.filter((e: any) => e.is_published);
+      console.log('Events response:', response); // Debug log
+      
+      // API returns { events: [...], total: ..., page: ..., pages: ... }
+      const eventsList = response?.events || [];
+      
+      if (Array.isArray(eventsList)) {
+        // Filter to only show published events (required for promotion)
+        const publishedEvents = eventsList.filter((e: any) => e.is_published === true);
         setEvents(publishedEvents);
+        
+        if (publishedEvents.length === 0 && eventsList.length > 0) {
+          setError('You have approved events, but none are published yet. Please publish an event first to promote it.');
+        } else if (publishedEvents.length === 0) {
+          setError('No approved and published events available. Please create, get approved, and publish an event first.');
+        } else {
+          setError(''); // Clear any previous errors
+        }
+      } else {
+        setEvents([]);
+        setError('Invalid response format from server');
       }
     } catch (err: any) {
       console.error('Error fetching events:', err);
-      setError('Failed to load events');
+      setError(err.message || 'Failed to load events. Please check your connection and try again.');
+      setEvents([]);
     } finally {
       setIsLoadingEvents(false);
     }
@@ -117,15 +126,23 @@ export default function BoostEvent() {
     }
   ];
 
-<<<<<<< HEAD
   const handleProceedToPayment = async () => {
     if (!selectedEvent || !selectedTier) {
       setError('Please select an event and boost package');
       return;
     }
 
+    // Validate event ID
+    if (typeof selectedEvent !== 'number' || selectedEvent <= 0) {
+      setError('Invalid event selected. Please select a valid event.');
+      return;
+    }
+
     const tier = boostTiers.find(t => t.id === selectedTier);
-    if (!tier) return;
+    if (!tier) {
+      setError('Invalid boost package selected');
+      return;
+    }
 
     // For free tier, no phone number needed
     if (tier.isFree) {
@@ -144,12 +161,21 @@ export default function BoostEvent() {
       setIsProcessing(true);
       setError('');
 
+      console.log('Promoting event:', {
+        eventId: selectedEvent,
+        daysCount: durationCount,
+        isFree: tier.isFree,
+        phoneNumber: phoneNumber || undefined
+      });
+
       const result = await promoteEvent(
         selectedEvent,
         durationCount,
         tier.isFree,
         phoneNumber || undefined
       );
+
+      console.log('Promotion result:', result);
 
       if (tier.isFree) {
         // Free promotion - success immediately
@@ -163,11 +189,18 @@ export default function BoostEvent() {
         }, 3000);
       } else {
         // Paid promotion - payment initiated, poll for status
-        setPaymentId(result.payment_id);
-        setPaymentInitiated(true);
+        if (result.payment_id) {
+          setPaymentId(result.payment_id);
+          setPaymentInitiated(true);
+        } else {
+          setError('Payment initiation failed. Please try again.');
+        }
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to promote event');
+      console.error('Promotion error:', err);
+      // Extract error message from response if available
+      const errorMessage = err.message || err.error || 'Failed to promote event. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -178,15 +211,23 @@ export default function BoostEvent() {
     ? (selectedTierData.price * durationCount) 
     : 0;
 
-=======
   const calculateEndDate = () => {
     if (!startDate || !startTime) return '';
-    const startDateTime = new Date(`${startDate}T${startTime}`);
-    const endDateTime = addDays(startDateTime, durationCount);
-    return format(endDateTime, 'yyyy-MM-dd') + '  ' + 'Time:' + startTime; // Add space between date and time
+    try {
+      const startDateTime = new Date(`${startDate}T${startTime}`);
+      const endDateTime = new Date(startDateTime);
+      endDateTime.setDate(endDateTime.getDate() + durationCount);
+      
+      const year = endDateTime.getFullYear();
+      const month = String(endDateTime.getMonth() + 1).padStart(2, '0');
+      const day = String(endDateTime.getDate()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}  Time: ${startTime}`;
+    } catch (err) {
+      return 'Invalid date';
+    }
   };
 
->>>>>>> b79800313fe7f2ffab3bf79e330d805c343bfa5b
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -221,9 +262,14 @@ export default function BoostEvent() {
             ))}
           </select>
         )}
-        {events.length === 0 && !isLoadingEvents && (
+        {error && !isLoadingEvents && (
+          <p className="text-sm text-red-500 dark:text-red-400 mt-2">
+            {error}
+          </p>
+        )}
+        {events.length === 0 && !isLoadingEvents && !error && (
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            No approved and published events available. Please create and publish an event first.
+            No approved events available. Please create and get an event approved first.
           </p>
         )}
       </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User, Mail, Phone, MapPin, Building2, Globe, Camera, Save, AlertCircle } from 'lucide-react';
 import { getPartnerProfile, updatePartnerProfile, uploadPartnerLogo, getPartner } from '../../services/partnerService';
-import { API_BASE_URL } from '../../config/api';
+import { getImageUrl } from '../../config/api';
 
 export default function MyProfile() {
   const [formData, setFormData] = useState({
@@ -15,6 +15,7 @@ export default function MyProfile() {
     description: '',
   });
   const [logo, setLogo] = useState<string | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null); // For preview only
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -40,7 +41,11 @@ export default function MyProfile() {
             website: partner.website || '',
             description: partner.description || '',
           });
-          setLogo(partner.logo || null);
+          // Filter out base64 data URIs
+          const partnerLogo = partner.logo;
+          if (partnerLogo && !partnerLogo.startsWith('data:image')) {
+            setLogo(partnerLogo);
+          }
         }
 
         // Then fetch fresh data from API
@@ -57,7 +62,13 @@ export default function MyProfile() {
             website: data.website || '',
             description: data.description || '',
           });
-          setLogo(data.logo || null);
+          // Filter out base64 data URIs - only use valid file paths
+          const apiLogo = data.logo;
+          if (apiLogo && !apiLogo.startsWith('data:image')) {
+            setLogo(apiLogo);
+          } else {
+            setLogo(null);
+          }
         }
       } catch (err: any) {
         console.error('Error fetching profile:', err);
@@ -85,8 +96,27 @@ export default function MyProfile() {
 
       // Upload logo first if changed
       if (logoFile) {
-        await uploadPartnerLogo(logoFile);
+        const uploadResponse = await uploadPartnerLogo(logoFile);
         setLogoFile(null);
+        setLogoPreview(null); // Clear preview after upload
+        
+        // Update logo with the new URL from API response
+        if (uploadResponse.partner && uploadResponse.partner.logo) {
+          const newLogo = uploadResponse.partner.logo;
+          // Only set if it's not a base64 string
+          if (!newLogo.startsWith('data:image')) {
+            setLogo(newLogo);
+          }
+        }
+        
+        // Refresh profile to get latest data
+        const profileResponse = await getPartnerProfile();
+        if (profileResponse && profileResponse.partner && profileResponse.partner.logo) {
+          const freshLogo = profileResponse.partner.logo;
+          if (!freshLogo.startsWith('data:image')) {
+            setLogo(freshLogo);
+          }
+        }
       }
 
       // Update profile
@@ -127,10 +157,10 @@ export default function MyProfile() {
 
       setLogoFile(file);
       
-      // Preview
+      // Preview (use separate state for preview, not the actual logo)
       const reader = new FileReader();
       reader.onloadend = () => {
-        setLogo(reader.result as string);
+        setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -171,11 +201,30 @@ export default function MyProfile() {
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Profile Picture</h3>
         <div className="flex items-center space-x-6">
           <div className="relative">
-            {logo ? (
+            {logoPreview ? (
+              // Show preview if available (user just selected a file)
               <img 
-                src={logo.startsWith('http') ? logo : `${API_BASE_URL}/${logo.replace(/^\/+/, '')}`}
+                src={logoPreview}
+                alt="Logo Preview"
+                className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+              />
+            ) : logo && !logo.startsWith('data:image') ? (
+              // Show actual logo from API (only if it's not a base64 string)
+              <img 
+                src={getImageUrl(logo)}
                 alt="Logo"
                 className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                onError={(e) => {
+                  // If image fails to load, show placeholder
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent) {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'w-24 h-24 bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] rounded-full flex items-center justify-center';
+                    placeholder.innerHTML = '<svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>';
+                    parent.appendChild(placeholder);
+                  }
+                }}
               />
             ) : (
               <div className="w-24 h-24 bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] rounded-full flex items-center justify-center">

@@ -23,7 +23,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedTicketType, setSelectedTicketType] = useState<string>('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('');
-  const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
   const [copyLinkText, setCopyLinkText] = useState('Copy Link');
   const [eventData, setEventData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,11 +32,80 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [inBucketlist, setInBucketlist] = useState(false);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoCodeError, setPromoCodeError] = useState('');
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+
+  // Validate promo code
+  const handleValidatePromo = async () => {
+    if (!promoCode.trim()) {
+      setPromoCodeError('Please enter a promo code');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    setIsValidatingPromo(true);
+    setPromoCodeError('');
+
+    try {
+      const token = localStorage.getItem('token');
+      const parsedEventId = parseInt(eventId);
+      
+      if (isNaN(parsedEventId) || parsedEventId <= 0) {
+        setPromoCodeError('Invalid event ID');
+        setIsValidatingPromo(false);
+        return;
+      }
+      
+      const requestBody = {
+        code: promoCode.trim().toUpperCase(),
+        event_id: parsedEventId
+      };
+      
+      console.log('Validating promo code:', requestBody); // Debug log
+      
+      const response = await fetch(`${API_BASE_URL}/api/tickets/validate-promo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      
+      console.log('Promo validation response:', { status: response.status, data }); // Debug log
+
+      if (response.ok && data.valid) {
+        setPromoCodeError('');
+      } else {
+        setPromoCodeError(data.error || 'Invalid promo code');
+      }
+    } catch (err: any) {
+      console.error('Error validating promo code:', err);
+      setPromoCodeError('Failed to validate promo code. Please try again.');
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
 
   // Fetch event details from API
   useEffect(() => {
     const fetchEvent = async () => {
-      if (!eventId || eventId === '1' || isNaN(parseInt(eventId))) {
+      // Validate eventId - only check if it's empty or not a valid number
+      if (!eventId || eventId.trim() === '' || isNaN(parseInt(eventId))) {
+        setError('Invalid event ID');
+        setIsLoading(false);
+        return;
+      }
+
+      const parsedEventId = parseInt(eventId);
+      if (parsedEventId <= 0) {
         setError('Invalid event ID');
         setIsLoading(false);
         return;
@@ -46,7 +114,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       try {
         setIsLoading(true);
         setError(null);
-        const data = await getEventDetails(parseInt(eventId));
+        const data = await getEventDetails(parsedEventId);
         if (data && data.id) {
           setEventData(data);
           // Check if event is in bucketlist
@@ -184,7 +252,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     setIsBooking(true);
     setError(null);
     setSuccessMessage(null);
-    setSelectedQuantity(quantity);
 
     try {
       console.log('Booking ticket with:', { event_id: parseInt(eventId), ticket_type_id: ticketTypeId, quantity });
@@ -200,6 +267,11 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
         bookingData.ticket_type_id = ticketTypeId;
       }
       
+      // Include promo code if provided and validated
+      if (promoCode && promoCode.trim() && !promoCodeError) {
+        bookingData.promo_code = promoCode.trim().toUpperCase();
+      }
+      
       // Book the ticket
       const bookingResult = await bookTicket(bookingData);
 
@@ -210,14 +282,17 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       if (eventData.is_free || !bookingResult.requires_payment) {
         setSuccessMessage('You\'re in! Go to your dashboard to download your ticket.');
         // Refresh event data to update attendee count (don't fail if refresh fails)
-        try {
-          const updatedData = await getEventDetails(parseInt(eventId));
-          if (updatedData && updatedData.id) {
-            setEventData(updatedData);
+        // Only refresh if eventId is valid
+        if (eventId && !isNaN(parseInt(eventId)) && parseInt(eventId) > 0) {
+          try {
+            const updatedData = await getEventDetails(parseInt(eventId));
+            if (updatedData && updatedData.id) {
+              setEventData(updatedData);
+            }
+          } catch (refreshErr) {
+            console.warn('Failed to refresh event data after booking:', refreshErr);
+            // Don't show error - booking was successful
           }
-        } catch (refreshErr) {
-          console.warn('Failed to refresh event data after booking:', refreshErr);
-          // Don't show error - booking was successful
         }
       } else {
         // Show payment modal for paid events
@@ -246,16 +321,19 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     setSuccessMessage('Payment successful! Your tickets have been confirmed. Check your email.');
     setShowPaymentModal(false);
     // Refresh event data (don't fail if refresh fails)
-    getEventDetails(parseInt(eventId))
-      .then((data) => {
-        if (data && data.id) {
-          setEventData(data);
-        }
-      })
-      .catch((err) => {
-        console.warn('Failed to refresh event data after payment:', err);
-        // Don't show error - payment was successful
-      });
+    // Only refresh if eventId is valid
+    if (eventId && !isNaN(parseInt(eventId)) && parseInt(eventId) > 0) {
+      getEventDetails(parseInt(eventId))
+        .then((data) => {
+          if (data && data.id) {
+            setEventData(data);
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to refresh event data after payment:', err);
+          // Don't show error - payment was successful
+        });
+    }
   };
 
   // Loading state
@@ -542,19 +620,38 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8">
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Hosted By</h3>
                       <div className="flex items-center space-x-4">
-                        {eventData.partner.logo && (
-                          <img
-                            src={eventData.partner.logo.startsWith('http') 
-                              ? eventData.partner.logo 
-                              : `${API_BASE_URL}${eventData.partner.logo.startsWith('/') ? '' : '/'}${eventData.partner.logo}`}
-                            alt={eventData.partner.business_name}
-                            className="w-16 h-16 rounded-full object-cover"
-                          />
-                        )}
-                        <div>
-                          <h4 className="font-semibold text-gray-900 dark:text-white text-lg">
-                            {eventData.partner.business_name}
-                          </h4>
+                        <div className="relative flex-shrink-0">
+                          {eventData.partner.logo ? (
+                            <img
+                              src={eventData.partner.logo.startsWith('http') 
+                                ? eventData.partner.logo 
+                                : `${API_BASE_URL}${eventData.partner.logo.startsWith('/') ? '' : '/'}${eventData.partner.logo}`}
+                              alt={eventData.partner.business_name}
+                              className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                              onError={(e) => {
+                                // Fallback to placeholder if image fails to load
+                                (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(eventData.partner.business_name) + '&background=27aae2&color=fff&size=128';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-[#27aae2] flex items-center justify-center border-2 border-gray-200 dark:border-gray-700">
+                              <span className="text-white text-xl font-bold">
+                                {eventData.partner.business_name?.charAt(0)?.toUpperCase() || 'P'}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="font-semibold text-gray-900 dark:text-white text-lg truncate">
+                              {eventData.partner.business_name}
+                            </h4>
+                            {eventData.partner.is_verified && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-black text-white rounded-full flex-shrink-0">
+                                Verified
+                              </span>
+                            )}
+                          </div>
                           <p className="text-gray-600 dark:text-gray-400">
                             {eventData.partner.category?.name || 'Event Organizer'}
                           </p>
@@ -635,6 +732,11 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                     onSelectTimeSlot={setSelectedTimeSlot}
                     isRSVPed={false}
                     onBuyTicket={handleBuyTicket}
+                    promoCode={promoCode}
+                    onPromoCodeChange={setPromoCode}
+                    promoCodeError={promoCodeError}
+                    isValidatingPromo={isValidatingPromo}
+                    onValidatePromo={handleValidatePromo}
                   />
                 )}
 

@@ -146,3 +146,19 @@ export const formatTimeAgo = (dateString: string): string => {
   }
 };
 
+// Get partner details
+export const getPartner = async (partnerId: number): Promise<any> => {
+  const response = await fetch(API_ENDPOINTS.admin.partner(partnerId), {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Failed to fetch partner details');
+  }
+
+  return data;
+};
+

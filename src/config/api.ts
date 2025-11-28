@@ -139,7 +139,19 @@ export const getImageUrl = (posterImage: string | null | undefined): string => {
     return posterImage;
   }
   
+  // Fix double /uploads/uploads/ paths
+  let cleanPath = posterImage;
+  if (cleanPath.includes('/uploads/uploads/')) {
+    cleanPath = cleanPath.replace('/uploads/uploads/', '/uploads/');
+  }
+  
   // Relative path - construct full URL
-  return `${API_BASE_URL}${posterImage.startsWith('/') ? '' : '/'}${posterImage}`;
+  // If path already starts with /uploads/, use it as is
+  if (cleanPath.startsWith('/uploads/')) {
+    return `${API_BASE_URL}${cleanPath}`;
+  }
+  
+  // Otherwise, add /uploads/ prefix if needed
+  return `${API_BASE_URL}${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
 };
 

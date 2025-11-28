@@ -81,9 +81,11 @@ interface TicketType {
   seasonDuration?: number; // Number of days for season ticket
   // Timeslot-based fields
   timeslot?: string; // e.g., "9:00 AM - 10:00 AM"
+  startTime?: string; // Start time for timeslot tickets
+  endTime?: string; // End time for timeslot tickets
   price: number;
   quantity: number;
-  vatIncluded: boolean;
+  vatIncluded?: boolean;
 }
 
 interface Host {
@@ -175,17 +177,131 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
         setIsLoadingEvent(true);
         try {
           const eventData = await getEvent(eventId);
-          // Populate form with event data
-          // This is a simplified version - you may need to adjust based on your API response
-          setFormData(prev => ({
-            ...prev,
-            eventName: eventData.title || '',
-            description: eventData.description || '',
-            // Add other fields as needed
+          console.log('Loading event data for editing:', eventData);
+          
+          // Parse dates
+          const startDate = eventData.start_date ? new Date(eventData.start_date) : null;
+          const endDate = eventData.end_date ? new Date(eventData.end_date) : null;
+          
+          // Format dates for date inputs (YYYY-MM-DD)
+          const formatDateForInput = (date: Date | null) => {
+            if (!date) return '';
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+          };
+          
+          // Format time for time inputs (HH:MM)
+          const formatTimeForInput = (date: Date | null) => {
+            if (!date) return '';
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+          };
+          
+          // Determine location type
+          let locationType: 'physical' | 'online' | 'hybrid' = 'physical';
+          if (eventData.is_online) {
+            if (eventData.venue_name || eventData.venue_address) {
+              locationType = 'hybrid';
+            } else {
+              locationType = 'online';
+            }
+          }
+          
+          // Parse coordinates
+          let coordinates = null;
+          if (eventData.latitude && eventData.longitude) {
+            coordinates = {
+              lat: parseFloat(eventData.latitude),
+              lng: parseFloat(eventData.longitude)
+            };
+          }
+          
+          // Parse categories
+          const closedCategories = eventData.category ? [String(eventData.category.id)] : [];
+          
+          // Parse interests (API returns array of strings)
+          const parsedInterests = Array.isArray(eventData.interests) 
+            ? eventData.interests.filter((i: any) => typeof i === 'string' && i.trim())
+            : [];
+          
+          // Parse ticket types
+          const ticketTypes: TicketType[] = (eventData.ticket_types || []).map((tt: any, index: number) => ({
+            id: `existing-${tt.id}`,
+            name: tt.name || '',
+            ticketStructure: 'basic', // Default, can be enhanced later
+            price: parseFloat(tt.price || 0),
+            quantity: tt.quantity_total || 0,
+            vatIncluded: false, // Default
+            existingId: tt.id // Store original ID for updates
           }));
+          
+          // Parse promo codes
+          const promoCodes: PromoCode[] = (eventData.promo_codes || []).map((pc: any) => ({
+            id: `existing-${pc.id}`,
+            code: pc.code || '',
+            discount: parseFloat(pc.discount_value || pc.discount_amount || pc.discount_percentage || 0),
+            discountType: pc.discount_type === 'percentage' ? 'percentage' : 'fixed',
+            maxUses: pc.max_uses || 0,
+            expiryDate: pc.expiry_date || pc.valid_until ? formatDateForInput(new Date(pc.expiry_date || pc.valid_until)) : '',
+            existingId: pc.id
+          }));
+          
+          // Parse hosts
+          const hosts: Host[] = (eventData.hosts || []).map((h: any) => ({
+            id: `existing-${h.id}`,
+            username: h.user?.email || '',
+            name: `${h.user?.first_name || ''} ${h.user?.last_name || ''}`.trim() || h.user?.email || '',
+            isVerified: h.user?.is_verified || false
+          }));
+          
+          // Check if event spans multiple days
+          const isMultiDay = endDate && startDate && 
+            endDate.toDateString() !== startDate.toDateString();
+          setIsOneDayEvent(!isMultiDay);
+          
+          // Populate form with all event data
+          setFormData({
+            locationType,
+            locationName: eventData.venue_name || eventData.venue_address || '',
+            coordinates,
+            onlineLink: eventData.online_link || '',
+            linkShareTime: '', // Not stored in backend, can be enhanced
+            startDate: formatDateForInput(startDate),
+            startTime: formatTimeForInput(startDate),
+            endDate: formatDateForInput(endDate),
+            endTime: formatTimeForInput(endDate),
+            closedCategories,
+            openInterests: parsedInterests,
+            eventName: eventData.title || '',
+            eventPhoto: null, // File object, can't be loaded
+            photoPreview: eventData.poster_image 
+              ? (eventData.poster_image.startsWith('http') 
+                  ? eventData.poster_image 
+                  : `${API_BASE_URL}${eventData.poster_image.startsWith('/') ? '' : '/'}${eventData.poster_image}`)
+              : '',
+            description: eventData.description || '',
+            attendeeLimit: null, // Can be calculated from ticket types
+            isUnlimited: !eventData.ticket_types?.some((tt: any) => tt.quantity_total !== null),
+            isFree: eventData.is_free || false,
+            ticketTypes,
+            promoCodes,
+            hosts
+          });
+          
+          console.log('Form data populated:', {
+            locationType,
+            eventName: eventData.title,
+            startDate: formatDateForInput(startDate),
+            startTime: formatTimeForInput(startDate),
+            ticketTypes: ticketTypes.length,
+            promoCodes: promoCodes.length
+          });
         } catch (err) {
           console.error('Failed to load event:', err);
-          setError('Failed to load event data');
+          setError('Failed to load event data. Please try again.');
         } finally {
           setIsLoadingEvent(false);
         }
@@ -388,6 +504,11 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
   };
 
   const handleSubmit = async () => {
+    // Prevent double submission
+    if (isLoading) {
+      return;
+    }
+    
     setIsLoading(true);
     setError('');
     
@@ -421,6 +542,16 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
         setError('Location name is required');
         setIsLoading(false);
         return;
+      }
+      
+      // Remove duplicate ticket types (by name)
+      const uniqueTicketTypes = formData.ticketTypes.filter((ticket, index, self) =>
+        index === self.findIndex((t) => t.name === ticket.name && t.name !== '')
+      );
+      
+      if (uniqueTicketTypes.length !== formData.ticketTypes.length) {
+        console.warn('Removed duplicate ticket types');
+        setFormData(prev => ({ ...prev, ticketTypes: uniqueTicketTypes }));
       }
       
       // Prepare form data
@@ -467,10 +598,17 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
         formDataToSend.append('interests', JSON.stringify(formData.openInterests));
       }
       
-      // Add ticket types
-      if (formData.ticketTypes.length > 0) {
-        formDataToSend.append('ticket_types', JSON.stringify(formData.ticketTypes.map(t => ({
-          name: t.name,
+      // Add ticket types (use uniqueTicketTypes if we filtered duplicates)
+      const ticketTypesToSend = uniqueTicketTypes.length !== formData.ticketTypes.length 
+        ? uniqueTicketTypes 
+        : formData.ticketTypes;
+      
+      if (ticketTypesToSend.length > 0) {
+        // Filter out empty ticket types
+        const validTicketTypes = ticketTypesToSend.filter(t => t.name && t.name.trim() !== '');
+        
+        formDataToSend.append('ticket_types', JSON.stringify(validTicketTypes.map(t => ({
+          name: t.name.trim(),
           ticket_structure: t.ticketStructure,
           class_type: t.classType,
           loyalty_type: t.loyaltyType,
@@ -484,13 +622,46 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
       
       // Add promo codes
       if (formData.promoCodes.length > 0) {
-        formDataToSend.append('promo_codes', JSON.stringify(formData.promoCodes.map(p => ({
-          code: p.code,
-          discount_type: p.discountType,
-          discount: p.discount,
-          max_uses: p.maxUses,
-          expiry_date: p.expiryDate,
-        }))));
+        const promoCodesPayload = formData.promoCodes.map(p => {
+          const promo: any = {
+            code: p.code,
+            discount_type: p.discountType,
+            discount: p.discount,
+            max_uses: p.maxUses,
+            expiry_date: p.expiryDate,
+          };
+          
+          // Include existing ID if this is an existing promo code
+          if (p.existingId) {
+            promo.id = p.existingId;
+          } else if (p.id && p.id.toString().startsWith('existing-')) {
+            // Extract numeric ID from "existing-123" format
+            const numericId = parseInt(p.id.toString().replace('existing-', ''));
+            if (!isNaN(numericId)) {
+              promo.id = numericId;
+            }
+          }
+          
+          return promo;
+        });
+        
+        formDataToSend.append('promo_codes', JSON.stringify(promoCodesPayload));
+        
+        // Also send existing promo IDs for deletion logic
+        const existingPromoIds = formData.promoCodes
+          .filter(p => p.existingId || (p.id && p.id.toString().startsWith('existing-')))
+          .map(p => {
+            if (p.existingId) return p.existingId;
+            if (p.id && p.id.toString().startsWith('existing-')) {
+              return parseInt(p.id.toString().replace('existing-', ''));
+            }
+            return null;
+          })
+          .filter(id => id !== null);
+        
+        if (existingPromoIds.length > 0) {
+          formDataToSend.append('existing_promo_ids', JSON.stringify(existingPromoIds));
+        }
       }
       
       // Submit event
@@ -580,6 +751,14 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                 <X className="w-6 h-6" />
               </button>
             </div>
+
+            {/* Loading indicator for event data */}
+            {isLoadingEvent && (
+              <div className="mt-4 flex items-center justify-center space-x-2 text-white">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span className="text-sm">Loading event details...</span>
+              </div>
+            )}
 
             {/* Progress bar */}
             <div className="mt-4 bg-white/20 rounded-full h-2 overflow-hidden">
@@ -786,17 +965,17 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
 
                     {/* End Date for Multiday Events */}
                     {!isOneDayEvent && (
-                      <div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                           End Date
-                        </label>
-                        <input
+                      </label>
+                      <input
                           type="date"
                           value={formData.endDate}
                           onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                        />
-                      </div>
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                      />
+                    </div>
                     )}
                   </div>
                 </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
+import { API_BASE_URL } from '../../config/api';
 
 interface PendingPartner {
   id: string;
@@ -157,6 +158,8 @@ export default function PartnersSection({}: PartnersProps) {
     return matchesSearch && matchesCategory;
   });
   const [selectedPartner, setSelectedPartner] = React.useState<PendingPartner | ApprovedPartner | null>(null);
+  const [partnerDetails, setPartnerDetails] = React.useState<any>(null);
+  const [loadingPartnerDetails, setLoadingPartnerDetails] = React.useState(false);
   const [confirmAction, setConfirmAction] = React.useState<{
     type: 'flag' | 'delete' | 'suspend';
     partner: PendingPartner | ApprovedPartner | null;
@@ -485,6 +488,30 @@ export default function PartnersSection({}: PartnersProps) {
   // Handler for closing success message
   const handleCloseSuccess = () => setSuccessMessage(null);
 
+  // Fetch partner details when modal opens
+  React.useEffect(() => {
+    const fetchPartnerDetails = async () => {
+      if (!selectedPartner) {
+        setPartnerDetails(null);
+        return;
+      }
+
+      setLoadingPartnerDetails(true);
+      try {
+        const { getPartner } = await import('../../services/adminService');
+        const details = await getPartner(Number(selectedPartner.id));
+        setPartnerDetails(details);
+      } catch (error) {
+        console.error('Error fetching partner details:', error);
+        setPartnerDetails(null);
+      } finally {
+        setLoadingPartnerDetails(false);
+      }
+    };
+
+    fetchPartnerDetails();
+  }, [selectedPartner]);
+
   return (
     <div className="space-y-8">
       {/* Pending Partner Applications */}
@@ -553,137 +580,259 @@ export default function PartnersSection({}: PartnersProps) {
         {/* Partner Details Modal */}
         {selectedPartner && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-            <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-8 max-w-lg w-full relative">
+            <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
               <button
                 className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white text-2xl font-bold"
-                onClick={() => setSelectedPartner(null)}
+                onClick={() => {
+                  setSelectedPartner(null);
+                  setPartnerDetails(null);
+                }}
               >
                 &times;
               </button>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Partner Registration Details</h2>
-              <div className="space-y-4">
-                {/* Logo */}
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700">
-                    <span className="text-gray-400 dark:text-gray-500 text-4xl font-bold">{selectedPartner.name.charAt(0)}</span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-lg text-gray-900 dark:text-white">{selectedPartner.name}</p>
-                    <span className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 font-semibold">{selectedPartner.status?.toUpperCase() || 'ACTIVE'}</span>
-                  </div>
-                </div>
-
-                {/* Category */}
-                {'category' in selectedPartner && (
-                  <div>
-                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Category:</p>
-                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 dark:text-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium mr-2">
-                      {selectedPartner.category}
-                    </span>
-                  </div>
-                )}
-
-                {/* Category */}
-                {'category' in selectedPartner && (
-                  <div>
-                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Category:</p>
-                    <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 dark:text-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium mr-2">
-                      {selectedPartner.category}
-                    </span>
-                  </div>
-                )}
-
-                {/* Email (pending partner) */}
-                {'email' in selectedPartner && (
-                  <div>
-                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Email to receive RSVPs:</p>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.email}</span>
-                  </div>
-                )}
-
-                {/* Total Events (approved partner) */}
-                {'totalEvents' in selectedPartner && (
-                  <div>
-                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Total Events:</p>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.totalEvents}</span>
-                  </div>
-                )}
-
-                {/* Total Revenue (approved partner) */}
-                {'totalRevenue' in selectedPartner && (
-                  <div>
-                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Total Revenue:</p>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.totalRevenue}</span>
-                  </div>
-                )}
-
-                {/* Rating (approved partner) */}
-                {'rating' in selectedPartner && (
-                  <div>
-                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Rating:</p>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.rating}/5.0</span>
-                  </div>
-                )}
-
-                {/* Submitted Date (pending partner) */}
-                {'submittedDate' in selectedPartner && (
-                  <div>
-                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Submitted:</p>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{selectedPartner.submittedDate}</span>
-                  </div>
-                )}
-
-                {/* Interests (placeholder) */}
-                <div>
-                  <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Interests (Open Ended):</p>
-                  <span className="inline-block px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full text-xs font-medium">Not Provided</span>
-                </div>
-
-                {/* Contact Phone Number (placeholder) */}
-                <div>
-                  <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Contact Phone Number:</p>
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Not Provided</span>
-                </div>
-
-                {/* Contract (placeholder) */}
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="font-semibold text-gray-900 dark:text-white">Partner Contract:</span>
-                  <span className="text-xs px-2 py-1 rounded bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300">Signed Digitally</span>
-                </div>
-                {/* Partner notes (moved to bottom) */}
-                <div>
-                  <p className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Admin Notes:</p>
-                  <div className="space-y-2 max-h-36 overflow-y-auto mb-2">
-                    {(selectedPartner && partnerNotes[selectedPartner.id]) ? (
-                      partnerNotes[selectedPartner.id].map((n, i) => (
-                        <div key={i} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-100 dark:border-gray-700 text-sm">
-                          <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(n.date).toLocaleString()} · {n.type.toUpperCase()}</div>
-                          <div className="text-gray-700 dark:text-gray-200">{n.text}</div>
-                        </div>
-                      ))
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Partner Details</h2>
+              
+              {loadingPartnerDetails ? (
+                <div className="text-center py-8 text-gray-500">Loading partner details...</div>
+              ) : partnerDetails ? (
+                <div className="space-y-4">
+                  {/* Logo and Basic Info */}
+                  <div className="flex items-center gap-4">
+                    {partnerDetails.partner?.logo ? (
+                      <img 
+                        src={partnerDetails.partner.logo.startsWith('http') ? partnerDetails.partner.logo : `${API_BASE_URL}${partnerDetails.partner.logo}`}
+                        alt={partnerDetails.partner.business_name}
+                        className="w-16 h-16 rounded-xl object-cover border border-gray-200 dark:border-gray-700"
+                      />
                     ) : (
-                      <div className="text-sm text-gray-600 dark:text-gray-400">No notes yet.</div>
+                      <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700">
+                        <span className="text-gray-400 dark:text-gray-500 text-4xl font-bold">
+                          {partnerDetails.partner?.business_name?.charAt(0) || selectedPartner.name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-lg text-gray-900 dark:text-white">
+                        {partnerDetails.partner?.business_name || selectedPartner.name}
+                      </p>
+                      <span className="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 font-semibold">
+                        {partnerDetails.partner?.status?.toUpperCase() || selectedPartner.status?.toUpperCase() || 'ACTIVE'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Email:</p>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {partnerDetails.partner?.email || ('email' in selectedPartner ? selectedPartner.email : 'N/A')}
+                    </span>
+                  </div>
+
+                  {/* Phone Number */}
+                  <div>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Phone Number:</p>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {partnerDetails.partner?.phone_number || 'Not provided'}
+                    </span>
+                  </div>
+
+                  {/* Category */}
+                  {partnerDetails.partner?.category && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Category:</p>
+                      <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 dark:text-blue-200 dark:bg-blue-800 rounded-full text-xs font-medium mr-2">
+                        {partnerDetails.partner.category.name || partnerDetails.partner.category}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Location */}
+                  {partnerDetails.partner?.location && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Location:</p>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {partnerDetails.partner.location}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Contact Person */}
+                  {partnerDetails.partner?.contact_person && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Contact Person:</p>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {partnerDetails.partner.contact_person}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  {partnerDetails.partner?.description && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Description:</p>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {partnerDetails.partner.description}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Interests */}
+                  <div>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Interests:</p>
+                    {partnerDetails.partner?.interests ? (
+                      <div className="flex flex-wrap gap-2">
+                        {(() => {
+                          try {
+                            const interests = typeof partnerDetails.partner.interests === 'string' 
+                              ? JSON.parse(partnerDetails.partner.interests) 
+                              : partnerDetails.partner.interests;
+                            if (Array.isArray(interests)) {
+                              return interests.map((interest: string, idx: number) => (
+                                <span key={idx} className="inline-block px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full text-xs font-medium">
+                                  {interest}
+                                </span>
+                              ));
+                            }
+                          } catch (e) {
+                            // If parsing fails, treat as comma-separated string
+                            const interestsList = partnerDetails.partner.interests.split(',').map((i: string) => i.trim());
+                            return interestsList.map((interest: string, idx: number) => (
+                              <span key={idx} className="inline-block px-3 py-1 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full text-xs font-medium">
+                                {interest}
+                              </span>
+                            ));
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Not provided</span>
                     )}
                   </div>
 
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={detailsNoteText}
-                      onChange={e => setDetailsNoteText(e.target.value)}
-                      placeholder="Add a note about this partner..."
-                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white"
-                    />
-                    <button
-                      className="px-3 py-2 bg-[#27aae2] text-white rounded-lg"
-                      onClick={() => {
-                        if (!selectedPartner) return;
-                        if (!detailsNoteText.trim()) return;
-                        addNoteForPartner(selectedPartner.id, { text: detailsNoteText.trim(), type: 'note', date: new Date().toISOString() });
-                        setDetailsNoteText('');
-                      }}
-                    >Add</button>
+                  {/* Total Events - Dynamic from API */}
+                  <div>
+                    <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Total Events:</p>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                      {partnerDetails.events?.length || 0} events
+                    </span>
                   </div>
+
+                  {/* Total Bookings */}
+                  {partnerDetails.total_bookings !== undefined && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Total Bookings:</p>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {partnerDetails.total_bookings} confirmed bookings
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Total Revenue */}
+                  {partnerDetails.partner?.total_earnings !== undefined && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Total Earnings:</p>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        KES {parseFloat(partnerDetails.partner.total_earnings || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Pending Earnings */}
+                  {partnerDetails.partner?.pending_earnings !== undefined && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Pending Earnings:</p>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        KES {parseFloat(partnerDetails.partner.pending_earnings || 0).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Website */}
+                  {partnerDetails.partner?.website && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Website:</p>
+                      <a 
+                        href={partnerDetails.partner.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-[#27aae2] hover:underline"
+                      >
+                        {partnerDetails.partner.website}
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Created Date */}
+                  {partnerDetails.partner?.created_at && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Registered:</p>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {new Date(partnerDetails.partner.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Approved Date */}
+                  {partnerDetails.partner?.approved_at && (
+                    <div>
+                      <p className="font-semibold mb-1 text-gray-900 dark:text-gray-100">Approved:</p>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {new Date(partnerDetails.partner.approved_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Contract Status */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="font-semibold text-gray-900 dark:text-white">Contract Status:</span>
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      partnerDetails.partner?.contract_accepted 
+                        ? 'bg-green-200 text-green-700 dark:bg-green-900 dark:text-green-300' 
+                        : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                    }`}>
+                      {partnerDetails.partner?.contract_accepted ? 'Signed Digitally' : 'Not Signed'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">Failed to load partner details</div>
+              )}
+
+              {/* Partner notes (always shown) */}
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p className="font-semibold mb-2 text-gray-900 dark:text-gray-100">Admin Notes:</p>
+                <div className="space-y-2 max-h-36 overflow-y-auto mb-2">
+                  {(selectedPartner && partnerNotes[selectedPartner.id]) ? (
+                    partnerNotes[selectedPartner.id].map((n, i) => (
+                      <div key={i} className="p-2 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-100 dark:border-gray-700 text-sm">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(n.date).toLocaleString()} · {n.type.toUpperCase()}</div>
+                        <div className="text-gray-700 dark:text-gray-200">{n.text}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">No notes yet.</div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={detailsNoteText}
+                    onChange={e => setDetailsNoteText(e.target.value)}
+                    placeholder="Add a note about this partner..."
+                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg dark:bg-gray-800 dark:text-white"
+                  />
+                  <button
+                    className="px-3 py-2 bg-[#27aae2] text-white rounded-lg"
+                    onClick={() => {
+                      if (!selectedPartner) return;
+                      if (!detailsNoteText.trim()) return;
+                      addNoteForPartner(selectedPartner.id, { text: detailsNoteText.trim(), type: 'note', date: new Date().toISOString() });
+                      setDetailsNoteText('');
+                    }}
+                  >Add</button>
                 </div>
               </div>
             </div>
