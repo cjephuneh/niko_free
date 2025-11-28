@@ -1,12 +1,19 @@
+<<<<<<< HEAD
 import { Zap, TrendingUp, Star, Loader2, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getPartnerEvents, promoteEvent } from '../../services/partnerService';
 import { checkPaymentStatus } from '../../services/paymentService';
+=======
+import { Zap, TrendingUp, Star } from 'lucide-react';
+import { useState } from 'react';
+import { addDays, format } from 'date-fns';
+>>>>>>> b79800313fe7f2ffab3bf79e330d805c343bfa5b
 
 export default function BoostEvent() {
   const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [durationCount, setDurationCount] = useState<number>(1);
+<<<<<<< HEAD
   const [events, setEvents] = useState<any[]>([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -15,6 +22,10 @@ export default function BoostEvent() {
   const [paymentInitiated, setPaymentInitiated] = useState(false);
   const [paymentId, setPaymentId] = useState<number | null>(null);
   const [success, setSuccess] = useState(false);
+=======
+  const [startDate, setStartDate] = useState<string>('');
+  const [startTime, setStartTime] = useState<string>('');
+>>>>>>> b79800313fe7f2ffab3bf79e330d805c343bfa5b
 
   useEffect(() => {
     fetchEvents();
@@ -106,6 +117,7 @@ export default function BoostEvent() {
     }
   ];
 
+<<<<<<< HEAD
   const handleProceedToPayment = async () => {
     if (!selectedEvent || !selectedTier) {
       setError('Please select an event and boost package');
@@ -166,6 +178,15 @@ export default function BoostEvent() {
     ? (selectedTierData.price * durationCount) 
     : 0;
 
+=======
+  const calculateEndDate = () => {
+    if (!startDate || !startTime) return '';
+    const startDateTime = new Date(`${startDate}T${startTime}`);
+    const endDateTime = addDays(startDateTime, durationCount);
+    return format(endDateTime, 'yyyy-MM-dd') + '  ' + 'Time:' + startTime; // Add space between date and time
+  };
+
+>>>>>>> b79800313fe7f2ffab3bf79e330d805c343bfa5b
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -295,6 +316,35 @@ export default function BoostEvent() {
                 {selectedTierData?.name}
               </span>
             </div>
+
+            <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+              <span className="text-gray-600 dark:text-gray-400">Start Date</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-40 px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-center"
+              />
+            </div>
+
+            <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+              <span className="text-gray-600 dark:text-gray-400">Start Time</span>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-40 px-3 py-2 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-center"
+              />
+            </div>
+
+            {startDate && startTime && (
+              <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
+                <span className="text-gray-600 dark:text-gray-400">End Date and Time</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
+                  {calculateEndDate()}
+                </span>
+              </div>
+            )}
 
             <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
               <span className="text-gray-600 dark:text-gray-400">Duration</span>

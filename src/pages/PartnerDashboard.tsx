@@ -84,7 +84,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'roles', label: 'Assign Roles', icon: UserPlus },
-    { id: 'scanner', label: 'Scan Tickets', icon: QrCode },
+    // { id: 'scanner', label: 'Scan Tickets', icon: QrCode },
     { id: 'verification', label: 'Partner Verification', icon: Award }
   ];
 
@@ -183,7 +183,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                     </li>
                   );
                 })}
-                {/* Ask for Support Button */}
+                {/* Contact Support Button */}
                 <li>
                   <button
                     onClick={() => setActiveTab('support')}
@@ -191,7 +191,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                       ${activeTab === 'support' ? 'bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] text-white shadow-lg' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700'}`}
                   >
                     <HelpCircle className="w-5 h-5" />
-                    <span>Ask for Support</span>
+                    <span>Contact Support</span>
                   </button>
                 </li>
               </ul>

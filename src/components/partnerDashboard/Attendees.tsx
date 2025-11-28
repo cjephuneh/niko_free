@@ -259,6 +259,10 @@ export default function Attendees() {
     setExportMenuOpen(false);
   };
 
+  const handleEventFilter = (event: string) => {
+    setSelectedEvent(event);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -338,11 +342,12 @@ export default function Attendees() {
           {eventSummary.map((event, index) => (
             <div 
               key={index}
-              className={`p-4 rounded-lg border-2 ${
-                event.isCurrent 
-                  ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-                  : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50'
+              className={`p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
+                event.event === selectedEvent
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' // Blue border for selected event
+                  : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50' // Default border for other events
               }`}
+              onClick={() => handleEventFilter(event.event)}
             >
               <div className="flex items-start justify-between mb-2">
                 <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{event.event}</h4>

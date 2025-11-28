@@ -89,7 +89,7 @@ export default function NotificationSettings() {
   const [filter, setFilter] = useState<'all' | 'unread' | 'rsvp' | 'application' | 'approval'>('all');
   // Map notification types to filter buttons
   const typeFilters = [
-    { id: 'rsvp', label: 'RSVP Notifications' },
+    { id: 'rsvp', label: 'RSVP/Bookings' },
     { id: 'application', label: 'Event Application Notifications' },
     { id: 'approval', label: 'Event Approval Notifications' }
   ];

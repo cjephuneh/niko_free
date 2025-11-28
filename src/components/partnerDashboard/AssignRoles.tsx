@@ -1,4 +1,4 @@
-import { UserPlus, Users, Shield, Trash2, Mail, Phone, TrendingUp, X } from 'lucide-react';
+import { UserPlus, Users, Shield, Trash2, Mail, Phone, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getTeamMembers, addTeamMember, removeTeamMember } from '../../services/partnerService';
 
@@ -24,19 +24,6 @@ export default function AssignRoles() {
   const [invitePhone, setInvitePhone] = useState('');
   const [inviteRole, setInviteRole] = useState<'Manager' | 'Staff'>('Manager');
   const [inviteSubmitting, setInviteSubmitting] = useState(false);
-
-  const [agents] = useState([
-    {
-      id: 1,
-      name: 'Carol Muthoni',
-      email: 'carol@example.com',
-      phone: '+254734567890',
-      eventsPromoted: 5,
-      ticketsSold: 123,
-      commission: 15000,
-      status: 'Active'
-    }
-  ]);
 
   useEffect(() => {
     const fetchTeam = async () => {
@@ -216,105 +203,6 @@ export default function AssignRoles() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Promotional Agents Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <TrendingUp className="w-6 h-6 text-[#27aae2]" />
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Promotional Agents
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Maximum 3 agents allowed
-              </p>
-            </div>
-          </div>
-          <button
-            disabled={agents.length >= 3}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all ${
-              agents.length >= 3
-                ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 cursor-not-allowed'
-                : 'bg-[#27aae2] text-white hover:bg-[#1e8bc3]'
-            }`}
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Add Agent</span>
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {agents.map((agent) => (
-            <div
-              key={agent.id}
-              className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h4 className="font-semibold text-gray-900 dark:text-white">
-                      {agent.name}
-                    </h4>
-                    <span className={`px-2 py-1 text-xs font-medium rounded ${
-                      agent.status === 'Active'
-                        ? 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                    }`}>
-                      {agent.status}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-600 dark:text-gray-400">
-                    <div className="flex items-center space-x-2">
-                      <Mail className="w-4 h-4" />
-                      <span>{agent.email}</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Phone className="w-4 h-4" />
-                      <span>{agent.phone}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-2">
-                  <Trash2 className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Events Promoted</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {agent.eventsPromoted}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Tickets Sold</p>
-                  <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {agent.ticketsSold}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Commission Earned</p>
-                  <p className="text-lg font-semibold text-[#27aae2]">
-                    Ksh {agent.commission.toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {agents.length === 0 && (
-          <div className="text-center py-8">
-            <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-600 dark:text-gray-400">
-              No promotional agents yet. Add up to 3 agents to help promote your events.
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Info Box */}

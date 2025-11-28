@@ -144,6 +144,8 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
     hosts: []
   });
 
+  const [isOneDayEvent, setIsOneDayEvent] = useState(true);
+
   const totalSteps = 7;
 
   // Fetch categories on mount
@@ -415,6 +417,12 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
         return;
       }
       
+      if (!formData.locationName) {
+        setError('Location name is required');
+        setIsLoading(false);
+        return;
+      }
+      
       // Prepare form data
       const formDataToSend = new FormData();
       
@@ -503,8 +511,9 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
     onClose();
       }, 3000);
       
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit event. Please try again.');
+    } catch (err) {
+      const errorMessage = (err instanceof Error) ? err.message : 'Failed to submit event. Please try again.';
+      setError(errorMessage);
       console.error('Error submitting event:', err);
     } finally {
       setIsLoading(false);
@@ -662,9 +671,9 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                         placeholder="e.g., Ngong Hills, Nairobi"
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                       />
-                      <button className="mt-2 text-sm text-[#27aae2] hover:text-[#1e8bb8] font-medium">
+                      {/* <button className="mt-2 text-sm text-[#27aae2] hover:text-[#1e8bb8] font-medium">
                         📍 Pin on Map
-                      </button>
+                      </button> */}
                     </div>
                   )}
 
@@ -715,54 +724,80 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                     Date & Time
                   </h4>
 
+                  {/* Toggle for One-Day or Multiday Event */}
+                  <div className="flex items-center gap-4 mb-6">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="eventDuration"
+                        value="oneDay"
+                        checked={isOneDayEvent}
+                        onChange={() => setIsOneDayEvent(true)}
+                      />
+                      One-Day Event
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="eventDuration"
+                        value="multiDay"
+                        checked={!isOneDayEvent}
+                        onChange={() => setIsOneDayEvent(false)}
+                      />
+                      Multiday Event
+                    </label>
+                  </div>
+
+                  {/* Date and Time Inputs */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Start Date
                       </label>
                       <input
                         type="date"
                         value={formData.startDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, startDate: e.target.value }))}
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                       />
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Start Time
                       </label>
                       <input
                         type="time"
                         value={formData.startTime}
-                        onChange={(e) => setFormData(prev => ({ ...prev, startTime: e.target.value }))}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, startTime: e.target.value }))}
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                       />
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        End Date
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.endDate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         End Time
                       </label>
                       <input
                         type="time"
                         value={formData.endTime}
-                        onChange={(e) => setFormData(prev => ({ ...prev, endTime: e.target.value }))}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, endTime: e.target.value }))}
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                       />
                     </div>
+
+                    {/* End Date for Multiday Events */}
+                    {!isOneDayEvent && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.endDate}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -817,7 +852,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                   {/* Open Interests */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Add Custom Interests/Tag (Max 10)
+                      Add Custom Interests & Tag (Max 10)
                     </label>
                     <div className="flex gap-2 mb-3">
                       <input
@@ -919,6 +954,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                         <Upload className="w-12 h-12 text-gray-400 mb-2" />
                         <p className="text-sm text-gray-500 dark:text-gray-400">Click to upload event photo</p>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">PNG, JPG up to 10MB</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">Make sure your event stands out with a photo that captures the vibe</p>
                         <input
                           type="file"
                           accept="image/*"
@@ -1084,7 +1120,8 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                               <input
                                 type="text"
                                 value={customTicket.name || ''}
-                                onChange={(e) => setCustomTicket(prev => ({ ...prev, name: e.target.value }))}
+                                onChange={(e) => setCustomTicket(prev => ({ ...prev, name: e.target.value }))
+                                }
                                 placeholder="e.g., Early Bird"
                                 className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                               />
@@ -1251,14 +1288,22 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                                 {/* Time Slot (only for timeslot-based) */}
                                 {ticket.ticketStructure === 'timeslot' && (
                                   <div>
-                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Time Slot</label>
+                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Start Time</label>
                                     <input
-                                      type="text"
-                                      value={ticket.timeslot || ''}
-                                      onChange={(e) => updateTicketType(ticket.id, 'timeslot', e.target.value)}
-                                      placeholder="e.g., 9:00 AM - 10:00 AM"
+                                      type="time"
+                                      value={ticket.startTime || ''}
+                                      onChange={(e) => updateTicketType(ticket.id, 'startTime', e.target.value)}
                                       className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                                     />
+
+                                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1 mt-2">End Time</label>
+                                    <input
+                                      type="time"
+                                      value={ticket.endTime || ''}
+                                      onChange={(e) => updateTicketType(ticket.id, 'endTime', e.target.value)}
+                                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                    />
+
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Max 8 time slots per event</p>
                                   </div>
                                 )}
@@ -1585,7 +1630,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                     <>
                       <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 11-18 0a9 9 0 0118 0z" />
                       </svg>
                       <span>Submitting...</span>
                     </>

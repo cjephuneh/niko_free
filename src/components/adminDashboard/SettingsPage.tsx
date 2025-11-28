@@ -1,13 +1,26 @@
 import React, { useState } from 'react';
-import { Settings, Mail, UserPlus } from 'lucide-react';
+import { Settings, Mail, UserPlus, List, MapPin, DollarSign, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getToken } from '../../services/authService';
-import { API_BASE_URL } from '../../config/api';
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const [newEmail, setNewEmail] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
+  const [categories, setCategories] = useState([
+    { id: 1, name: 'Music' },
+    { id: 2, name: 'Sports' },
+    { id: 3, name: 'Technology' },
+  ]);
+  const [locations, setLocations] = useState([
+    { id: 1, name: 'Nairobi' },
+    { id: 2, name: 'Mombasa' },
+    { id: 3, name: 'Kisumu' },
+  ]);
+  const [commissions, setCommissions] = useState([
+    { id: 1, event: 'Concert', rate: '10%' },
+    { id: 2, event: 'Marathon', rate: '15%' },
+    { id: 3, event: 'Tech Expo', rate: '20%' },
+  ]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -20,25 +33,10 @@ export default function SettingsPage() {
 
     setLoading(true);
     try {
-      // Update user email - you'll need to create this endpoint
-      const response = await fetch(`${API_BASE_URL}/api/users/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
-        },
-        body: JSON.stringify({ email: newEmail }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Email updated successfully' });
-        setNewEmail('');
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to update email' });
-      }
+      setMessage({ type: 'success', text: 'Email updated successfully (dummy action)' });
+      setNewEmail('');
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error updating email' });
+      setMessage({ type: 'error', text: 'Error updating email (dummy action)' });
     } finally {
       setLoading(false);
     }
@@ -53,28 +51,52 @@ export default function SettingsPage() {
 
     setLoading(true);
     try {
-      // Create admin user - you'll need to create this endpoint
-      const response = await fetch(`${API_BASE_URL}/api/admin/users/invite`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
-        },
-        body: JSON.stringify({ email: adminEmail }),
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        setMessage({ type: 'success', text: `Admin invitation sent to ${adminEmail}` });
-        setAdminEmail('');
-      } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to invite admin' });
-      }
+      setMessage({ type: 'success', text: `Admin invitation sent to ${adminEmail} (dummy action)` });
+      setAdminEmail('');
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error inviting admin' });
+      setMessage({ type: 'error', text: 'Error inviting admin (dummy action)' });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditCategory = (id, newName) => {
+    setCategories((prev) => prev.map((cat) => (cat.id === id ? { ...cat, name: newName } : cat)));
+  };
+
+  const handleAddCategory = () => {
+    const newCategory = { id: Date.now(), name: '' };
+    setCategories((prev) => [...prev, newCategory]);
+  };
+
+  const handleDeleteCategory = (id) => {
+    setCategories((prev) => prev.filter((cat) => cat.id !== id));
+  };
+
+  const handleEditLocation = (id, newName) => {
+    setLocations((prev) => prev.map((loc) => (loc.id === id ? { ...loc, name: newName } : loc)));
+  };
+
+  const handleAddLocation = () => {
+    const newLocation = { id: Date.now(), name: '' };
+    setLocations((prev) => [...prev, newLocation]);
+  };
+
+  const handleDeleteLocation = (id) => {
+    setLocations((prev) => prev.filter((loc) => loc.id !== id));
+  };
+
+  const handleEditCommission = (id, newRate) => {
+    setCommissions((prev) => prev.map((com) => (com.id === id ? { ...com, rate: newRate } : com)));
+  };
+
+  const handleAddCommission = () => {
+    const newCommission = { id: Date.now(), event: 'New Event', rate: '' };
+    setCommissions((prev) => [...prev, newCommission]);
+  };
+
+  const handleDeleteCommission = (id) => {
+    setCommissions((prev) => prev.filter((com) => com.id !== id));
   };
 
   return (
@@ -126,6 +148,85 @@ export default function SettingsPage() {
             </button>
           </form>
         </div>
+
+        {/* Manage Categories Section */}
+        <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <List className="w-5 h-5" />
+            Manage Categories
+            <button onClick={handleAddCategory} className="ml-auto bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">
+              <Plus className="w-4 h-4" />
+            </button>
+          </h3>
+          <ul className="space-y-2">
+            {categories.map((category) => (
+              <li key={category.id} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={category.name}
+                  onChange={(e) => handleEditCategory(category.id, e.target.value)}
+                  className="w-full px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <button onClick={() => handleDeleteCategory(category.id)} className="text-red-500 hover:text-red-700">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Manage Locations Section */}
+        {/* <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <MapPin className="w-5 h-5" />
+            Manage Locations
+            <button onClick={handleAddLocation} className="ml-auto bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">
+              <Plus className="w-4 h-4" />
+            </button>
+          </h3>
+          <ul className="space-y-2">
+            {locations.map((location) => (
+              <li key={location.id} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={location.name}
+                  onChange={(e) => handleEditLocation(location.id, e.target.value)}
+                  className="w-full px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <button onClick={() => handleDeleteLocation(location.id)} className="text-red-500 hover:text-red-700">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div> */}
+
+        {/* Manage Commissions Section */}
+        {/* <div className="mb-8">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+            <DollarSign className="w-5 h-5" />
+            Manage Commissions
+            <button onClick={handleAddCommission} className="ml-auto bg-green-500 text-white px-2 py-1 rounded hover:bg-green-600">
+              <Plus className="w-4 h-4" />
+            </button>
+          </h3>
+          <ul className="space-y-2">
+            {commissions.map((commission) => (
+              <li key={commission.id} className="flex items-center gap-2">
+                <span className="text-gray-700 dark:text-gray-300">{commission.event}:</span>
+                <input
+                  type="text"
+                  value={commission.rate}
+                  onChange={(e) => handleEditCommission(commission.id, e.target.value)}
+                  className="w-full px-2 py-1 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+                <button onClick={() => handleDeleteCommission(commission.id)} className="text-red-500 hover:text-red-700">
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div> */}
 
         {/* Invite Admin Section */}
         <div>
