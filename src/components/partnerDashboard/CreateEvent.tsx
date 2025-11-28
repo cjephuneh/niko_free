@@ -1572,30 +1572,27 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                   </h4>
 
                   {/* Hosts Section */}
-                  <div className="mb-8">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  <div className="">
+                    {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       Add Event Hosts (Max 2)
                     </label>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                       Hosts must be Niko Free members and will receive all RSVPs, bookings, and bucket lists.
-                    </p>
+                    </p> */}
 
-                    {formData.hosts.length < 2 && (
+                    {/* {formData.hosts.length < 2 && (
                       <div className="mb-4">
                         <input
                           type="text"
                           placeholder="Search by username or name..."
                           className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                           onChange={(e) => {
-                            // In production, this would trigger a search
                             if (e.target.value) {
                               const results = searchHost(e.target.value);
-                              // Show results dropdown (simplified for demo)
                               console.log('Search results:', results);
                             }
                           }}
                         />
-                        {/* Demo: Add some sample hosts */}
                         <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                           <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Suggested hosts:</p>
                           <div className="space-y-2">
@@ -1641,9 +1638,9 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                           </div>
                         </div>
                       </div>
-                    )}
+                    )} */}
 
-                    {/* Selected Hosts */}
+                    
                     {formData.hosts.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Selected Hosts:</p>
