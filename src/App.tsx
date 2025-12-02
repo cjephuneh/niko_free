@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import EventDetailPage from './pages/EventDetailPage';
+import PartnerProfilePage from './pages/PartnerProfilePage';
 import UserDashboard from './pages/UserDashboard';
 import PartnerDashboard from './pages/PartnerDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -16,9 +17,15 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Wrapper component to extract eventId from URL params
-function EventDetailPageWrapper({ onNavigate }: { onNavigate: (page: string) => void }) {
+function EventDetailPageWrapper({ onNavigate }: { onNavigate: (page: string, params?: any) => void }) {
   const { eventId } = useParams<{ eventId: string }>();
   return <EventDetailPage eventId={eventId || '1'} onNavigate={onNavigate} />;
+}
+
+// Wrapper component to extract partnerId from URL params
+function PartnerProfilePageWrapper({ onNavigate }: { onNavigate: (page: string, params?: any) => void }) {
+  const { partnerId } = useParams<{ partnerId: string }>();
+  return <PartnerProfilePage partnerId={partnerId || '1'} onNavigate={onNavigate} />;
 }
 
 function AppContent() {
@@ -37,8 +44,14 @@ function AppContent() {
     navigate(`/event-detail/${eventId}`);
   };
 
-  const navigateTo = (page: string) => {
-    navigate(`/${page === 'landing' ? '' : page}`);
+  const navigateTo = (page: string, params?: any) => {
+    if (page === 'partner-profile' && params?.partnerId) {
+      navigate(`/partner/${params.partnerId}`);
+    } else if (page === 'event-detail' && params?.eventId) {
+      navigate(`/event-detail/${params.eventId}`);
+    } else {
+      navigate(`/${page === 'landing' ? '' : page}`);
+    }
   };
 
   return (
@@ -56,6 +69,10 @@ function AppContent() {
         <Route 
           path="/event-detail/:eventId" 
           element={<EventDetailPageWrapper onNavigate={navigateTo} />} 
+        />
+        <Route 
+          path="/partner/:partnerId" 
+          element={<PartnerProfilePageWrapper onNavigate={navigateTo} />} 
         />
         <Route 
           path="/user-dashboard" 
