@@ -9,7 +9,15 @@ export const setToken = (token: string) => {
 };
 
 export const getToken = (): string | null => {
-  return localStorage.getItem(TOKEN_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
+  // Validate token format (JWT should have 3 parts separated by dots)
+  if (token && token.split('.').length !== 3) {
+    // Token is malformed, remove it
+    console.warn('Malformed token detected, removing from storage');
+    removeToken();
+    return null;
+  }
+  return token;
 };
 
 export const removeToken = () => {
@@ -115,9 +123,15 @@ export const isAuthenticated = (): boolean => {
 // Get authenticated fetch headers
 export const getAuthHeaders = () => {
   const token = getToken();
+  // Only include Authorization header if token is valid
+  if (!token || token.split('.').length !== 3) {
+    return {
+      'Content-Type': 'application/json',
+    };
+  }
   return {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
+    Authorization: `Bearer ${token}`,
   };
 };
 

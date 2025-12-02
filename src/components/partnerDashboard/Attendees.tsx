@@ -26,10 +26,13 @@ export default function Attendees() {
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pastEventsCount, setPastEventsCount] = useState(0);
+  const [currentEventsCount, setCurrentEventsCount] = useState(0);
 
-  // Fetch attendees on mount
+  // Fetch attendees and dashboard stats on mount
   useEffect(() => {
     fetchAttendees();
+    fetchDashboardStats();
   }, []);
 
   const fetchAttendees = async () => {
@@ -56,11 +59,47 @@ export default function Attendees() {
       }));
       
       setAttendees(formattedAttendees);
+      
+      // Use counts from API response if available
+      if (response.past_events_count !== undefined) {
+        setPastEventsCount(response.past_events_count);
+      }
+      if (response.current_events_count !== undefined) {
+        setCurrentEventsCount(response.current_events_count);
+      }
     } catch (err: any) {
       console.error('Error fetching attendees:', err);
       setError(err.message || 'Failed to load attendees');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    try {
+      const { getPartnerToken } = await import('../../services/partnerService');
+      const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+      const token = getPartnerToken();
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.dashboard}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.stats?.past_events !== undefined) {
+          setPastEventsCount(data.stats.past_events);
+        }
+        if (data.stats?.upcoming_events !== undefined) {
+          setCurrentEventsCount(data.stats.upcoming_events);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
     }
   };
 
@@ -202,10 +241,15 @@ export default function Attendees() {
   const uniqueTicketTypes = ['all', ...Array.from(new Set(allAttendees.map(a => a.ticketType)))];
 
   // Calculate demographics
+  // Use dashboard stats for event counts (more accurate than counting from attendees)
+  const uniqueCurrentEvents = new Set(
+    allAttendees.filter(a => a.isCurrentEvent).map(a => a.event)
+  ).size;
+  
   const demographics = {
     totalAttendees: allAttendees.length,
-    currentEvents: allAttendees.filter(a => a.isCurrentEvent).length,
-    pastEvents: allAttendees.filter(a => !a.isCurrentEvent).length,
+    currentEvents: currentEventsCount > 0 ? currentEventsCount : uniqueCurrentEvents, // Use dashboard count if available
+    pastEvents: pastEventsCount > 0 ? pastEventsCount : new Set(allAttendees.filter(a => !a.isCurrentEvent).map(a => a.event)).size, // Use dashboard count if available
     averageAge: allAttendees.length > 0 ? Math.round(allAttendees.reduce((sum, a) => sum + a.age, 0) / allAttendees.length) : 0
   };
 

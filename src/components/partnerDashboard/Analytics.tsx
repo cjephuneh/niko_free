@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
+<<<<<<< HEAD
 import { Clock, Calendar, TrendingUp, CalendarDays as EventIcon } from 'lucide-react';
+=======
+import { Clock, Calendar, TrendingUp } from 'lucide-react';
+>>>>>>> 78f59a67e4b788ab54280afef31c2d7cfd5c0168
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { getPartnerAnalytics, getPartnerToken } from '../../services/partnerService';
-import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
+import { getPartnerAnalytics } from '../../services/partnerService';
 
 interface ChartDataPoint {
 	date: string;
@@ -32,17 +35,8 @@ interface AnalyticsData {
 	chart_data?: ChartDataPoint[];
 }
 
-interface DashboardStats {
-	total_earnings: number;
-	pending_earnings: number;
-	withdrawn_earnings: number;
-	total_events: number;
-	upcoming_events: number;
-}
-
 export default function Analytics() {
 	const [data, setData] = useState<AnalyticsData | null>(null);
-	const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
 
@@ -51,37 +45,12 @@ export default function Analytics() {
 			try {
 				setLoading(true);
 				setError('');
-				
-				// Fetch analytics data
-				const analyticsResponse = await getPartnerAnalytics(30);
-				console.log('Analytics response:', analyticsResponse);
-				if (analyticsResponse && (analyticsResponse.summary || analyticsResponse.last_7_days || analyticsResponse.last_24_hours)) {
-					setData(analyticsResponse);
+				const response = await getPartnerAnalytics(30);
+				console.log('Analytics response:', response);
+				if (response && (response.summary || response.last_7_days || response.last_24_hours)) {
+					setData(response);
 				} else {
 					throw new Error('Invalid response format from analytics API');
-				}
-
-				// Fetch dashboard data (same as Overview) to get accurate earnings
-				const token = getPartnerToken();
-				if (token) {
-					const dashboardResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.dashboard}`, {
-						headers: {
-							'Authorization': `Bearer ${token}`,
-							'Content-Type': 'application/json',
-						},
-					});
-
-					if (dashboardResponse.ok) {
-						const dashboardData = await dashboardResponse.json();
-						const stats = dashboardData.stats || {};
-						setDashboardStats({
-							total_earnings: parseFloat(stats.total_earnings || 0),
-							pending_earnings: parseFloat(stats.pending_earnings || 0),
-							withdrawn_earnings: parseFloat(stats.withdrawn_earnings || 0),
-							total_events: stats.total_events || 0,
-							upcoming_events: stats.upcoming_events || 0,
-						});
-					}
 				}
 			} catch (err: any) {
 				console.error('Error fetching analytics:', err);
@@ -160,7 +129,7 @@ export default function Analytics() {
 			<h2 className="text-2xl font-bold mb-4 text-[#27aae2]">Analytics</h2>
 
 			{/* Top summary cards */}
-			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
 				<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center space-x-4">
 					<div className="p-3 bg-[#e6f7fb] dark:bg-[#0f1724] rounded-lg">
 						<Calendar className="w-6 h-6 text-[#27aae2]" />
@@ -169,18 +138,6 @@ export default function Analytics() {
 						<div className="text-sm text-gray-500 dark:text-gray-400">Total Bookings</div>
 						<div className="text-2xl font-semibold text-gray-900 dark:text-white">
 							{data?.summary.total_bookings ?? 0}
-						</div>
-					</div>
-				</div>
-
-				<div className="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center space-x-4">
-					<div className="p-3 bg-[#eaf8f1] dark:bg-[#071214] rounded-lg">
-						<EventIcon className="w-6 h-6 text-[#27aae2]" />
-					</div>
-					<div>
-						<div className="text-sm text-gray-500 dark:text-gray-400">Total Events</div>
-						<div className="text-2xl font-semibold text-gray-900 dark:text-white">
-							{dashboardStats?.total_events ?? data?.summary.total_events ?? 0}
 						</div>
 					</div>
 				</div>
@@ -202,9 +159,9 @@ export default function Analytics() {
 						<Clock className="w-6 h-6 text-[#27aae2]" />
 					</div>
 					<div>
-						<div className="text-sm text-gray-500 dark:text-gray-400">Total Earnings</div>
+						<div className="text-sm text-gray-500 dark:text-gray-400">Revenue</div>
 						<div className="text-2xl font-semibold text-gray-900 dark:text-white">
-							{formatCurrency(dashboardStats?.total_earnings ?? 0)}
+							{formatCurrency(data?.summary.total_revenue)}
 						</div>
 					</div>
 				</div>
@@ -223,7 +180,7 @@ export default function Analytics() {
 							<div>
 								<p className="text-xs text-gray-500 dark:text-gray-400">All time earnings</p>
 								<div className="mt-2 text-2xl font-bold text-[#27aae2]">
-									{formatCurrency(dashboardStats?.total_earnings ?? 0)}
+									{formatCurrency(data?.summary.total_revenue)}
 								</div>
 							</div>
 						</div>
@@ -238,6 +195,7 @@ export default function Analytics() {
 									{formatCurrency(data?.last_7_days.revenue)}
 								</div>
 							</div>
+							<div className="text-sm text-green-500 font-medium">+12%</div>
 						</div>
 						<p className="text-xs text-gray-500 dark:text-gray-400 mt-3">Earnings in the last 7 days.</p>
 					</div>
@@ -250,6 +208,7 @@ export default function Analytics() {
 									{formatCurrency(data?.last_24_hours.revenue)}
 								</div>
 							</div>
+							<div className="text-sm text-red-500 font-medium">-4%</div>
 						</div>
 						<p className="text-xs text-gray-500 dark:text-gray-400 mt-3">Earnings in the last 24 hours.</p>
 					</div>

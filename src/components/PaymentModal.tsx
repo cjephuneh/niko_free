@@ -73,7 +73,13 @@ export default function PaymentModal({
           }, 2000);
         } else if (result.payment?.status === 'failed') {
           clearInterval(pollInterval);
-          setError('Payment failed. Please try again.');
+          const errorMsg = result.payment?.error_message || '';
+          // Check if it's a validation error (ResultCode 2001)
+          if (errorMsg.toLowerCase().includes('initiator') || errorMsg.toLowerCase().includes('invalid')) {
+            setError('Payment validation failed. Please ensure your phone number is registered for M-Pesa. If testing, use a registered test number.');
+          } else {
+            setError('Payment failed. Please try again.');
+          }
           setPaymentInitiated(false);
         }
       } catch (err: any) {

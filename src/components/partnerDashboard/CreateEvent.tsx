@@ -337,7 +337,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                   : `${API_BASE_URL}${eventData.poster_image.startsWith('/') ? '' : '/'}${eventData.poster_image}`)
               : '',
             description: eventData.description || '',
-            attendeeLimit: null, // Can be calculated from ticket types
+            attendeeLimit: eventData.attendee_capacity || null,
             isUnlimited: !eventData.ticket_types?.some((tt: any) => tt.quantity_total !== null),
             isFree: eventData.is_free || false,
             ticketTypes,
@@ -671,6 +671,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
         const validTicketTypes = ticketTypesToSend.filter(t => t.name && t.name.trim() !== '');
         
         formDataToSend.append('ticket_types', JSON.stringify(validTicketTypes.map(t => ({
+          id: t.existingId || (t.id && t.id.toString().startsWith('existing-') ? parseInt(t.id.toString().replace('existing-', '')) : undefined),
           name: t.name.trim(),
           ticket_structure: t.ticketStructure,
           class_type: t.classType,
@@ -681,6 +682,22 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
           price: t.price,
           quantity: t.quantity,
         }))));
+        
+        // Send existing ticket IDs for edit mode
+        if (isEditMode) {
+          const existingTicketIds = validTicketTypes
+            .map(t => t.existingId || (t.id && t.id.toString().startsWith('existing-') ? parseInt(t.id.toString().replace('existing-', '')) : null))
+            .filter(id => id !== null && id !== undefined);
+          
+          if (existingTicketIds.length > 0) {
+            formDataToSend.append('existing_ticket_ids', JSON.stringify(existingTicketIds));
+          }
+        }
+      }
+      
+      // Add attendee capacity
+      if (formData.attendeeLimit && formData.attendeeLimit > 0) {
+        formDataToSend.append('attendee_capacity', formData.attendeeLimit.toString());
       }
       
       // Add promo codes

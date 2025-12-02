@@ -35,6 +35,7 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [currentEvents, setCurrentEvents] = useState<any[]>([]);
   const [eventHistory, setEventHistory] = useState<any[]>([]);
+  const [pastEventsCount, setPastEventsCount] = useState(0);
   const [selectedEvent, setSelectedEvent] = useState<EventDetails | null>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [financialData, setFinancialData] = useState({
@@ -123,6 +124,10 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
       // Fetch past events
       const pastResponse = await getPartnerEvents('past');
       const pastEvents = pastResponse.events || [];
+      
+      // Use total from API response if available (more accurate than events.length)
+      const pastEventsTotal = pastResponse.total !== undefined ? pastResponse.total : pastEvents.length;
+      setPastEventsCount(pastEventsTotal);
       
       // Format past events
       const formattedPast = pastEvents.map((event: any) => ({
@@ -428,7 +433,14 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
       {/* Events History Slideshow */}
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Events History</h3>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            Events History
+            {pastEventsCount > 0 && (
+              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                ({pastEventsCount} {pastEventsCount === 1 ? 'event' : 'events'})
+              </span>
+            )}
+          </h3>
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setHistoryEventsPage(Math.max(0, historyEventsPage - 1))}

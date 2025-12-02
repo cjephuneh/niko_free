@@ -42,12 +42,10 @@ export default function PendingBookings() {
       const response = await getUserBookings('pending');
       const allBookings = response.bookings || [];
       
-      // Filter out bookings for past events - clean up automatically
-      const activePendingBookings = allBookings.filter((booking: PendingBooking) => {
-        return !isEventPast(booking.event.start_date);
-      });
-      
-      setPendingBookings(activePendingBookings);
+      // Show all pending bookings (including past events)
+      // Users should be able to see and cancel past pending bookings
+      // The "Pay Now" button will be disabled for past events anyway
+      setPendingBookings(allBookings);
     } catch (err: any) {
       console.error('Error fetching pending bookings:', err);
       const errorMessage = err.message || 'Failed to load pending bookings';
@@ -267,15 +265,15 @@ export default function PendingBookings() {
                   {(() => {
                     const eventIsPast = isEventPast(booking.event.start_date);
                     return (
-                      <button
-                        onClick={() => handleCancelBooking(booking.id)}
+                  <button
+                    onClick={() => handleCancelBooking(booking.id)}
                         disabled={cancellingBooking === booking.id || eventIsPast}
                         title={eventIsPast ? 'Cannot cancel booking for events that have already passed' : ''}
-                        className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border-2 border-red-200 dark:border-red-800 rounded-lg font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <X className="w-4 h-4" />
-                        {cancellingBooking === booking.id ? 'Cancelling...' : 'Cancel Booking'}
-                      </button>
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-700 text-red-600 dark:text-red-400 border-2 border-red-200 dark:border-red-800 rounded-lg font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <X className="w-4 h-4" />
+                    {cancellingBooking === booking.id ? 'Cancelling...' : 'Cancel Booking'}
+                  </button>
                     );
                   })()}
                 </div>

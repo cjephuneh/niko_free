@@ -13,6 +13,7 @@ import { bookTicket, initiatePayment } from '../services/paymentService';
 import { addToBucketlist, removeFromBucketlist } from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL, getImageUrl } from '../config/api';
+import { getToken, getAuthHeaders } from '../services/authService';
 
 interface EventDetailPageProps {
   eventId: string;
@@ -57,7 +58,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     setPromoCodeError('');
 
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const parsedEventId = parseInt(eventId);
       
       if (isNaN(parsedEventId) || parsedEventId <= 0) {
@@ -789,11 +790,14 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                           if (pendingBookingId) {
                             try {
                               // Fetch booking details to get amount
-                              const token = localStorage.getItem('token');
+                              const token = getToken();
+                              if (!token) {
+                                console.error('No valid token found');
+                                return;
+                              }
                               const response = await fetch(`${API_BASE_URL}/api/users/bookings/${pendingBookingId}`, {
                                 headers: {
-                                  'Authorization': `Bearer ${token}`,
-                                  'Content-Type': 'application/json',
+                                  ...getAuthHeaders(),
                                 },
                               });
                               
