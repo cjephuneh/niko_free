@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { Calendar, MapPin, Users, Clock, ExternalLink, ChevronLeft, Heart, X, Mail, Phone, Globe, MapPin as MapPinIcon, CheckCircle2, Star } from 'lucide-react';
-=======
 import { Calendar, MapPin, Users, Clock, ExternalLink, ChevronLeft, Heart, X, Mail, Phone, Globe, MapPin as MapPinIcon, CheckCircle2, AlertCircle, CreditCard } from 'lucide-react';
->>>>>>> 217aafce0e2a26bd1431050c7a27ec2b245813c3
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -13,13 +9,8 @@ import EventActions from '../components/EventActions';
 import PaymentModal from '../components/PaymentModal';
 import SEO from '../components/SEO';
 import { getEventDetails } from '../services/eventService';
-<<<<<<< HEAD
-import { bookTicket } from '../services/paymentService';
-import { addToBucketlist, removeFromBucketlist, getEventReviews } from '../services/userService';
-=======
 import { bookTicket, initiatePayment } from '../services/paymentService';
 import { addToBucketlist, removeFromBucketlist } from '../services/userService';
->>>>>>> 217aafce0e2a26bd1431050c7a27ec2b245813c3
 import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL, getImageUrl } from '../config/api';
 import { getToken, getAuthHeaders } from '../services/authService';
@@ -49,14 +40,11 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
   const [promoCode, setPromoCode] = useState('');
   const [promoCodeError, setPromoCodeError] = useState('');
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
-<<<<<<< HEAD
   const [reviews, setReviews] = useState<any[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
-=======
   const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
->>>>>>> 217aafce0e2a26bd1431050c7a27ec2b245813c3
 
   // Validate promo code
   const handleValidatePromo = async () => {
@@ -168,7 +156,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     fetchEvent();
   }, [eventId]);
 
-<<<<<<< HEAD
   // Fetch event reviews
   const fetchReviews = async (parsedEventId: number) => {
     try {
@@ -187,7 +174,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       setIsLoadingReviews(false);
     }
   };
-=======
   // Handle query parameters for pending booking payment
   useEffect(() => {
     const bookingParam = searchParams.get('booking');
@@ -209,7 +195,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       }
     }
   }, [searchParams, eventData]);
->>>>>>> 217aafce0e2a26bd1431050c7a27ec2b245813c3
 
   // Format date and time
   const formatDate = (dateString: string) => {
