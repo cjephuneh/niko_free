@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Users, Clock, ExternalLink, ChevronLeft, Heart, X, Mail, Phone, Globe, MapPin as MapPinIcon, CheckCircle2, AlertCircle, CreditCard } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, ExternalLink, ChevronLeft, Heart, CheckCircle2, AlertCircle, CreditCard } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -17,7 +17,7 @@ import { getToken, getAuthHeaders } from '../services/authService';
 
 interface EventDetailPageProps {
   eventId: string;
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, params?: any) => void;
 }
 
 export default function EventDetailPage({ eventId, onNavigate }: EventDetailPageProps) {
@@ -36,14 +36,16 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [inBucketlist, setInBucketlist] = useState(false);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
-  const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [promoCodeError, setPromoCodeError] = useState('');
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+<<<<<<< HEAD
   const [reviews, setReviews] = useState<any[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+=======
+>>>>>>> 38eb93e19258f00e6ddc5b12ccad5633d58a4664
   const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
 
   // Validate promo code
@@ -129,8 +131,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
           setEventData(data);
           // Check if event is in bucketlist
           setInBucketlist(data.in_bucketlist || false);
-          // Fetch reviews for the event
-          fetchReviews(parsedEventId);
         } else {
           setError('Event not found or invalid response from server');
         }
@@ -156,6 +156,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     fetchEvent();
   }, [eventId]);
 
+<<<<<<< HEAD
   // Fetch event reviews
   const fetchReviews = async (parsedEventId: number) => {
     try {
@@ -174,6 +175,8 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       setIsLoadingReviews(false);
     }
   };
+=======
+>>>>>>> 38eb93e19258f00e6ddc5b12ccad5633d58a4664
   // Handle query parameters for pending booking payment
   useEffect(() => {
     const bookingParam = searchParams.get('booking');
@@ -712,7 +715,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Hosted By</h3>
                       <div 
                         className="flex items-center space-x-4 cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => setShowPartnerModal(true)}
+                        onClick={() => onNavigate('partner-profile', { partnerId: eventData.partner.id })}
                       >
                         <div className="relative flex-shrink-0">
                           {eventData.partner.logo ? (
@@ -752,82 +755,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                       </div>
                     </div>
                   )}
-
-                  {/* Reviews Section */}
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-8 mt-8">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">Reviews</h3>
-                      {totalReviews > 0 && (
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1">
-                            <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                            <span className="font-bold text-gray-900 dark:text-white">{averageRating.toFixed(1)}</span>
-                          </div>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {isLoadingReviews ? (
-                      <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#27aae2]"></div>
-                      </div>
-                    ) : reviews.length === 0 ? (
-                      <div className="text-center py-8 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                        <p className="text-gray-600 dark:text-gray-400">No reviews yet. Be the first to review this event!</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 sm:space-y-4">
-                        {reviews.slice(0, 3).map((review: any) => (
-                          <div key={review.id} className="flex items-start space-x-2 sm:space-x-3">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#27aae2]/10 flex items-center justify-center flex-shrink-0">
-                              <span className="text-[#27aae2] font-bold text-sm">
-                                {review.user?.first_name?.[0]?.toUpperCase() || 'U'}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between mb-1 gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">
-                                    {review.user?.first_name} {review.user?.last_name}
-                                  </h4>
-                                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                                    {new Date(review.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                  </p>
-                                </div>
-                                <div className="flex items-center space-x-0.5 flex-shrink-0">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                      key={star}
-                                      className={`w-3 h-3 sm:w-4 sm:h-4 ${
-                                        star <= review.rating
-                                          ? 'fill-yellow-400 text-yellow-400'
-                                          : 'text-gray-300'
-                                      }`}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                              {review.comment && (
-                                <p className="text-gray-700 dark:text-gray-300 leading-relaxed text-sm line-clamp-2 sm:line-clamp-none">
-                                  {review.comment}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-
-                        {reviews.length > 3 && (
-                          <button 
-                            onClick={() => setShowLoginModal(true)}
-                            className="w-full py-2 sm:py-2.5 border-2 border-gray-200 dark:border-gray-700 rounded-xl font-semibold text-gray-700 dark:text-gray-300 hover:border-[#27aae2] hover:text-[#27aae2] transition-all text-sm"
-                          >
-                            Load More Reviews ({reviews.length - 3} more)
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -1046,131 +973,6 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
           onPaymentSuccess={handlePaymentSuccess}
           onNavigate={onNavigate}
         />
-      )}
-
-      {/* Partner Details Modal */}
-      {showPartnerModal && eventData?.partner && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50" onClick={() => setShowPartnerModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Partner Details</h2>
-              <button
-                onClick={() => setShowPartnerModal(false)}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-              >
-                <X className="w-6 h-6 text-gray-600 dark:text-gray-400" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Partner Header */}
-              <div className="flex items-start gap-4">
-                <div className="relative flex-shrink-0">
-                  {eventData.partner.logo ? (
-                    <img
-                      src={getImageUrl(eventData.partner.logo)}
-                      alt={eventData.partner.business_name}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(eventData.partner.business_name)}&background=27aae2&color=fff&size=256`;
-                      }}
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-[#27aae2] flex items-center justify-center border-4 border-gray-200 dark:border-gray-700">
-                      <span className="text-white text-3xl font-bold">
-                        {eventData.partner.business_name?.charAt(0)?.toUpperCase() || 'P'}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-2">
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {eventData.partner.business_name}
-                    </h3>
-                    {eventData.partner.is_verified && (
-                      <span className="px-3 py-1 text-sm font-medium bg-black text-white rounded-full flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4" />
-                        Verified
-                      </span>
-                    )}
-                  </div>
-                  {eventData.partner.category && (
-                    <p className="text-gray-600 dark:text-gray-400 text-lg">
-                      {eventData.partner.category.name}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Partner Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {eventData.partner.email && (
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <Mail className="w-5 h-5 text-[#27aae2] flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Email</p>
-                      <p className="text-gray-900 dark:text-white font-medium">{eventData.partner.email}</p>
-                    </div>
-                  </div>
-                )}
-
-                {eventData.partner.phone_number && (
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <Phone className="w-5 h-5 text-[#27aae2] flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Phone</p>
-                      <p className="text-gray-900 dark:text-white font-medium">{eventData.partner.phone_number}</p>
-                    </div>
-                  </div>
-                )}
-
-                {eventData.partner.website && (
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <Globe className="w-5 h-5 text-[#27aae2] flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Website</p>
-                      <a 
-                        href={eventData.partner.website.startsWith('http') ? eventData.partner.website : `https://${eventData.partner.website}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[#27aae2] hover:underline font-medium"
-                      >
-                        {eventData.partner.website}
-                      </a>
-                    </div>
-                  </div>
-                )}
-
-                {eventData.partner.location && (
-                  <div className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <MapPinIcon className="w-5 h-5 text-[#27aae2] flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Location</p>
-                      <p className="text-gray-900 dark:text-white font-medium">{eventData.partner.location}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Description */}
-              {eventData.partner.description && (
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">About</p>
-                  <p className="text-gray-900 dark:text-white">{eventData.partner.description}</p>
-                </div>
-              )}
-
-              {/* Contact Person */}
-              {eventData.partner.contact_person && (
-                <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Contact Person</p>
-                  <p className="text-gray-900 dark:text-white font-medium">{eventData.partner.contact_person}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       )}
       </div>
     </>

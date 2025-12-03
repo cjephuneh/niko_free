@@ -1,6 +1,7 @@
 import React from 'react';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
+import { toast } from 'react-toastify';
 
 interface PendingEvent {
   id: string;
@@ -108,8 +109,16 @@ export default function EventsSection({}: EventsSectionProps) {
         };
         fetchEvents();
         alert('Event approved successfully. Email sent to partner.');
+        toast.success('Event approved successfully! Email sent to partner.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       } else {
         alert(data.error || 'Failed to approve event');
+        toast.error(data.error || 'Failed to approve event', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       }
     } catch (error) {
       console.error('Error approving event:', error);
@@ -165,8 +174,16 @@ export default function EventsSection({}: EventsSectionProps) {
         };
         fetchEvents();
         alert('Event rejected. Email sent to partner.');
+        toast.info('Event rejected. Email sent to partner.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       } else {
         alert(data.error || 'Failed to reject event');
+        toast.error(data.error || 'Failed to reject event', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       }
     } catch (error) {
       console.error('Error rejecting event:', error);

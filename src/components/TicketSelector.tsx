@@ -102,7 +102,6 @@ export default function TicketSelector({
   };
 
   const selectedTicket = getSelectedTicket();
-  const selectedQuantity = selectedTicket ? getQuantity(selectedTicket.id) : 1;
   
   // Get the actual selected ticket for uniform type (handle multiple ticket types)
   let actualSelectedTicket = selectedTicket;
@@ -450,15 +449,15 @@ export default function TicketSelector({
       )}
 
       {/* Price Summary */}
-      {selectedTicket && (
+      {actualSelectedTicket && (
         <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {selectedTicket.name} × {selectedQuantity}
+                {actualSelectedTicket.name} × {getQuantity(actualSelectedTicket.id)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                KES {selectedTicket.price.toLocaleString()} each
+                KES {actualSelectedTicket.price.toLocaleString()} each
               </p>
             </div>
             <div className="text-right">

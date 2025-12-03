@@ -1,5 +1,6 @@
-import { Calendar, MapPin, Users, Heart, Plus, Trash2, Edit, Sparkles } from 'lucide-react';
+import { Calendar, MapPin, Users, Heart, Plus, Trash2, Edit, Sparkles, X, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import { getPartnerEvents, deleteEvent } from '../../services/partnerService';
 import { API_BASE_URL } from '../../config/api';
 import CreateEvent from './CreateEvent';
@@ -18,6 +19,8 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [promoteEventId, setPromoteEventId] = useState<number | null>(null);
   const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
+  const [deleteConfirmEventId, setDeleteConfirmEventId] = useState<number | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   // Fetch events on mount and when filter changes
   useEffect(() => {
     fetchEvents();
@@ -81,20 +84,40 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
   };
 
   const handleDeleteEvent = async (eventId: number) => {
-    if (!window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-      return;
-    }
+    setDeleteConfirmEventId(eventId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmEventId) return;
+    
     try {
       setIsLoading(true);
       setError('');
-      await deleteEvent(eventId);
-      setEvents(prev => prev.filter(event => event.id !== eventId));
+      setIsDeleteModalOpen(false);
+      await deleteEvent(deleteConfirmEventId);
+      setEvents(prev => prev.filter(event => event.id !== deleteConfirmEventId));
+      toast.success('Event deleted successfully!', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
     } catch (err: any) {
       console.error('Error deleting event:', err);
-      setError(err.message || 'Failed to delete event');
+      const errorMessage = err.message || 'Failed to delete event';
+      setError(errorMessage);
+      toast.error(errorMessage, {
+        position: 'top-right',
+        autoClose: 5000,
+      });
     } finally {
       setIsLoading(false);
+      setDeleteConfirmEventId(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteModalOpen(false);
+    setDeleteConfirmEventId(null);
   };
 
   const handleEditEvent = (eventId: number) => {
@@ -402,6 +425,83 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
           event={events.find(e => e.id === promoteEventId)}
           onSuccess={handlePromotionSuccess}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75 backdrop-blur-sm"
+              onClick={cancelDelete}
+            />
+
+            {/* Modal panel */}
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              {/* Header with gradient */}
+              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <AlertTriangle className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Delete Event</h3>
+                  </div>
+                  <button
+                    onClick={cancelDelete}
+                    className="text-white/80 hover:text-white transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                <div className="mb-6">
+                  <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed">
+                    Are you sure you want to delete this event? This action cannot be undone and all associated data will be permanently removed.
+                  </p>
+                </div>
+
+                {/* Warning box */}
+                <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg">
+                  <div className="flex">
+                    <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div className="ml-3">
+                      <p className="text-sm text-red-800 dark:text-red-300 font-medium">
+                        This will delete:
+                      </p>
+                      <ul className="mt-2 text-sm text-red-700 dark:text-red-400 list-disc list-inside space-y-1">
+                        <li>All event details and information</li>
+                        <li>All ticket types and bookings</li>
+                        <li>All promo codes and analytics</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer with actions */}
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-end gap-3">
+                <button
+                  onClick={cancelDelete}
+                  className="px-6 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-6 py-2.5 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Event
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

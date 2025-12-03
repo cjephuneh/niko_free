@@ -412,75 +412,89 @@ export default function LandingPage({
         setIsLoadingEvents(true);
         // Get promoted events
         const response = await getPromotedEvents();
-        const events = (response.events || []).map((event: any) => {
-          const startDate = event.start_date
-            ? new Date(event.start_date)
-            : null;
-          
-          // Format date
-          let dateStr = "TBA";
-          if (startDate) {
-            const now = new Date();
-            const today = new Date(
-              now.getFullYear(),
-              now.getMonth(),
-              now.getDate()
-            );
-            const eventDate = new Date(
-              startDate.getFullYear(),
-              startDate.getMonth(),
-              startDate.getDate()
-            );
-            const daysDiff = Math.floor(
-              (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-            );
+        
+        // Filter and map events - exclude past events
+        const now = new Date();
+        const events = (response.events || [])
+          .filter((event: any) => {
+            // Determine the event's end time
+            const endDate = event.end_date 
+              ? new Date(event.end_date) 
+              : event.start_date 
+              ? new Date(event.start_date) 
+              : null;
+            
+            // Only include events that haven't ended yet
+            return endDate && endDate >= now;
+          })
+          .map((event: any) => {
+            const startDate = event.start_date
+              ? new Date(event.start_date)
+              : null;
+            
+            // Format date
+            let dateStr = "TBA";
+            if (startDate) {
+              const today = new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                now.getDate()
+              );
+              const eventDate = new Date(
+                startDate.getFullYear(),
+                startDate.getMonth(),
+                startDate.getDate()
+              );
+              const daysDiff = Math.floor(
+                (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+              );
 
-            if (daysDiff === 0) {
-              dateStr = "Today";
-            } else if (daysDiff === 1) {
-              dateStr = "Tomorrow";
-            } else {
-              dateStr = startDate.toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
+              if (daysDiff === 0) {
+                dateStr = "Today";
+              } else if (daysDiff === 1) {
+                dateStr = "Tomorrow";
+              } else {
+                dateStr = startDate.toLocaleDateString("en-US", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                });
+              }
+            }
+            
+            // Format time - always show time if start_date exists
+            let timeStr = "TBA";
+            if (startDate) {
+              timeStr = startDate.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
               });
             }
-          }
-          
-          // Format time - always show time if start_date exists
-          let timeStr = "TBA";
-          if (startDate) {
-            timeStr = startDate.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "2-digit",
-            });
-          }
 
-          return {
-            id: event.id.toString(),
-            title: event.title,
-            image: event.poster_image
-              ? event.poster_image.startsWith("http")
-                ? event.poster_image
-                : `${API_BASE_URL}${
-                    event.poster_image.startsWith("/") ? "" : "/"
-                  }${event.poster_image}`
-              : "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg?auto=compress&cs=tinysrgb&w=800",
-            date: dateStr,
-            time: timeStr,
-            location: event.venue_name || event.venue_address || "Online",
-            attendees: event.attendee_count || 0,
-            category: event.category?.name || "General",
-            price: event.is_free
-              ? "Free"
-              : event.ticket_types?.[0]?.price
-              ? `KES ${parseInt(event.ticket_types[0].price).toLocaleString()}`
-              : "TBA",
-            is_free: event.is_free || false, // Add is_free flag for button logic
-            inBucketlist: event.in_bucketlist || false,
-          };
-        });
+            return {
+              id: event.id.toString(),
+              title: event.title,
+              image: event.poster_image
+                ? event.poster_image.startsWith("http")
+                  ? event.poster_image
+                  : `${API_BASE_URL}${
+                      event.poster_image.startsWith("/") ? "" : "/"
+                    }${event.poster_image}`
+                : "https://images.pexels.com/photos/2774556/pexels-photo-2774556.jpeg?auto=compress&cs=tinysrgb&w=800",
+              date: dateStr,
+              time: timeStr,
+              location: event.venue_name || event.venue_address || "Online",
+              attendees: event.attendee_count || 0,
+              category: event.category?.name || "General",
+              price: event.is_free
+                ? "Free"
+                : event.ticket_types?.[0]?.price
+                ? `KES ${parseInt(event.ticket_types[0].price).toLocaleString()}`
+                : "TBA",
+              is_free: event.is_free || false, // Add is_free flag for button logic
+              inBucketlist: event.in_bucketlist || false,
+            };
+          });
 
         setCantMissEvents(events);
       } catch (err) {
