@@ -70,10 +70,28 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
     body: JSON.stringify(data),
   });
 
+  // Handle 429 (Too Many Requests) with better error message
+  if (response.status === 429) {
+    let errorMessage = 'Too many registration attempts. Please wait a moment before trying again.';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use default message
+    }
+    throw new Error(errorMessage);
+  }
+
+  // Check if response is JSON before parsing
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error('Server returned an invalid response. Please try again.');
+  }
+
   const responseData = await response.json();
 
   if (!response.ok) {
-    throw new Error(responseData.error || 'Registration failed');
+    throw new Error(responseData.error || responseData.message || 'Registration failed');
   }
 
   // Store token and user data
@@ -95,10 +113,28 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
     body: JSON.stringify(data),
   });
 
+  // Handle 429 (Too Many Requests) with better error message
+  if (response.status === 429) {
+    let errorMessage = 'Too many login attempts. Please wait a moment before trying again.';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use default message
+    }
+    throw new Error(errorMessage);
+  }
+
+  // Check if response is JSON before parsing
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error('Server returned an invalid response. Please try again.');
+  }
+
   const responseData = await response.json();
 
   if (!response.ok) {
-    throw new Error(responseData.error || 'Login failed');
+    throw new Error(responseData.error || responseData.message || 'Login failed');
   }
 
   // Store token and user data

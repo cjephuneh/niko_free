@@ -39,6 +39,10 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
   const [promoCode, setPromoCode] = useState('');
   const [promoCodeError, setPromoCodeError] = useState('');
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [averageRating, setAverageRating] = useState(0);
+  const [totalReviews, setTotalReviews] = useState(0);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
 
   // Validate promo code
@@ -149,6 +153,24 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     fetchEvent();
   }, [eventId]);
 
+  // Fetch event reviews
+  const fetchReviews = async (parsedEventId: number) => {
+    try {
+      setIsLoadingReviews(true);
+      const response = await getEventReviews(parsedEventId);
+      setReviews(response.reviews || []);
+      setAverageRating(response.average_rating || 0);
+      setTotalReviews(response.total_reviews || 0);
+    } catch (err: any) {
+      console.error('Error fetching reviews:', err);
+      // Silently fail - reviews are not critical
+      setReviews([]);
+      setAverageRating(0);
+      setTotalReviews(0);
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  };
   // Handle query parameters for pending booking payment
   useEffect(() => {
     const bookingParam = searchParams.get('booking');

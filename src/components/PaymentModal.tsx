@@ -78,19 +78,19 @@ export default function PaymentModal({
           if (errorMsg.toLowerCase().includes('initiator') || errorMsg.toLowerCase().includes('invalid')) {
             setError('Payment validation failed. Please ensure your phone number is registered for M-Pesa. If testing, use a registered test number.');
           } else {
-            setError('Payment failed. Please try again.');
+          setError('Payment failed. Please try again.');
           }
           setPaymentInitiated(false);
         }
       } catch (err: any) {
         console.error('Error checking payment status:', err);
       }
-    }, 3000); // Check every 3 seconds
+    }, 5000); // Check every 5 seconds (increased from 3 to give more time)
 
-    // Stop polling after 5 minutes
+    // Stop polling after 10 minutes (increased from 5 to allow more time for payment)
     const timeout = setTimeout(() => {
       clearInterval(pollInterval);
-    }, 300000);
+    }, 600000);
 
     return () => {
       clearInterval(pollInterval);
