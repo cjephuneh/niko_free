@@ -1180,17 +1180,17 @@ export default function LandingPage({
                     {/* Stats */}
                     <div className="flex flex-wrap justify-center gap-3 sm:gap-4 md:gap-6 mb-3 sm:mb-4 md:mb-6">
                       <div className="flex items-center space-x-1.5 sm:space-x-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                        {/* <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
                           <Users className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                        </div>
-                        <div>
+                        </div> */}
+                        {/* <div>
                           <p className="text-base sm:text-xl md:text-2xl font-bold text-white">
                             2M+
                           </p>
                           <p className="text-[10px] sm:text-xs text-gray-200">
                             Active Users
                           </p>
-                        </div>
+                        </div> */}
                       </div>
                       <div className="flex items-center space-x-1.5 sm:space-x-2">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
@@ -1201,7 +1201,7 @@ export default function LandingPage({
                             15+
                           </p>
                           <p className="text-[10px] sm:text-xs text-gray-200">
-                            Different Categories and Paid Events
+                            Different Categories
                           </p>
                         </div>
                       </div>
