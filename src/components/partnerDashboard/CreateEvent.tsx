@@ -20,6 +20,7 @@ import {
   Video,
   AlertCircle
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import { createEvent, getEvent, updateEvent } from '../../services/partnerService';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
 import { getCategories } from '../../services/eventService';
@@ -86,6 +87,7 @@ interface TicketType {
   price: number;
   quantity: number;
   vatIncluded?: boolean;
+  existingId?: number; // For editing existing tickets
 }
 
 interface Host {
@@ -113,7 +115,6 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
   const [error, setError] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [showCustomTicketForm, setShowCustomTicketForm] = useState(false);
   const [customTicket, setCustomTicket] = useState<Partial<TicketType>>({
     name: '',
@@ -175,23 +176,57 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
   };
 
   // Time state for dropdowns
-  const [startTimeState, setStartTimeState] = useState(() => parseTime(formData.startTime));
-  const [endTimeState, setEndTimeState] = useState(() => parseTime(formData.endTime));
+  const [startTimeState, setStartTimeState] = useState(() => parseTime(''));
+  const [endTimeState, setEndTimeState] = useState(() => parseTime(''));
+  const [isTimeStateSynced, setIsTimeStateSynced] = useState(false);
 
-  // Update formData when time state changes
+  // Sync time state when formData times change (important for edit mode)
   useEffect(() => {
+    if (formData.startTime && formData.startTime !== '00:00') {
+      const parsed = parseTime(formData.startTime);
+      // Only update if it's actually different to avoid loops
+      if (parsed.hour !== startTimeState.hour || 
+          parsed.minute !== startTimeState.minute || 
+          parsed.period !== startTimeState.period) {
+        setStartTimeState(parsed);
+        setIsTimeStateSynced(true);
+      }
+    }
+  }, [formData.startTime]);
+
+  useEffect(() => {
+    if (formData.endTime && formData.endTime !== '00:00') {
+      const parsed = parseTime(formData.endTime);
+      // Only update if it's actually different to avoid loops
+      if (parsed.hour !== endTimeState.hour || 
+          parsed.minute !== endTimeState.minute || 
+          parsed.period !== endTimeState.period) {
+        setEndTimeState(parsed);
+        setIsTimeStateSynced(true);
+      }
+    }
+  }, [formData.endTime]);
+
+  // Update formData when time state changes (user interaction)
+  useEffect(() => {
+    // Don't update during initial sync from loaded data
+    if (!isTimeStateSynced && formData.startTime) return;
+    
     const newStartTime = formatTimeTo24(startTimeState.hour, startTimeState.minute, startTimeState.period);
     if (newStartTime !== formData.startTime) {
       setFormData(prev => ({ ...prev, startTime: newStartTime }));
     }
-  }, [startTimeState]);
+  }, [startTimeState.hour, startTimeState.minute, startTimeState.period]);
 
   useEffect(() => {
+    // Don't update during initial sync from loaded data
+    if (!isTimeStateSynced && formData.endTime) return;
+    
     const newEndTime = formatTimeTo24(endTimeState.hour, endTimeState.minute, endTimeState.period);
     if (newEndTime !== formData.endTime) {
       setFormData(prev => ({ ...prev, endTime: newEndTime }));
     }
-  }, [endTimeState]);
+  }, [endTimeState.hour, endTimeState.minute, endTimeState.period]);
 
   // Validate end time is after start time for one-day events
   const isEndTimeValid = (): boolean => {
@@ -253,6 +288,18 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
             const minutes = String(date.getMinutes()).padStart(2, '0');
             return `${hours}:${minutes}`;
           };
+          
+          const formattedStartTime = formatTimeForInput(startDate);
+          const formattedEndTime = formatTimeForInput(endDate);
+          
+          console.log('Loading event times:', {
+            startDate: eventData.start_date,
+            endDate: eventData.end_date,
+            parsedStartDate: startDate,
+            parsedEndDate: endDate,
+            formattedStartTime,
+            formattedEndTime
+          });
           
           // Determine location type
           let locationType: 'physical' | 'online' | 'hybrid' = 'physical';
@@ -324,9 +371,9 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
             onlineLink: eventData.online_link || '',
             linkShareTime: '', // Not stored in backend, can be enhanced
             startDate: formatDateForInput(startDate),
-            startTime: formatTimeForInput(startDate),
+            startTime: formattedStartTime,
             endDate: formatDateForInput(endDate),
-            endTime: formatTimeForInput(endDate),
+            endTime: formattedEndTime,
             closedCategories,
             openInterests: parsedInterests,
             eventName: eventData.title || '',
@@ -349,7 +396,10 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
             locationType,
             eventName: eventData.title,
             startDate: formatDateForInput(startDate),
-            startTime: formatTimeForInput(startDate),
+            startTime: formattedStartTime,
+            endDate: formatDateForInput(endDate),
+            endTime: formattedEndTime,
+            isOneDayEvent: !isMultiDay,
             ticketTypes: ticketTypes.length,
             promoCodes: promoCodes.length
           });
@@ -644,10 +694,35 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
       const startDateTime = `${formData.startDate}T${formData.startTime}:00`;
       formDataToSend.append('start_date', startDateTime);
       
-      if (formData.endDate) {
+      // For one-day events, use the same date with end time, otherwise use end date
+      if (isOneDayEvent) {
+        const endDateTime = `${formData.startDate}T${formData.endTime || '23:59'}:00`;
+        formDataToSend.append('end_date', endDateTime);
+        console.log('One-day event - End time:', {
+          endTime: formData.endTime,
+          endTimeState,
+          endDateTime
+        });
+      } else if (formData.endDate) {
         const endDateTime = `${formData.endDate}T${formData.endTime || '23:59'}:00`;
         formDataToSend.append('end_date', endDateTime);
+        console.log('Multi-day event - End time:', {
+          endDate: formData.endDate,
+          endTime: formData.endTime,
+          endTimeState,
+          endDateTime
+        });
       }
+      
+      console.log('Submitting event with times:', {
+        startDate: formData.startDate,
+        startTime: formData.startTime,
+        startTimeState,
+        endDate: formData.endDate,
+        endTime: formData.endTime,
+        endTimeState,
+        isOneDayEvent
+      });
       
       formDataToSend.append('is_free', formData.isFree ? 'true' : 'false');
       
@@ -747,24 +822,32 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
       // Submit event
       if (isEditMode && eventId) {
         await updateEvent(eventId, formDataToSend);
+        toast.success('Event updated successfully!', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       } else {
         await createEvent(formDataToSend);
+        toast.success('Event created successfully! Wait for admin approval.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
       }
       
-      setShowSuccess(true);
       if (onEventCreated) {
         onEventCreated();
       }
       
-      // Auto-close after 3 seconds
-      setTimeout(() => {
-        setShowSuccess(false);
-    onClose();
-      }, 3000);
+      // Close modal
+      onClose();
       
     } catch (err) {
       const errorMessage = (err instanceof Error) ? err.message : 'Failed to submit event. Please try again.';
       setError(errorMessage);
+      toast.error(errorMessage, {
+        position: 'top-right',
+        autoClose: 5000,
+      });
       console.error('Error submitting event:', err);
     } finally {
       setIsLoading(false);
@@ -772,39 +855,6 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
   };
 
   if (!isOpen) return null;
-  if (showSuccess) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 max-w-md w-full text-center relative">
-          <button
-            onClick={() => {
-              setShowSuccess(false);
-              onClose();
-            }}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-          <h2 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-4">Successfully created your event!</h2>
-          <p className="text-gray-700 dark:text-gray-300 mb-6">Wait for admin approval. You will be notified once your event is approved.</p>
-          <div className="flex justify-center mb-6">
-            <svg className="w-16 h-16 text-green-500 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2l4-4m5 2a9 9 0 11-18 0a9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <button
-            onClick={() => {
-              setShowSuccess(false);
-              onClose();
-            }}
-            className="px-6 py-2 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bb8] transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

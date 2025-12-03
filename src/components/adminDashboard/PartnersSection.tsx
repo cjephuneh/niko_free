@@ -1,6 +1,7 @@
 import React from 'react';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
+import { toast } from 'react-toastify';
 
 interface PendingPartner {
   id: string;
@@ -188,6 +189,10 @@ export default function PartnersSection({}: PartnersProps) {
       const data = await response.json();
       if (response.ok) {
         setSuccessMessage('Partner approved successfully. Email sent to partner.');
+        toast.success('Partner approved successfully! Email sent to partner.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
         // Refresh partners list
         const fetchPartners = async () => {
           const pendingResponse = await fetch(`${API_ENDPOINTS.admin.partners}?status=pending`, {
@@ -322,6 +327,10 @@ export default function PartnersSection({}: PartnersProps) {
       const data = await response.json();
       if (response.ok) {
         setSuccessMessage('Partner unsuspended successfully. Account is now active.');
+        toast.success('Partner unsuspended successfully! Account is now active.', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
         // Refresh partners lists
         const fetchPartners = async () => {
           const { API_ENDPOINTS } = await import('../../config/api');
@@ -411,6 +420,10 @@ export default function PartnersSection({}: PartnersProps) {
           });
         }
         setSuccessMessage('Successfully flagged the partner.');
+        toast.warning(`Partner flagged: ${confirmAction.partner.name}`, {
+          position: 'top-right',
+          autoClose: 3000,
+        });
         setConfirmAction(null);
         setConfirmNoteText('');
         setActionLoading(null);
@@ -424,6 +437,10 @@ export default function PartnersSection({}: PartnersProps) {
       if (response.ok) {
         if (confirmAction.type === 'suspend') {
           setSuccessMessage('Successfully suspended the partner.');
+          toast.error(`Partner suspended: ${confirmAction.partner.name}`, {
+            position: 'top-right',
+            autoClose: 3000,
+          });
         }
         // Refresh partners lists
         const fetchPartners = async () => {
