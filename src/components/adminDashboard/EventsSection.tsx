@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Search } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
 import { toast } from 'react-toastify';
 
@@ -25,6 +25,7 @@ export default function EventsSection({}: EventsSectionProps) {
   const [selectedEvent, setSelectedEvent] = React.useState<any | null>(null);
   const [categoryFilter, setCategoryFilter] = React.useState<string>('All');
   const [statusFilter, setStatusFilter] = React.useState<string>('all'); // all, pending, approved, rejected
+  const [searchQuery, setSearchQuery] = React.useState<string>('');
 
   React.useEffect(() => {
     const fetchEvents = async () => {
@@ -195,16 +196,47 @@ export default function EventsSection({}: EventsSectionProps) {
 
   // Filter events based on status and category
   const displayEvents = statusFilter === 'all' ? allEvents : allEvents.filter(e => e.status === statusFilter);
-  const filteredEvents = categoryFilter === 'All'
+  const categoryFiltered = categoryFilter === 'All'
     ? displayEvents
     : displayEvents.filter(e => e.category === categoryFilter);
+  
+  // Apply search filter
+  const filteredEvents = searchQuery.trim() === ''
+    ? categoryFiltered
+    : categoryFiltered.filter(e =>
+        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.partner.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
   // Get unique categories from all events
   const categories = Array.from(new Set(allEvents.map(e => e.category)));
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Event Management</h2>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Event Management</h2>
+          <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold border border-blue-300 dark:border-blue-700">
+            {allEvents.length}
+          </span>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="w-full sm:w-96">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search events..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#27aae2] focus:border-transparent"
+            />
+          </div>
+        </div>
+      </div>
+      
       {/* Status and Category Filter */}
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
