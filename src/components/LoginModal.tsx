@@ -304,7 +304,7 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
       {/* Email Form Modal - Unified Sign Up / Log In */}
       {showEmailModal && (
         <div className="fixed inset-0 z-[10000] overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+          <div className="flex items-center justify-center min-h-screen px-4 py-4 text-center sm:block sm:p-0">
             {/* Background overlay */}
             <div
               className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-80 backdrop-blur-sm"
@@ -314,7 +314,7 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
             {/* Center modal */}
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
-            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full relative z-10">
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full relative z-10 max-h-[90vh]">
               {/* Close button */}
               <button
                 onClick={handleCloseEmailModal}
@@ -323,7 +323,7 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
                 <X className="w-6 h-6" />
               </button>
 
-              <div className="bg-white dark:bg-gray-800 px-8 pt-8 pb-8">
+              <div className="bg-white dark:bg-gray-800 px-8 pt-8 pb-8 overflow-y-auto max-h-[90vh]">
                 {/* Toggle Sign Up / Log In */}
                 <div className="flex justify-center mb-6">
                   <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1">
@@ -852,6 +852,22 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                       >
                         {partnerShowPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                    {/* Forgot Password Link for Partners */}
+                    <div className="text-right mt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPartnerLogin(false);
+                          setShowForgotPassword(true);
+                        }}
+                        className="text-sm font-medium transition-colors"
+                        style={{ color: '#27aae2' }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                      >
+                        Forgot Password?
                       </button>
                     </div>
                   </div>

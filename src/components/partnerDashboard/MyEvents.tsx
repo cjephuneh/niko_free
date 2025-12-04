@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Users, Heart, Plus, Trash2, Edit, Sparkles, X, AlertTriangle } from 'lucide-react';
+import { Calendar, MapPin, Users, Heart, Plus, Trash2, Edit, Sparkles, X, AlertTriangle, Clock, DollarSign, Tag, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { getPartnerEvents, deleteEvent } from '../../services/partnerService';
@@ -21,6 +21,9 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
   const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
   const [deleteConfirmEventId, setDeleteConfirmEventId] = useState<number | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
+  const [selectedEventForDetails, setSelectedEventForDetails] = useState<any>(null);
+  
   // Fetch events on mount and when filter changes
   useEffect(() => {
     fetchEvents();
@@ -201,6 +204,54 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
     return event.venue_name || event.venue_address || 'Location TBD';
   };
 
+  const handleEventClick = (event: any) => {
+    setSelectedEventForDetails(event);
+    setShowEventDetailsModal(true);
+  };
+
+  const handleToggleTicket = async (ticketTypeId: number, currentStatus: boolean) => {
+    try {
+      // TODO: Call API to toggle ticket availability
+      const { getPartnerToken } = await import('../../services/partnerService');
+      const token = getPartnerToken();
+      
+      const response = await fetch(`${API_BASE_URL}/api/partner/ticket-types/${ticketTypeId}/toggle`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_available: !currentStatus })
+      });
+
+      if (response.ok) {
+        // Update local state
+        setSelectedEventForDetails((prev: any) => ({
+          ...prev,
+          ticket_types: prev.ticket_types.map((tt: any) => 
+            tt.id === ticketTypeId ? { ...tt, is_available: !currentStatus } : tt
+          )
+        }));
+        
+        // Refresh events list
+        fetchEvents();
+        
+        toast.success(`Ticket ${!currentStatus ? 'enabled' : 'disabled'} successfully!`, {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+      } else {
+        throw new Error('Failed to update ticket status');
+      }
+    } catch (err) {
+      console.error('Error toggling ticket:', err);
+      toast.error('Failed to update ticket status', {
+        position: 'top-right',
+        autoClose: 3000,
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -267,7 +318,8 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
             return (
               <div
                 key={event.id}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all"
+                onClick={() => handleEventClick(event)}
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all cursor-pointer"
               >
                 <div className="relative h-40">
                   <img
@@ -360,7 +412,10 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
                       <div className="flex items-center gap-4">
                         {event.status === 'approved' && (
                           <button 
-                            onClick={() => handlePromoteEvent(event.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePromoteEvent(event.id);
+                            }}
                             className="flex items-center space-x-1 text-purple-600 hover:text-purple-700 transition-colors"
                             title="Promote event to Can't Miss section"
                           >
@@ -369,14 +424,20 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
                           </button>
                         )}
                         <button 
-                          onClick={() => handleEditEvent(event.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditEvent(event.id);
+                          }}
                           className="flex items-center space-x-1 text-[#27aae2] hover:text-[#1e8bc3] transition-colors"
                           title="Edit event"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => handleDeleteEvent(event.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteEvent(event.id);
+                          }}
                           className="flex items-center space-x-1 text-red-500 hover:text-red-600 transition-colors"
                           title="Delete event"
                         >
@@ -498,6 +559,310 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
                   <Trash2 className="w-4 h-4" />
                   Delete Event
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Event Details Modal */}
+      {showEventDetailsModal && selectedEventForDetails && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75 backdrop-blur-sm"
+              onClick={() => setShowEventDetailsModal(false)}
+            ></div>
+
+            {/* Center modal */}
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full relative z-10 max-h-[90vh]">
+              {/* Close button */}
+              <button
+                onClick={() => setShowEventDetailsModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors z-10 bg-white dark:bg-gray-800 rounded-full p-2 shadow-lg"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="bg-white dark:bg-gray-800 overflow-y-auto max-h-[90vh]">
+                {/* Event Image Header */}
+                <div className="relative h-64">
+                  <img
+                    src={getEventImage(selectedEventForDetails)}
+                    alt={selectedEventForDetails.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                  <div className="absolute bottom-6 left-6 right-6">
+                    <h2 className="text-3xl font-bold text-white mb-2">
+                      {selectedEventForDetails.title}
+                    </h2>
+                    <div className="flex items-center gap-3">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        getEventStatus(selectedEventForDetails) === 'upcoming' ? 'bg-blue-500 text-white' :
+                        getEventStatus(selectedEventForDetails) === 'ongoing' ? 'bg-green-500 text-white' :
+                        getEventStatus(selectedEventForDetails) === 'pending' ? 'bg-yellow-500 text-white' :
+                        'bg-gray-500 text-white'
+                      }`}>
+                        {getEventStatus(selectedEventForDetails).charAt(0).toUpperCase() + getEventStatus(selectedEventForDetails).slice(1)}
+                      </span>
+                      {selectedEventForDetails.is_free && (
+                        <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-500 text-white">
+                          Free Event
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="px-8 py-6 space-y-6">
+                  {/* Event Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Left Column */}
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Event Information</h3>
+                        
+                        <div className="space-y-3">
+                          <div className="flex items-start space-x-3">
+                            <Calendar className="w-5 h-5 text-[#27aae2] mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">Date & Time</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {formatDate(selectedEventForDetails.start_date)}
+                              </p>
+                              {selectedEventForDetails.end_date && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  to {formatDate(selectedEventForDetails.end_date)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-start space-x-3">
+                            <MapPin className="w-5 h-5 text-[#27aae2] mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">Location</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {getEventLocation(selectedEventForDetails)}
+                              </p>
+                              {selectedEventForDetails.venue_address && !selectedEventForDetails.is_online && (
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {selectedEventForDetails.venue_address}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {selectedEventForDetails.category && (
+                            <div className="flex items-start space-x-3">
+                              <Tag className="w-5 h-5 text-[#27aae2] mt-0.5 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">Category</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {selectedEventForDetails.category.name || selectedEventForDetails.category}
+                                </p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      {selectedEventForDetails.description && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Description</h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                            {selectedEventForDetails.description}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Right Column - Stats */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Statistics</h3>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <Users className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Bookings</p>
+                          </div>
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {selectedEventForDetails.bookings_count || 0}
+                          </p>
+                        </div>
+
+                        <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800">
+                          <div className="flex items-center space-x-2 mb-1">
+                            <Heart className="w-4 h-4 text-red-600 dark:text-red-400" />
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Wishlisted</p>
+                          </div>
+                          <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {selectedEventForDetails.bucketlist_count || 0}
+                          </p>
+                        </div>
+
+                        {selectedEventForDetails.capacity && (
+                          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800 col-span-2">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                              <p className="text-xs text-gray-600 dark:text-gray-400">Capacity</p>
+                            </div>
+                            <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                              {selectedEventForDetails.capacity}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Promo Codes */}
+                      {selectedEventForDetails.promo_codes && selectedEventForDetails.promo_codes.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Active Promo Codes</h3>
+                          <div className="space-y-2">
+                            {selectedEventForDetails.promo_codes.map((promo: any, idx: number) => (
+                              <div key={idx} className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-mono font-bold text-purple-700 dark:text-purple-300">
+                                      {promo.code}
+                                    </p>
+                                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                                      {promo.discount_type === 'percentage' ? `${promo.discount_value}% off` : `KES ${promo.discount_value} off`}
+                                    </p>
+                                  </div>
+                                  {promo.usage_limit && (
+                                    <div className="text-right">
+                                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                                        {promo.times_used || 0} / {promo.usage_limit}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Ticket Types Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Ticket Management</h3>
+                    
+                    {selectedEventForDetails.ticket_types && selectedEventForDetails.ticket_types.length > 0 ? (
+                      <div className="space-y-3">
+                        {selectedEventForDetails.ticket_types.map((ticket: any) => {
+                          const soldPercentage = ticket.quantity_total > 0 
+                            ? ((ticket.quantity_total - (ticket.quantity_available || 0)) / ticket.quantity_total) * 100 
+                            : 0;
+                          const ticketsSold = ticket.quantity_total - (ticket.quantity_available || 0);
+                          const isAvailable = ticket.is_available !== false; // Default to true if not set
+
+                          return (
+                            <div
+                              key={ticket.id}
+                              className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600"
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center space-x-3">
+                                  <div>
+                                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                                      {ticket.name}
+                                    </h4>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      {!selectedEventForDetails.is_free && (
+                                        <p className="text-sm text-[#27aae2] font-medium">
+                                          KES {parseFloat(ticket.price || 0).toLocaleString()}
+                                        </p>
+                                      )}
+                                      {!isAvailable && (
+                                        <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-semibold">
+                                          SOLD OUT (Disabled)
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                  <div className="text-right">
+                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                      {ticketsSold} / {ticket.quantity_total || 0}
+                                    </p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      {ticket.quantity_available || 0} available
+                                    </p>
+                                  </div>
+
+                                  {/* Toggle Button */}
+                                  <button
+                                    onClick={() => handleToggleTicket(ticket.id, isAvailable)}
+                                    className={`p-2 rounded-lg transition-all ${
+                                      isAvailable
+                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                                        : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+                                    }`}
+                                    title={isAvailable ? 'Disable this ticket type' : 'Enable this ticket type'}
+                                  >
+                                    {isAvailable ? (
+                                      <ToggleRight className="w-6 h-6" />
+                                    ) : (
+                                      <ToggleLeft className="w-6 h-6" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Progress Bar */}
+                              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className={`h-2 rounded-full transition-all ${
+                                    !isAvailable
+                                      ? 'bg-red-500'
+                                      : soldPercentage > 80
+                                      ? 'bg-orange-500'
+                                      : 'bg-[#27aae2]'
+                                  }`}
+                                  style={{ width: `${soldPercentage}%` }}
+                                ></div>
+                              </div>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {soldPercentage.toFixed(1)}% sold
+                              </p>
+
+                              {ticket.description && (
+                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                  {ticket.description}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                        <p className="text-gray-600 dark:text-gray-400">No ticket types configured</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Close Button */}
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={() => setShowEventDetailsModal(false)}
+                      className="w-full px-4 py-3 bg-[#27aae2] text-white rounded-xl font-medium hover:bg-[#1e8bc3] transition-all"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

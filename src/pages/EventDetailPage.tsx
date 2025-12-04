@@ -44,6 +44,8 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
   const [totalReviews, setTotalReviews] = useState(0);
   const [isLoadingReviews, setIsLoadingReviews] = useState(false);
   const [pendingBookingId, setPendingBookingId] = useState<number | null>(null);
+  const [hasExistingBooking, setHasExistingBooking] = useState(false);
+  const [showBuyMorePrompt, setShowBuyMorePrompt] = useState(false);
 
   // Validate promo code
   const handleValidatePromo = async () => {
@@ -283,9 +285,21 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
 
     if (!eventData) return;
 
+    // For free events, limit quantity to 5 tickets max
+    if (eventData.is_free && quantity > 5) {
+      setError('You can only book up to 5 tickets for free events.');
+      return;
+    }
+
     // If there's a pending booking ID, don't create a new booking - show error
     if (pendingBookingId) {
       setError('You already have a pending booking for this event. Please complete payment using the "Complete Payment Now" button above.');
+      return;
+    }
+
+    // If user has existing booking, show prompt to buy more
+    if (hasExistingBooking && !showBuyMorePrompt) {
+      setShowBuyMorePrompt(true);
       return;
     }
 
@@ -317,6 +331,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     setIsBooking(true);
     setError(null);
     setSuccessMessage(null);
+    setShowBuyMorePrompt(false); // Reset the prompt
 
     try {
       console.log('Booking ticket with:', { event_id: parseInt(eventId), ticket_type_id: ticketTypeId, quantity });
@@ -347,6 +362,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       if (eventData.is_free || !bookingResult.requires_payment) {
         setSuccessMessage('You\'re in! Go to your dashboard to download your ticket.');
         setIsBooking(false); // Stop loading spinner
+        setHasExistingBooking(true); // Mark that user now has a booking
         // Refresh event data to update attendee count (don't fail if refresh fails)
         // Only refresh if eventId is valid
         if (eventId && !isNaN(parseInt(eventId)) && parseInt(eventId) > 0) {
@@ -374,9 +390,11 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
       }
     } catch (err: any) {
       console.error('Booking error:', err);
-      // Handle duplicate booking error
+      // Handle duplicate booking error - allow user to buy more tickets
       if (err.message && (err.message.includes('already booked') || err.message.includes('pending booking'))) {
-        setError(err.message + ' You can view your booking in your dashboard.');
+        setHasExistingBooking(true);
+        setShowBuyMorePrompt(true);
+        setError(''); // Clear error, show prompt instead
       } else {
         setError(err.message || 'Failed to book ticket. Please try again.');
       }
@@ -859,6 +877,50 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                     </div>
                   )}
 
+                  {/* Show "Buy More Tickets" prompt if user already has booking */}
+                  {showBuyMorePrompt && !successMessage && !pendingBookingId && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-500 rounded-xl p-4 mb-4">
+                      <div className="flex items-start gap-3 mb-3">
+                        <CheckCircle2 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-1">
+                            You Already Have Tickets
+                          </h4>
+                          <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">
+                            You have already booked tickets for this event. Would you like to buy more tickets?
+                          </p>
+                          {eventData.is_free && (
+                            <p className="text-xs text-blue-700 dark:text-blue-400 mb-2">
+                              Note: Free events are limited to 5 tickets per person.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setShowBuyMorePrompt(false);
+                            setHasExistingBooking(false);
+                            // Trigger booking with current selection
+                            handleBuyTicket();
+                          }}
+                          className="flex-1 px-4 py-2.5 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1e8bb8] transition-colors"
+                        >
+                          Yes, Buy More
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowBuyMorePrompt(false);
+                            onNavigate('user-dashboard');
+                          }}
+                          className="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        >
+                          View My Tickets
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {successMessage && !pendingBookingId ? (
                     <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border-2 border-green-500">
                       <div className="text-center">
@@ -880,27 +942,28 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                         </button>
                       </div>
                     </div>
-                  ) : (
+                  ) : !showBuyMorePrompt ? (
                     <TicketSelector
-                    ticketType={ticketType}
-                    tickets={tickets}
-                    selectedTicketType={selectedTicketType}
-                    selectedTimeSlot={selectedTimeSlot}
-                    onSelectTicketType={setSelectedTicketType}
-                    onSelectTimeSlot={setSelectedTimeSlot}
-                    isRSVPed={false}
-                    onBuyTicket={handleBuyTicket}
-                    promoCode={promoCode}
-                    onPromoCodeChange={setPromoCode}
-                    promoCodeError={promoCodeError}
-                    isValidatingPromo={isValidatingPromo}
-                    onValidatePromo={handleValidatePromo}
-                  />
-                  )}
+                      ticketType={ticketType}
+                      tickets={tickets}
+                      selectedTicketType={selectedTicketType}
+                      selectedTimeSlot={selectedTimeSlot}
+                      onSelectTicketType={setSelectedTicketType}
+                      onSelectTimeSlot={setSelectedTimeSlot}
+                      isRSVPed={false}
+                      onBuyTicket={handleBuyTicket}
+                      promoCode={promoCode}
+                      onPromoCodeChange={setPromoCode}
+                      promoCodeError={promoCodeError}
+                      isValidatingPromo={isValidatingPromo}
+                      onValidatePromo={handleValidatePromo}
+                      maxQuantity={eventData.is_free ? 5 : undefined}
+                    />
+                  ) : null}
                 </div>
 
                 {/* Error Message */}
-                {error && !successMessage && (
+                {error && !successMessage && !showBuyMorePrompt && (
                   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mt-4">
                     <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
                   </div>
