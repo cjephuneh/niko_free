@@ -4,7 +4,7 @@ from sqlalchemy import func, desc
 from app import db
 from app.models.user import User
 from app.models.partner import Partner
-from app.models.event import Event
+from app.models.event import Event, EventPromotion
 from app.models.booking import Booking
 from app.models.payment import Payment, PartnerPayout
 from app.models.category import Category, Location
@@ -720,4 +720,124 @@ def get_admin_logs(current_admin):
         'page': logs.page,
         'pages': logs.pages
     }), 200
+
+
+# ============ EVENT PROMOTION MANAGEMENT ============
+
+@bp.route('/promoted-events', methods=['GET'])
+@admin_required
+def get_promoted_events(current_admin):
+    """Get all promoted events for admin dashboard"""
+    from app.models.event import EventPromotion
+    
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    status = request.args.get('status')  # active, ended, scheduled, all
+    
+    query = EventPromotion.query.join(Event).order_by(EventPromotion.created_at.desc())
+    
+    # Filter by status
+    now = datetime.utcnow()
+    if status == 'active':
+        query = query.filter(
+            EventPromotion.is_active == True,
+            EventPromotion.start_date <= now,
+            EventPromotion.end_date >= now
+        )
+    elif status == 'ended':
+        query = query.filter(EventPromotion.end_date < now)
+    elif status == 'scheduled':
+        query = query.filter(EventPromotion.start_date > now)
+    
+    promotions = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    # Build response with event and partner details
+    promotion_list = []
+    for promo in promotions.items:
+        event = Event.query.get(promo.event_id)
+        if event:
+            partner = Partner.query.get(event.partner_id) if event.partner_id else None
+            promo_dict = promo.to_dict()
+            promo_dict['event_title'] = event.title
+            promo_dict['partner_name'] = partner.business_name if partner else 'N/A'
+            promo_dict['event'] = event.to_dict()
+            
+            # Get analytics (views, clicks) - placeholder for now
+            promo_dict['views'] = 0  # TODO: Implement analytics tracking
+            promo_dict['clicks'] = 0  # TODO: Implement analytics tracking
+            
+            promotion_list.append(promo_dict)
+    
+    return jsonify({
+        'promotions': promotion_list,
+        'total': promotions.total,
+        'page': promotions.page,
+        'pages': promotions.pages
+    }), 200
+
+
+@bp.route('/events/<int:event_id>/promote', methods=['POST'])
+@admin_required
+def promote_event_admin(current_admin, event_id):
+    """Admin can promote any approved event for free"""
+    from app.models.event import EventPromotion
+    
+    event = Event.query.get(event_id)
+    
+    if not event:
+        return jsonify({'error': 'Event not found'}), 404
+    
+    if event.status != 'approved':
+        return jsonify({'error': 'Only approved events can be promoted'}), 400
+    
+    data = request.get_json()
+    days_count = data.get('days_count', 7)
+    start_date = data.get('start_date')
+    end_date = data.get('end_date')
+    is_free = data.get('is_free', True)  # Admin promotions are always free
+    
+    # Parse dates
+    if start_date:
+        start_date = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+    else:
+        start_date = datetime.utcnow()
+    
+    if end_date:
+        end_date = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+    else:
+        end_date = start_date + timedelta(days=days_count)
+    
+    # Calculate cost (even if free, we track the value)
+    cost_per_day = 400  # KES 400 per day
+    total_cost = days_count * cost_per_day
+    
+    # Create promotion
+    promotion = EventPromotion(
+        event_id=event_id,
+        start_date=start_date,
+        end_date=end_date,
+        days_count=days_count,
+        total_cost=total_cost,
+        is_active=True,
+        is_paid=True  # Admin promotions are considered "paid" (free for partner)
+    )
+    
+    db.session.add(promotion)
+    
+    # Log action
+    log_admin_action(
+        current_admin,
+        'promote_event',
+        'event',
+        event_id,
+        f"Promoted event '{event.title}' for {days_count} days (Admin promotion - Free)"
+    )
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Event promoted successfully',
+        'promotion': promotion.to_dict()
+    }), 201
+
 

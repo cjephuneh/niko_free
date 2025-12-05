@@ -1,5 +1,5 @@
-import { Calendar, MapPin, Globe, CheckCircle2, ChevronLeft, Star, Award, Users } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Calendar, MapPin, Globe, CheckCircle2, ChevronLeft, Star, Award, Users, UserPlus, UserCheck, Bell, UserMinus, Flag, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -30,6 +30,7 @@ interface PartnerData {
   total_events?: number;
   total_attendees?: number;
   rating?: number;
+  followers_count?: number;
 }
 
 interface PartnerEvent {
@@ -77,6 +78,21 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
   const [activeSection, setActiveSection] = useState<'about' | 'events'>('about');
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [showFollowDropdown, setShowFollowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowFollowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Fetch partner data
   useEffect(() => {
@@ -133,16 +149,25 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
           total_attendees: partnerEvents.reduce((sum: number, event: any) => 
             sum + (event.bookings_count || event.attendee_count || 0), 0
           ),
+          followers_count: partner.followers_count || 0,
         });
 
         // Separate current and past events
         const now = new Date();
-        const current = partnerEvents.filter((event: any) => 
-          event.status === 'approved' && new Date(event.start_date) >= now
-        );
-        const past = partnerEvents.filter((event: any) => 
-          event.status === 'approved' && new Date(event.start_date) < now
-        );
+        const current = partnerEvents.filter((event: any) => {
+          if (event.status !== 'approved') return false;
+          const startDate = new Date(event.start_date);
+          const endDate = event.end_date ? new Date(event.end_date) : startDate;
+          // Event is current if it hasn't ended yet
+          return endDate >= now;
+        });
+        const past = partnerEvents.filter((event: any) => {
+          if (event.status !== 'approved') return false;
+          const startDate = new Date(event.start_date);
+          const endDate = event.end_date ? new Date(event.end_date) : startDate;
+          // Event is past if it has ended
+          return endDate < now;
+        });
         
         setCurrentEvents(current);
         setPastEvents(past);
@@ -201,6 +226,50 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
       price: event.is_free ? 'Free' : 'Paid',
       onClick: (id: string) => onNavigate('event-detail', { eventId: id }),
     };
+  };
+
+  // Handle follow/unfollow
+  const handleFollowToggle = () => {
+    if (!isFollowing) {
+      setIsFollowing(true);
+      // Update follower count optimistically
+      if (partnerData) {
+        setPartnerData({
+          ...partnerData,
+          followers_count: (partnerData.followers_count || 0) + 1
+        });
+      }
+      // TODO: Call API to follow partner
+      console.log('Following partner:', partnerId);
+    } else {
+      setShowFollowDropdown(!showFollowDropdown);
+    }
+  };
+
+  const handleUnfollow = () => {
+    setIsFollowing(false);
+    setShowFollowDropdown(false);
+    // Update follower count optimistically
+    if (partnerData) {
+      setPartnerData({
+        ...partnerData,
+        followers_count: Math.max(0, (partnerData.followers_count || 0) - 1)
+      });
+    }
+    // TODO: Call API to unfollow partner
+    console.log('Unfollowing partner:', partnerId);
+  };
+
+  const handleNotifications = () => {
+    setShowFollowDropdown(false);
+    // TODO: Toggle notifications for this partner
+    console.log('Toggle notifications for partner:', partnerId);
+  };
+
+  const handleReport = () => {
+    setShowFollowDropdown(false);
+    // TODO: Open report modal
+    console.log('Report partner:', partnerId);
   };
 
   // Loading state
@@ -282,7 +351,7 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
             {/* Partner Header */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8 mb-8">
-              <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+              <div className="flex flex-col md:flex-row items-start md:items-center gap-6 relative">
                 {/* Partner Logo */}
                 <div className="relative flex-shrink-0">
                   {partnerData.logo ? (
@@ -370,7 +439,67 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
                         </span>
                       </div>
                     )}
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="w-5 h-5 text-[#27aae2]" />
+                      <span className="text-gray-700 dark:text-gray-300">
+                        <span className="font-bold text-gray-900 dark:text-white">
+                          {partnerData.followers_count || 0}
+                        </span> Followers
+                      </span>
+                    </div>
                   </div>
+                </div>
+
+                {/* Follow Button */}
+                <div className="relative md:absolute md:top-0 md:right-0 w-full md:w-auto" ref={dropdownRef}>
+                  {!isFollowing ? (
+                    <button
+                      onClick={handleFollowToggle}
+                      className="w-full md:w-auto px-6 py-3 bg-[#27aae2] text-white rounded-lg font-medium hover:bg-[#1e8bb8] transition-colors flex items-center justify-center gap-2"
+                    >
+                      <UserPlus className="w-5 h-5" />
+                      Follow
+                    </button>
+                  ) : (
+                    <div>
+                      <button
+                        onClick={handleFollowToggle}
+                        className="w-full md:w-auto px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <UserCheck className="w-5 h-5" />
+                        Following
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showFollowDropdown ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {showFollowDropdown && (
+                        <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                          <button
+                            onClick={handleNotifications}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-300"
+                          >
+                            <Bell className="w-5 h-5" />
+                            <span className="font-medium">Notifications</span>
+                          </button>
+                          <button
+                            onClick={handleUnfollow}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-3 text-gray-700 dark:text-gray-300"
+                          >
+                            <UserMinus className="w-5 h-5" />
+                            <span className="font-medium">Unfollow</span>
+                          </button>
+                          <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                          <button
+                            onClick={handleReport}
+                            className="w-full px-4 py-3 text-left hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-3 text-red-600 dark:text-red-400"
+                          >
+                            <Flag className="w-5 h-5" />
+                            <span className="font-medium">Report Partner</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -520,20 +649,78 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
               )}
             </div>
 
-            {/* Reviews Section */}
-            {reviews.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+            {/* Reviews Section - Always show */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <Star className="w-6 h-6 text-[#27aae2]" />
-                  Reviews
+                  Reviews & Ratings
                 </h2>
+                <button className="px-6 py-2.5 bg-[#27aae2] text-white rounded-lg font-medium hover:bg-[#1e8bb8] transition-colors flex items-center gap-2">
+                  <Star className="w-4 h-4" />
+                  Write a Review
+                </button>
+              </div>
 
+              {/* Rating Summary */}
+              <div className="bg-gradient-to-br from-[#27aae2]/10 to-[#1e8bb8]/10 dark:from-[#27aae2]/20 dark:to-[#1e8bb8]/20 rounded-xl p-6 mb-6">
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                  {/* Overall Rating */}
+                  <div className="flex flex-col items-center">
+                    <div className="text-5xl font-bold text-gray-900 dark:text-white mb-2">
+                      {totalReviews > 0 ? averageRating.toFixed(1) : '0.0'}
+                    </div>
+                    <div className="flex items-center gap-1 mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                          key={star}
+                          className={`w-5 h-5 ${
+                            star <= averageRating
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'fill-gray-300 text-gray-300 dark:fill-gray-600 dark:text-gray-600'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Based on {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}
+                    </p>
+                  </div>
+
+                  {/* Rating Breakdown */}
+                  <div className="flex-1 w-full max-w-md">
+                    {[5, 4, 3, 2, 1].map((rating) => {
+                      const count = reviews.filter(r => r.rating === rating).length;
+                      const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+                      return (
+                        <div key={rating} className="flex items-center gap-3 mb-2">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300 w-12">
+                            {rating} star
+                          </span>
+                          <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-yellow-400 transition-all duration-300"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400 w-12 text-right">
+                            {count}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviews List */}
+              {reviews.length > 0 ? (
                 <div className="space-y-6">
                   {reviews.slice(0, 6).map((review) => (
                     <div key={review.id} className="border-b border-gray-200 dark:border-gray-700 pb-6 last:border-b-0 last:pb-0">
                       <div className="flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-full bg-[#27aae2]/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[#27aae2] font-bold text-lg">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] flex items-center justify-center flex-shrink-0">
+                          <span className="text-white font-bold text-lg">
                             {review.user?.first_name?.[0]?.toUpperCase() || 'U'}
                           </span>
                         </div>
@@ -548,7 +735,7 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
                               </p>
                               {review.event && (
                                 <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                                  Event: {review.event.title}
+                                  Attended: {review.event.title}
                                 </p>
                               )}
                             </div>
@@ -559,7 +746,7 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
                                   className={`w-4 h-4 ${
                                     star <= review.rating
                                       ? 'fill-yellow-400 text-yellow-400'
-                                      : 'text-gray-300'
+                                      : 'fill-gray-300 text-gray-300 dark:fill-gray-600 dark:text-gray-600'
                                   }`}
                                 />
                               ))}
@@ -576,15 +763,34 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
                   ))}
 
                   {reviews.length > 6 && (
-                    <div className="text-center pt-4">
-                      <p className="text-gray-600 dark:text-gray-400">
+                    <div className="text-center pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-gray-600 dark:text-gray-400 mb-3">
                         Showing 6 of {reviews.length} reviews
                       </p>
+                      <button className="text-[#27aae2] hover:text-[#1e8bb8] font-medium transition-colors">
+                        View All Reviews
+                      </button>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Star className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    No reviews yet
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    Be the first to review {partnerData?.business_name}!
+                  </p>
+                  <button className="px-6 py-2.5 bg-[#27aae2] text-white rounded-lg font-medium hover:bg-[#1e8bb8] transition-colors inline-flex items-center gap-2">
+                    <Star className="w-4 h-4" />
+                    Write the First Review
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

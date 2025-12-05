@@ -256,6 +256,8 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
     
     if (isOpen) {
       fetchCategories();
+      // Reset to step 1 whenever the modal opens
+      setCurrentStep(1);
     }
   }, [isOpen]);
 
@@ -263,6 +265,8 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
   useEffect(() => {
     const loadEventData = async () => {
       if (isEditMode && eventId) {
+        // Reset to step 1 when loading a different event for editing
+        setCurrentStep(1);
         setIsLoadingEvent(true);
         try {
           const eventData = await getEvent(eventId);

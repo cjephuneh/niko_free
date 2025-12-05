@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { getPartnerToken, getPartner, getPartnerProfile, logoutPartner, getPartnerDashboard } from '../services/partnerService';
-import { getImageUrl } from '../config/api';
+import { getImageUrl, API_BASE_URL, API_ENDPOINTS } from '../config/api';
 import AskSupport from '../components/partnerDashboard/AskSupport';
 import Overview from '../components/partnerDashboard/Overview';
 import MyEvents from '../components/partnerDashboard/MyEvents';
@@ -36,6 +36,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
   const [partnerData, setPartnerData] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [pendingEarnings, setPendingEarnings] = useState<number>(0);
+  const [availableBalance, setAvailableBalance] = useState(0);
   const navigate = useNavigate();
 
   // Check authentication on mount
@@ -82,7 +83,34 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
       }
     };
 
+    const fetchFinancialData = async () => {
+      try {
+        const token = getPartnerToken();
+        if (!token) return;
+
+        // Fetch dashboard data which includes financial stats
+        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.dashboard}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const stats = data.stats || {};
+          
+          // Get current balance (pending earnings - available to withdraw)
+          const pendingEarnings = parseFloat(stats.pending_earnings || 0);
+          setAvailableBalance(pendingEarnings);
+        }
+      } catch (err) {
+        console.error('Error fetching financial data:', err);
+      }
+    };
+
     fetchPartnerData();
+    fetchFinancialData();
   }, [navigate]);
 
   const menuItems = [
@@ -428,6 +456,8 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
             refreshData();
           }}
           availableBalance={pendingEarnings}
+          onClose={() => setWithdrawOpen(false)}
+          availableBalance={availableBalance}
         />
       </div>
       </div>

@@ -35,12 +35,25 @@ export default function BoostEvent() {
       if (Array.isArray(eventsList)) {
         // Filter to only show published events (required for promotion)
         const publishedEvents = eventsList.filter((e: any) => e.is_published === true);
-        setEvents(publishedEvents);
         
-        if (publishedEvents.length === 0 && eventsList.length > 0) {
-          setError('You have approved events, but none are published yet. Please publish an event first to promote it.');
-        } else if (publishedEvents.length === 0) {
-          setError('No approved and published events available. Please create, get approved, and publish an event first.');
+        // Further filter to only show upcoming and ongoing events
+        const now = new Date();
+        const upcomingAndOngoingEvents = publishedEvents.filter((e: any) => {
+          const startDate = new Date(e.start_date);
+          const endDate = e.end_date ? new Date(e.end_date) : startDate;
+          
+          // Include if event is upcoming (starts in future) or ongoing (started but not ended)
+          return endDate >= now;
+        });
+        
+        setEvents(upcomingAndOngoingEvents);
+        
+        if (upcomingAndOngoingEvents.length === 0 && publishedEvents.length > 0) {
+          setError('You have published events, but they have all ended. You can only boost upcoming or ongoing events.');
+        } else if (upcomingAndOngoingEvents.length === 0 && eventsList.length > 0) {
+          setError('You have approved events, but none are published or all have ended. Please publish an upcoming event to promote it.');
+        } else if (upcomingAndOngoingEvents.length === 0) {
+          setError('No upcoming or ongoing events available. Please create, get approved, and publish an event first.');
         } else {
           setError(''); // Clear any previous errors
         }
@@ -269,7 +282,7 @@ export default function BoostEvent() {
         )}
         {events.length === 0 && !isLoadingEvents && !error && (
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            No approved events available. Please create and get an event approved first.
+            No upcoming or ongoing events available. Only future or active events can be boosted.
           </p>
         )}
       </div>

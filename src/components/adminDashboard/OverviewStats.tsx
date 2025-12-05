@@ -2,7 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Users, Calendar, DollarSign, BarChart3 } from 'lucide-react';
 import { getDashboard, formatCurrency, formatNumber } from '../../services/adminService';
 
-export default function OverviewStats() {
+interface OverviewStatsProps {
+  onNavigate?: (tab: 'users' | 'partners' | 'events' | 'revenue') => void;
+}
+
+export default function OverviewStats({ onNavigate }: OverviewStatsProps) {
   const [stats, setStats] = useState({
     total_users: 0,
     total_partners: 0,
@@ -38,6 +42,7 @@ export default function OverviewStats() {
       change: stats.users_change
         ? `${stats.users_change > 0 ? '+' : ''}${stats.users_change.toFixed(1)}% this month`
         : 'No change',
+      navigate: 'users' as const,
     },
     {
       label: 'Active Partners',
@@ -47,6 +52,7 @@ export default function OverviewStats() {
       change: stats.partners_change
         ? `${stats.partners_change > 0 ? '+' : ''}${stats.partners_change.toFixed(1)}% this month`
         : 'No change',
+      navigate: 'partners' as const,
     },
     {
       label: 'Total Events',
@@ -56,6 +62,7 @@ export default function OverviewStats() {
       change: stats.events_change
         ? `${stats.events_change > 0 ? '+' : ''}${stats.events_change} this month`
         : 'No change',
+      navigate: 'events' as const,
     },
     {
       label: 'Platform Revenue',
@@ -63,6 +70,7 @@ export default function OverviewStats() {
       icon: DollarSign,
       color: 'from-orange-500 to-orange-600',
       change: '7% commission',
+      navigate: 'revenue' as const,
     },
   ];
 
@@ -71,9 +79,10 @@ export default function OverviewStats() {
       {statsConfig.map((stat, index) => {
         const Icon = stat.icon;
         return (
-          <div
+          <button
             key={index}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700"
+            onClick={() => onNavigate?.(stat.navigate)}
+            className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all border border-gray-100 dark:border-gray-700 cursor-pointer hover:scale-105 transform text-left w-full"
           >
             <div className="flex items-center justify-between mb-4">
               <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
@@ -83,7 +92,7 @@ export default function OverviewStats() {
             <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">{stat.label}</p>
             <p className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stat.value}</p>
             <p className="text-xs text-gray-500 dark:text-gray-400">{stat.change}</p>
-          </div>
+          </button>
         );
       })}
     </div>

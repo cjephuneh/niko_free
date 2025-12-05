@@ -406,13 +406,13 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">{event.attendees}</span>
                   </div>
-                  <div className="flex items-center justify-between text-xs">
+                  {/* <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center text-gray-600 dark:text-gray-400">
                       <Eye className="w-3 h-3 mr-1" />
                       <span>Views</span>
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">{event.views}</span>
-                  </div>
+                  </div> */}
                   <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                     <div
                       className="bg-[#27aae2] h-2 rounded-full transition-all"

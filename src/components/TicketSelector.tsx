@@ -53,6 +53,7 @@ interface TicketSelectorProps {
   promoCodeError?: string;
   isValidatingPromo?: boolean;
   onValidatePromo?: () => void;
+  maxQuantity?: number; // Maximum quantity allowed per purchase
 }
 
 export default function TicketSelector({
@@ -68,13 +69,26 @@ export default function TicketSelector({
   onPromoCodeChange,
   promoCodeError = '',
   isValidatingPromo = false,
-  onValidatePromo
+  onValidatePromo,
+  maxQuantity
 }: TicketSelectorProps) {
   // quantities keyed by ticket/slot id so each item can have its own count
   const [quantities, setQuantities] = React.useState<Record<string, number>>({});
+  const [showMaxLimitWarning, setShowMaxLimitWarning] = React.useState(false);
 
   const getQuantity = (id: string) => quantities[id] ?? 1;
-  const setQuantityFor = (id: string, next: number) => setQuantities(prev => ({ ...prev, [id]: next }));
+  const setQuantityFor = (id: string, next: number) => {
+    // Apply max quantity limit if specified
+    const limitedQuantity = maxQuantity ? Math.min(next, maxQuantity) : next;
+    
+    // Show warning if user tried to exceed limit
+    if (maxQuantity && next > maxQuantity) {
+      setShowMaxLimitWarning(true);
+      setTimeout(() => setShowMaxLimitWarning(false), 3000); // Hide after 3 seconds
+    }
+    
+    setQuantities(prev => ({ ...prev, [id]: limitedQuantity }));
+  };
 
   // Calculate total price for a ticket
   const getTotalPrice = (ticket: { price: number }, quantity: number) => {
@@ -120,6 +134,15 @@ export default function TicketSelector({
       <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
         {ticketType === 'timeslot' ? 'Select Time Slot' : 'Select Ticket'}
       </h3>
+      
+      {/* Max Quantity Warning - Only show when user tries to exceed */}
+      {showMaxLimitWarning && maxQuantity && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-pulse">
+          <p className="text-sm text-red-800 dark:text-red-300 font-semibold">
+            Maximum {maxQuantity} {maxQuantity === 1 ? 'ticket' : 'tickets'} per person for this event.
+          </p>
+        </div>
+      )}
 
       {/* Class Tickets (VVIP, VIP, Regular) */}
       {ticketType === 'class' && (
@@ -362,11 +385,13 @@ export default function TicketSelector({
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h4 className="font-bold text-gray-900 dark:text-white">{ticket.name}</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {ticket.available !== undefined && ticket.available !== null 
-                      ? `${ticket.available} tickets left` 
-                      : 'Unlimited tickets available'}
-                  </p>
+                  {ticket.price > 0 && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {ticket.available !== undefined && ticket.available !== null 
+                        ? `${ticket.available} tickets left` 
+                        : 'Unlimited tickets available'}
+                    </p>
+                  )}
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-[#27aae2]">
@@ -416,8 +441,18 @@ export default function TicketSelector({
         </div>
       )}
 
-      {/* Promo Code Section */}
-      {onPromoCodeChange && (
+      {/* Promo Code Section - Only show for paid events */}
+      {onPromoCodeChange && (() => {
+        // Check if any ticket has a price > 0
+        const hasPaidTickets = 
+          tickets.uniform.some(t => t.price > 0) ||
+          tickets.class.some(t => t.price > 0) ||
+          tickets.loyalty.some(t => t.price > 0) ||
+          tickets.season.some(t => t.price > 0) ||
+          tickets.timeslot.some(t => t.price > 0);
+        
+        return hasPaidTickets;
+      })() && (
         <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Promo Code (Optional)

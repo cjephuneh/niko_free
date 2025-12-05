@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Search, Sparkles, X, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../../config/api';
 import { toast } from 'react-toastify';
 
@@ -15,16 +15,39 @@ interface PendingEvent {
   [key: string]: any; // Allow additional properties
 }
 
+interface PromotedEvent {
+  id: number;
+  event_id: number;
+  event_title: string;
+  partner_name: string;
+  start_date: string;
+  end_date: string;
+  days_count: number;
+  total_cost: number;
+  is_active: boolean;
+  is_paid: boolean;
+  views?: number;
+  clicks?: number;
+}
+
 interface EventsSectionProps {}
 
 export default function EventsSection({}: EventsSectionProps) {
   const [pendingEvents, setPendingEvents] = React.useState<PendingEvent[]>([]);
   const [allEvents, setAllEvents] = React.useState<any[]>([]);
+  const [promotedEvents, setPromotedEvents] = React.useState<PromotedEvent[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [actionLoading, setActionLoading] = React.useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = React.useState<any | null>(null);
   const [categoryFilter, setCategoryFilter] = React.useState<string>('All');
   const [statusFilter, setStatusFilter] = React.useState<string>('all'); // all, pending, approved, rejected
+  const [searchQuery, setSearchQuery] = React.useState<string>('');
+  const [activeTab, setActiveTab] = React.useState<'all' | 'promoted'>('all');
+  const [showPromoteModal, setShowPromoteModal] = React.useState(false);
+  const [eventToPromote, setEventToPromote] = React.useState<any | null>(null);
+  const [promoteDays, setPromoteDays] = React.useState(7);
+  const [promoteStartDate, setPromoteStartDate] = React.useState('');
+  const [promoteStartTime, setPromoteStartTime] = React.useState('');
 
   React.useEffect(() => {
     const fetchEvents = async () => {
@@ -64,6 +87,44 @@ export default function EventsSection({}: EventsSectionProps) {
 
     fetchEvents();
   }, [statusFilter]);
+
+  // Fetch promoted events
+  React.useEffect(() => {
+    const fetchPromotedEvents = async () => {
+      if (activeTab !== 'promoted') return;
+      
+      try {
+        setLoading(true);
+        const { API_BASE_URL } = await import('../../config/api');
+        const { getToken } = await import('../../services/authService');
+
+        const response = await fetch(`${API_BASE_URL}/api/admin/promoted-events`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error('Error fetching promoted events:', errorData);
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log('Promoted events data:', data); // Debug log
+        setPromotedEvents(data.promotions || []);
+      } catch (error) {
+        console.error('Failed to fetch promoted events:', error);
+        setPromotedEvents([]);
+        toast.error('Failed to fetch promoted events');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPromotedEvents();
+  }, [activeTab]);
 
   const handleApproveEvent = async (eventId: string) => {
     setActionLoading(eventId);
@@ -195,57 +256,122 @@ export default function EventsSection({}: EventsSectionProps) {
 
   // Filter events based on status and category
   const displayEvents = statusFilter === 'all' ? allEvents : allEvents.filter(e => e.status === statusFilter);
-  const filteredEvents = categoryFilter === 'All'
+  const categoryFiltered = categoryFilter === 'All'
     ? displayEvents
     : displayEvents.filter(e => e.category === categoryFilter);
+  
+  // Apply search filter
+  const filteredEvents = searchQuery.trim() === ''
+    ? categoryFiltered
+    : categoryFiltered.filter(e =>
+        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.partner.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        e.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
   // Get unique categories from all events
   const categories = Array.from(new Set(allEvents.map(e => e.category)));
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Event Management</h2>
-      {/* Status and Category Filter */}
-      <div className="mb-6 flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <label htmlFor="status-filter" className="font-semibold text-gray-700 dark:text-gray-300">Status:</label>
-          <select
-            id="status-filter"
-            value={statusFilter}
-            onChange={e => setStatusFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          >
-            <option value="all">All Events</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-          </select>
+      {/* Header with Tabs */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Event Management</h2>
+          <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold border border-blue-300 dark:border-blue-700">
+            {allEvents.length}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="category-filter" className="font-semibold text-gray-700 dark:text-gray-300">Category:</label>
-          <select
-            id="category-filter"
-            value={categoryFilter}
-            onChange={e => setCategoryFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-          >
-            <option value="All">All</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+        
+        {/* Search Bar */}
+        <div className="w-full sm:w-96">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search events..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#27aae2] focus:border-transparent"
+            />
+          </div>
         </div>
       </div>
-      {loading ? (
-        <div className="text-center py-8 text-gray-500">Loading...</div>
-      ) : filteredEvents.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">No events found</div>
-      ) : (
-        <div className="space-y-4">
-          {filteredEvents.map((event) => (
+
+      {/* Tab Navigation */}
+      <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-4 py-2 font-semibold transition-colors border-b-2 ${
+              activeTab === 'all'
+                ? 'border-[#27aae2] text-[#27aae2]'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            All Events
+          </button>
+          <button
+            onClick={() => setActiveTab('promoted')}
+            className={`px-4 py-2 font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+              activeTab === 'promoted'
+                ? 'border-[#27aae2] text-[#27aae2]'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            Promoted Events
+          </button>
+        </div>
+      </div>
+      
+      {/* Status and Category Filter - Only for All Events tab */}
+      {activeTab === 'all' && (
+        <div className="mb-6 flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <label htmlFor="status-filter" className="font-semibold text-gray-700 dark:text-gray-300">Status:</label>
+            <select
+              id="status-filter"
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            >
+              <option value="all">All Events</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="category-filter" className="font-semibold text-gray-700 dark:text-gray-300">Category:</label>
+            <select
+              id="category-filter"
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            >
+              <option value="All">All</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* All Events Tab Content */}
+      {activeTab === 'all' && (
+        <>
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">Loading...</div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No events found</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredEvents.map((event) => (
           <div
             key={event.id}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-lg transition-all p-6 border border-gray-100 dark:border-gray-700 cursor-pointer"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-lg transition-all overflow-hidden border border-gray-100 dark:border-gray-700 cursor-pointer group"
             onClick={(e) => {
               // Only open modal if the card itself is clicked, not a button inside
               if ((e.target as HTMLElement).tagName !== 'BUTTON' && (e.target as HTMLElement).tagName !== 'SPAN') {
@@ -253,23 +379,77 @@ export default function EventsSection({}: EventsSectionProps) {
               }
             }}
           >
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">{event.title}</h3>
-                  <span className="px-3 py-1 bg-[#27aae2]/20 text-[#27aae2] rounded-full text-xs font-semibold">
-                    {event.category}
-                  </span>
+            {/* Event Image */}
+            <div className="relative h-48 overflow-hidden">
+              {event?.poster_image || event?.fullEvent?.poster_image ? (
+                <img
+                  src={
+                    event.poster_image || event.fullEvent?.poster_image
+                      ? (() => {
+                          const imgPath = event.poster_image || event.fullEvent?.poster_image;
+                          if (imgPath.startsWith('http')) return imgPath;
+                          return `${API_BASE_URL}${imgPath.startsWith('/') ? '' : '/'}${imgPath}`;
+                        })()
+                      : 'https://images.pexels.com/photos/2747449/pexels-photo-2747449.jpeg?auto=compress&cs=tinysrgb&w=800'
+                  }
+                  alt={event.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center">
+                  <svg className="w-16 h-16 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
                 </div>
-                <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
-                  <span>By: {event.partner}</span>
-                  <span>Date: {event.date}</span>
+              )}
+              
+              {/* Status Badge */}
+              <div className="absolute top-3 right-3">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-sm ${
+                  event.status === 'approved' ? 'bg-green-500/90 text-white' :
+                  event.status === 'rejected' ? 'bg-red-500/90 text-white' :
+                  'bg-orange-500/90 text-white'
+                }`}>
+                  {event.status?.toUpperCase() || 'PENDING'}
+                </span>
+              </div>
+            </div>
+
+            {/* Event Content */}
+            <div className="p-4">
+              {/* Title */}
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-[#27aae2] transition-colors">
+                {event.title}
+              </h3>
+
+              {/* Category Badge */}
+              <div className="mb-3">
+                <span className="inline-block px-2.5 py-1 bg-[#27aae2]/10 text-[#27aae2] rounded-full text-xs font-semibold">
+                  {event.category}
+                </span>
+              </div>
+
+              {/* Event Details */}
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span className="truncate">{event.partner}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>{event.date}</span>
                 </div>
               </div>
+
+              {/* Action Buttons */}
               {event.status === 'pending' && (
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
                   <button
-                    className="px-6 py-2.5 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                    className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-1 disabled:opacity-50 text-sm"
                     onClick={async (e) => {
                       e.stopPropagation();
                       await handleApproveEvent(event.id);
@@ -280,7 +460,7 @@ export default function EventsSection({}: EventsSectionProps) {
                     <span>{actionLoading === event.id ? 'Processing...' : 'Approve'}</span>
                   </button>
                   <button
-                    className="px-6 py-2.5 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+                    className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-1 disabled:opacity-50 text-sm"
                     onClick={async (e) => {
                       e.stopPropagation();
                       await handleRejectEvent(event.id);
@@ -292,21 +472,360 @@ export default function EventsSection({}: EventsSectionProps) {
                   </button>
                 </div>
               )}
+
+              {/* Promote Button for Approved Events */}
               {event.status === 'approved' && (
-                <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
-                  APPROVED
-                </span>
-              )}
-              {event.status === 'rejected' && (
-                <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
-                  REJECTED
-                </span>
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center space-x-1 text-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEventToPromote(event.fullEvent || event);
+                      setShowPromoteModal(true);
+                      const now = new Date();
+                      const dateStr = now.toISOString().split('T')[0];
+                      const timeStr = now.toTimeString().split(' ')[0].slice(0, 5);
+                      setPromoteStartDate(dateStr);
+                      setPromoteStartTime(timeStr);
+                    }}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Promote Event</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
           ))}
         </div>
+          )}
+        </>
       )}
+
+      {/* Promoted Events Tab Content */}
+      {activeTab === 'promoted' && (
+        <div>
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">Loading...</div>
+          ) : promotedEvents.length === 0 ? (
+            <div className="text-center py-12">
+              <Sparkles className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+              <p className="text-gray-500 dark:text-gray-400 text-lg">No promoted events yet</p>
+              <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">Promoted events will appear here</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      Event
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      Partner
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      Revenue
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      Reach
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  {promotedEvents.map((promo) => {
+                    const now = new Date();
+                    const startDate = new Date(promo.start_date);
+                    const endDate = new Date(promo.end_date);
+                    const isActive = now >= startDate && now <= endDate && promo.is_active;
+                    const isPast = now > endDate;
+                    const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                    
+                    return (
+                      <tr key={promo.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {promo.event_title}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {startDate.toLocaleDateString()} - {endDate.toLocaleDateString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                          {promo.partner_name}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-900 dark:text-white font-medium">
+                            {promo.days_count} {promo.days_count === 1 ? 'day' : 'days'}
+                          </div>
+                          {isActive && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} left
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                            KES {promo.total_cost.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            KES {(promo.total_cost / promo.days_count).toFixed(0)}/day
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            <div className="flex items-center gap-1">
+                              <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              {promo.views || 0} views
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                              </svg>
+                              {promo.clicks || 0} clicks
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            isActive
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                              : isPast
+                              ? 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                          }`}>
+                            {isActive ? 'Active' : isPast ? 'Ended' : 'Scheduled'}
+                          </span>
+                          {promo.is_paid && (
+                            <div className="mt-1">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                Paid
+                              </span>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Promote Event Modal */}
+      {showPromoteModal && eventToPromote && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-6 h-6 text-white" />
+                  <h2 className="text-xl font-bold text-white">Promote Event</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPromoteModal(false);
+                    setEventToPromote(null);
+                    setPromoteDays(7);
+                    setPromoteStartDate('');
+                    setPromoteStartTime('');
+                  }}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Event Info */}
+              <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 border border-blue-100 dark:border-gray-600">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-1">{eventToPromote.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">by {eventToPromote.partner}</p>
+              </div>
+
+              {/* Promotion Settings */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Promotion Duration
+                  </label>
+                  <select
+                    value={promoteDays}
+                    onChange={(e) => setPromoteDays(Number(e.target.value))}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value={1}>1 Day - KES 400</option>
+                    <option value={3}>3 Days - KES 1,200</option>
+                    <option value={7}>7 Days - KES 2,800</option>
+                    <option value={14}>14 Days - KES 5,600</option>
+                    <option value={30}>30 Days - KES 12,000</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={promoteStartDate}
+                      onChange={(e) => setPromoteStartDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      value={promoteStartTime}
+                      onChange={(e) => setPromoteStartTime(e.target.value)}
+                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Summary */}
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Duration:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{promoteDays} {promoteDays === 1 ? 'day' : 'days'}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Cost per day:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">KES 400</span>
+                </div>
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                  <div className="flex justify-between">
+                    <span className="font-bold text-gray-900 dark:text-white">Total Cost:</span>
+                    <span className="font-bold text-purple-600 dark:text-purple-400 text-lg">KES {(promoteDays * 400).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowPromoteModal(false);
+                    setEventToPromote(null);
+                    setPromoteDays(7);
+                    setPromoteStartDate('');
+                    setPromoteStartTime('');
+                  }}
+                  className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    // Handle promotion
+                    try {
+                      setActionLoading(eventToPromote.id);
+                      const { API_BASE_URL } = await import('../../config/api');
+                      const { getToken } = await import('../../services/authService');
+
+                      let startDateTime: Date;
+                      let endDateTime: Date;
+                      
+                      if (promoteStartDate && promoteStartTime) {
+                        startDateTime = new Date(`${promoteStartDate}T${promoteStartTime}`);
+                        if (startDateTime < new Date()) {
+                          toast.error('Start date/time cannot be in the past');
+                          setActionLoading(null);
+                          return;
+                        }
+                        endDateTime = new Date(startDateTime);
+                        endDateTime.setDate(endDateTime.getDate() + promoteDays);
+                      } else {
+                        startDateTime = new Date();
+                        endDateTime = new Date();
+                        endDateTime.setDate(endDateTime.getDate() + promoteDays);
+                      }
+
+                      const response = await fetch(`${API_BASE_URL}/api/admin/events/${eventToPromote.id}/promote`, {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+                        },
+                        body: JSON.stringify({
+                          days_count: promoteDays,
+                          start_date: startDateTime.toISOString(),
+                          end_date: endDateTime.toISOString(),
+                          is_free: true, // Admin promotions are free
+                        }),
+                      });
+
+                      const data = await response.json();
+                      
+                      if (response.ok) {
+                        toast.success('Event promoted successfully!');
+                        setShowPromoteModal(false);
+                        setEventToPromote(null);
+                        setPromoteDays(7);
+                        setPromoteStartDate('');
+                        setPromoteStartTime('');
+                        // Refresh promoted events if on that tab
+                        if (activeTab === 'promoted') {
+                          const promoResponse = await fetch(`${API_BASE_URL}/api/admin/promoted-events`, {
+                            headers: {
+                              'Content-Type': 'application/json',
+                              ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+                            },
+                          });
+                          const promoData = await promoResponse.json();
+                          if (promoResponse.ok) {
+                            setPromotedEvents(promoData.promotions || []);
+                          }
+                        }
+                      } else {
+                        toast.error(data.error || 'Failed to promote event');
+                      }
+                    } catch (error) {
+                      console.error('Error promoting event:', error);
+                      toast.error('Failed to promote event');
+                    } finally {
+                      setActionLoading(null);
+                    }
+                  }}
+                  disabled={actionLoading === eventToPromote.id}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {actionLoading === eventToPromote.id ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      Promote Event
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Event Details Modal (Redesigned for Approval) */}
       {selectedEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">

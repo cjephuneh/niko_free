@@ -68,21 +68,25 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
             <div className="hidden md:flex space-x-0.5 lg:space-x-1">
               <button
                 onClick={() => onNavigate('landing')}
-                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-colors ${
+                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-all rounded-lg ${
                   currentPage === 'landing' 
-                    ? 'text-white border-b-2'
+                    ? 'text-white border-b-2 backdrop-blur-md bg-white/10 shadow-lg'
                     : currentPage === 'event-detail'
                     ? 'text-gray-700 dark:text-gray-300 border-b-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'landing' ? { color: '#ffffff', borderColor: '#27aae2' } : currentPage === 'event-detail' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
                 onMouseEnter={(e) => { 
-                  if (currentPage !== 'landing' && currentPage !== 'event-detail') { 
+                  if (currentPage === 'landing') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                  } else if (currentPage !== 'event-detail') { 
                     e.currentTarget.style.color = '#27aae2'; 
                   } 
                 }}
                 onMouseLeave={(e) => { 
-                  if (currentPage !== 'landing' && currentPage !== 'event-detail') { 
+                  if (currentPage === 'landing') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                  } else if (currentPage !== 'event-detail') { 
                     e.currentTarget.style.color = ''; 
                   } 
                 }}
@@ -91,21 +95,25 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               </button>
               <button
                 onClick={() => onNavigate('about')}
-                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-colors ${
+                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-all rounded-lg ${
                   currentPage === 'landing' 
-                    ? 'text-white/90'
+                    ? 'text-white/90 backdrop-blur-md bg-white/5'
                     : currentPage === 'about'
                     ? 'text-gray-700 dark:text-gray-300 border-b-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'about' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
                 onMouseEnter={(e) => { 
-                  if (currentPage !== 'about') { 
+                  if (currentPage === 'landing') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                  } else if (currentPage !== 'about') { 
                     e.currentTarget.style.color = '#27aae2'; 
                   } 
                 }}
                 onMouseLeave={(e) => { 
-                  if (currentPage !== 'about') { 
+                  if (currentPage === 'landing') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                  } else if (currentPage !== 'about') { 
                     e.currentTarget.style.color = ''; 
                   } 
                 }}
@@ -114,21 +122,25 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               </button>
               <button
                 onClick={() => onNavigate('this-weekend')}
-                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-colors ${
+                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-all rounded-lg ${
                   currentPage === 'landing' 
-                    ? 'text-white/90'
+                    ? 'text-white/90 backdrop-blur-md bg-white/5'
                     : currentPage === 'this-weekend'
                     ? 'text-gray-700 dark:text-gray-300 border-b-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'this-weekend' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
                 onMouseEnter={(e) => { 
-                  if (currentPage !== 'this-weekend') { 
+                  if (currentPage === 'landing') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                  } else if (currentPage !== 'this-weekend') { 
                     e.currentTarget.style.color = '#27aae2'; 
                   } 
                 }}
                 onMouseLeave={(e) => { 
-                  if (currentPage !== 'this-weekend') { 
+                  if (currentPage === 'landing') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                  } else if (currentPage !== 'this-weekend') { 
                     e.currentTarget.style.color = ''; 
                   } 
                 }}
@@ -137,21 +149,25 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               </button>
               <button
                 onClick={() => onNavigate('calendar')}
-                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-colors ${
+                className={`px-2 md:px-3 lg:px-4 py-1 md:py-1.5 lg:py-2 text-xs md:text-sm lg:text-base font-medium transition-all rounded-lg ${
                   currentPage === 'landing' 
-                    ? 'text-white/90'
+                    ? 'text-white/90 backdrop-blur-md bg-white/5'
                     : currentPage === 'calendar'
                     ? 'text-gray-700 dark:text-gray-300 border-b-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'calendar' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
                 onMouseEnter={(e) => { 
-                  if (currentPage !== 'calendar') { 
+                  if (currentPage === 'landing') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                  } else if (currentPage !== 'calendar') { 
                     e.currentTarget.style.color = '#27aae2'; 
                   } 
                 }}
                 onMouseLeave={(e) => { 
-                  if (currentPage !== 'calendar') { 
+                  if (currentPage === 'landing') {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                  } else if (currentPage !== 'calendar') { 
                     e.currentTarget.style.color = ''; 
                   } 
                 }}

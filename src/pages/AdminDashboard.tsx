@@ -384,7 +384,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           {activeTab === 'users' && <UsersPage />}
           {activeTab === 'overview' && (
             <div className="space-y-8">
-              <OverviewStats />
+              <OverviewStats onNavigate={(tab) => setActiveTab(tab)} />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <PendingApprovals
                   onReviewPartners={() => setActiveTab('partners')}

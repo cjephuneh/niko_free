@@ -964,7 +964,12 @@ export default function PartnersSection({}: PartnersProps) {
 
       {/* Active Partners */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Active Partners</h2>
+        <div className="flex items-center gap-3 mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Active Partners</h2>
+          <span className="px-3 py-1 bg-gradient-to-r from-green-100 to-green-200 dark:from-green-900/40 dark:to-green-800/40 text-green-700 dark:text-green-300 rounded-full text-sm font-semibold border border-green-300 dark:border-green-700">
+            {approvedPartners.length}
+          </span>
+        </div>
         {/* Search and Filter Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6 w-full">
           <input

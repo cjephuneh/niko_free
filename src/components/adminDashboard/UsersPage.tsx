@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { User } from 'lucide-react';
+import { User, Search } from 'lucide-react';
 import { API_BASE_URL, getImageUrl } from '../../config/api';
 
 import UserDetailPage from './UserDetailPage';
@@ -9,6 +9,7 @@ export default function UsersPage() {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [userList, setUserList] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -66,6 +67,16 @@ export default function UsersPage() {
     setUserList(prev => prev.filter(u => u.id !== id));
   };
 
+  // Filter users based on search query
+  const filteredUsers = userList.filter(user => {
+    const query = searchQuery.toLowerCase();
+    return (
+      user.name.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query) ||
+      user.phone.toLowerCase().includes(query)
+    );
+  });
+
   // Show user detail page if a user is selected
   if (viewUser) {
     return <UserDetailPage user={viewUser} onBack={() => setViewUser(null)} />;
@@ -73,19 +84,41 @@ export default function UsersPage() {
 
   return (
     <div className="w-full mx-auto px-2 sm:px-4 lg:px-0">
-      <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 flex items-center gap-2">
-        <User className="w-6 h-6 text-[#27aae2]" />
-        All Users
-      </h2>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <User className="w-6 h-6 text-[#27aae2]" />
+            All Users
+          </h2>
+          <span className="px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 text-blue-700 dark:text-blue-300 rounded-full text-sm font-semibold border border-blue-300 dark:border-blue-700">
+            {userList.length}
+          </span>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name, email, or phone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#27aae2] focus:border-transparent"
+          />
+        </div>
+      </div>
+      
       {loading ? (
         <div className="text-center py-8 text-gray-500">Loading users...</div>
-      ) : userList.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">No users found</div>
+      ) : filteredUsers.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          {searchQuery ? 'No users found matching your search' : 'No users found'}
+        </div>
       ) : (
         <>
       {/* Mobile Card Layout */}
       <div className="block sm:hidden space-y-4">
-        {userList.map(user => {
+        {filteredUsers.map(user => {
           const profileImageUrl = user.profile_picture 
             ? getImageUrl(user.profile_picture)
             : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=27aae2&color=fff&size=128`;
@@ -158,7 +191,7 @@ export default function UsersPage() {
             </tr>
           </thead>
           <tbody>
-            {userList.map(user => (
+            {filteredUsers.map(user => (
               <tr key={user.id} className="border-t border-gray-100 dark:border-gray-700 cursor-pointer" onClick={() => setViewUser(user)}>
                 {/* Checkbox */}
                 <td className="py-2 sm:py-3 px-2 sm:px-4 text-center" onClick={e => e.stopPropagation()}>

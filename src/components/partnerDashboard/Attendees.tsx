@@ -1,4 +1,4 @@
-import { Search, Download, Users, Mail, Phone, Calendar, FileSpreadsheet, FileText } from 'lucide-react';
+import { Search, Download, Users, Mail, Phone, Calendar, FileSpreadsheet, FileText, X, Ticket } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getPartnerAttendees } from '../../services/partnerService';
 
@@ -20,7 +20,6 @@ interface Attendee {
 
 export default function Attendees() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filter, setFilter] = useState<string>('all');
   const [selectedEvent, setSelectedEvent] = useState<string>('all');
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
@@ -28,6 +27,8 @@ export default function Attendees() {
   const [error, setError] = useState('');
   const [pastEventsCount, setPastEventsCount] = useState(0);
   const [currentEventsCount, setCurrentEventsCount] = useState(0);
+  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
+  const [selectedEventDetails, setSelectedEventDetails] = useState<any>(null);
 
   // Fetch attendees and dashboard stats on mount
   useEffect(() => {
@@ -231,14 +232,12 @@ export default function Attendees() {
     const matchesSearch = attendee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          attendee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          attendee.event.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filter === 'all' || attendee.ticketType.toLowerCase() === filter.toLowerCase();
     const matchesSelectedEvent = selectedEvent === 'all' || attendee.event === selectedEvent;
-    return matchesSearch && matchesFilter && matchesSelectedEvent;
+    return matchesSearch && matchesSelectedEvent;
   });
 
   // Get unique ticket types for filtering
   const allAttendees = attendees.length > 0 ? attendees : mockAttendees;
-  const uniqueTicketTypes = ['all', ...Array.from(new Set(allAttendees.map(a => a.ticketType)))];
 
   // Calculate demographics
   // Use dashboard stats for event counts (more accurate than counting from attendees)
@@ -305,6 +304,41 @@ export default function Attendees() {
 
   const handleEventFilter = (event: string) => {
     setSelectedEvent(event);
+  };
+
+  const handleShowEventDetails = (eventName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Get all attendees for this event
+    const eventAttendees = allAttendees.filter(a => a.event === eventName);
+    
+    // Calculate ticket type breakdown
+    const ticketTypeBreakdown = eventAttendees.reduce((acc: any, attendee) => {
+      const ticketType = attendee.ticketType;
+      if (!acc[ticketType]) {
+        acc[ticketType] = {
+          type: ticketType,
+          sold: 0,
+          total: 100, // This should come from your event data
+          available: 100
+        };
+      }
+      acc[ticketType].sold += 1;
+      acc[ticketType].available = acc[ticketType].total - acc[ticketType].sold;
+      return acc;
+    }, {});
+
+    const ticketTypes = Object.values(ticketTypeBreakdown);
+    const totalTicketsSold = eventAttendees.length;
+    const totalUsers = new Set(eventAttendees.map(a => a.email)).size;
+
+    setSelectedEventDetails({
+      eventName,
+      totalTicketsSold,
+      totalUsers,
+      ticketTypes
+    });
+    setShowEventDetailsModal(true);
   };
 
   if (isLoading) {
@@ -391,7 +425,7 @@ export default function Attendees() {
                   ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' // Blue border for selected event
                   : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50' // Default border for other events
               }`}
-              onClick={() => handleEventFilter(event.event)}
+              onClick={(e) => handleShowEventDetails(event.event, e)}
             >
               <div className="flex items-start justify-between mb-2">
                 <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{event.event}</h4>
@@ -431,18 +465,6 @@ export default function Attendees() {
               <option key={event} value={event}>{event}</option>
             ))}
           </select>
-
-          {/* Ticket Type Selector Dropdown */}
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-3 rounded-xl font-medium transition-all text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
-          >
-            <option value="all">All Ticket Types</option>
-            {uniqueTicketTypes.filter(t => t !== 'all').map((ticketType) => (
-              <option key={ticketType} value={ticketType}>{ticketType}</option>
-            ))}
-          </select>
         </div>
       </div>
 
@@ -462,6 +484,9 @@ export default function Attendees() {
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   First Name
                 </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Ticket Type
+                </th>
                 {/* <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Age
                 </th> */}
@@ -480,6 +505,11 @@ export default function Attendees() {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {attendee.name.split(' ')[0]}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#27aae2]/10 text-[#27aae2] dark:bg-[#27aae2]/20">
+                      {attendee.ticketType}
+                    </span>
                   </td>
                   {/* <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900 dark:text-white">
@@ -516,6 +546,142 @@ export default function Attendees() {
           </div>
         )}
       </div>
+
+      {/* Event Details Modal */}
+      {showEventDetailsModal && selectedEventDetails && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 backdrop-blur-sm"
+              onClick={() => setShowEventDetailsModal(false)}
+            ></div>
+
+            {/* Center modal */}
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full relative z-10">
+              {/* Close button */}
+              <button
+                onClick={() => setShowEventDetailsModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors z-10"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="bg-white dark:bg-gray-800 px-8 pt-8 pb-8">
+                {/* Title */}
+                <div className="mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    {selectedEventDetails.eventName}
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400">Event Ticket Details</p>
+                </div>
+
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <Ticket className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Total Tickets Sold</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {selectedEventDetails.totalTicketsSold}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border-2 border-green-200 dark:border-green-800">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                        <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Total Users</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {selectedEventDetails.totalUsers}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ticket Type Breakdown */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Ticket Type Breakdown
+                  </h3>
+                  <div className="space-y-3">
+                    {selectedEventDetails.ticketTypes.map((ticket: any, index: number) => {
+                      const soldPercentage = (ticket.sold / ticket.total) * 100;
+                      const isSoldOut = ticket.available <= 0;
+
+                      return (
+                        <div 
+                          key={index}
+                          className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-semibold text-gray-900 dark:text-white">
+                                {ticket.type}
+                              </h4>
+                              {isSoldOut && (
+                                <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-semibold">
+                                  SOLD OUT
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                {ticket.sold} / {ticket.total}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {ticket.available} available
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Progress Bar */}
+                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 overflow-hidden">
+                            <div
+                              className={`h-2.5 rounded-full transition-all ${
+                                isSoldOut
+                                  ? 'bg-red-500'
+                                  : soldPercentage > 80
+                                  ? 'bg-orange-500'
+                                  : 'bg-[#27aae2]'
+                              }`}
+                              style={{ width: `${soldPercentage}%` }}
+                            ></div>
+                          </div>
+                          
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {soldPercentage.toFixed(1)}% sold
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Close Button */}
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowEventDetailsModal(false)}
+                    className="w-full px-4 py-3 bg-[#27aae2] text-white rounded-xl font-medium hover:bg-[#1e8bc3] transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -52,9 +52,10 @@ export default function Footer() {
               <ul className="space-y-2 text-sm text-gray-300">
                 <li><button className="hover:text-white transition-colors">About Us</button></li>
                 {/* <li><button className="hover:text-white transition-colors">Careers</button></li> */}
-                <li><button className="hover:text-white transition-colors">Become a Partner</button></li>
+                <li><button className="hover:text-white transition-colors">Contact Us</button></li>
                 <li><button className="hover:text-white transition-colors">Privacy Policy</button></li>
                 <li><button className="hover:text-white transition-colors">Terms of Service</button></li>
+                <li><button className="hover:text-white transition-colors">Feedback</button></li>
               </ul>
             </div>
           </div>
