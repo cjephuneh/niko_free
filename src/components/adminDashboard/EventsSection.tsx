@@ -32,10 +32,18 @@ interface PromotedEvent {
 
 interface EventsSectionProps {}
 
+interface EventStats {
+  total_events: number;
+  free_events: number;
+  paid_events: number;
+  multiday_events: number;
+}
+
 export default function EventsSection({}: EventsSectionProps) {
   const [pendingEvents, setPendingEvents] = React.useState<PendingEvent[]>([]);
   const [allEvents, setAllEvents] = React.useState<any[]>([]);
   const [promotedEvents, setPromotedEvents] = React.useState<PromotedEvent[]>([]);
+  const [eventStats, setEventStats] = React.useState<EventStats | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [actionLoading, setActionLoading] = React.useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = React.useState<any | null>(null);
@@ -48,6 +56,45 @@ export default function EventsSection({}: EventsSectionProps) {
   const [promoteDays, setPromoteDays] = React.useState(7);
   const [promoteStartDate, setPromoteStartDate] = React.useState('');
   const [promoteStartTime, setPromoteStartTime] = React.useState('');
+  const [promoteEndDate, setPromoteEndDate] = React.useState('');
+  const [promoteEndTime, setPromoteEndTime] = React.useState('');
+
+  // Fetch event stats
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { API_BASE_URL } = await import('../../config/api');
+        const { getToken } = await import('../../services/authService');
+
+        const response = await fetch(`${API_BASE_URL}/api/admin/events/stats`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to fetch event stats:', response.status, response.statusText);
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('Event stats loaded:', data); // Debug log
+        setEventStats(data);
+      } catch (error) {
+        console.error('Failed to fetch event stats:', error);
+        // Set default stats if fetch fails
+        setEventStats({
+          total_events: 0,
+          free_events: 0,
+          paid_events: 0,
+          multiday_events: 0
+        });
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   React.useEffect(() => {
     const fetchEvents = async () => {
@@ -73,6 +120,8 @@ export default function EventsSection({}: EventsSectionProps) {
             status: e.status,
             poster_image: e.poster_image,
             description: e.description,
+            is_promoted: e.is_promoted || false,
+            promotion_id: e.promotion_id || null,
             fullEvent: e, // Store full event data
           }));
           setAllEvents(events);
@@ -272,8 +321,123 @@ export default function EventsSection({}: EventsSectionProps) {
   // Get unique categories from all events
   const categories = Array.from(new Set(allEvents.map(e => e.category)));
 
+  const handleUnpromoteEvent = async (eventId: string) => {
+    setActionLoading(eventId);
+    try {
+      const { API_ENDPOINTS } = await import('../../config/api');
+      const { getToken } = await import('../../services/authService');
+
+      const response = await fetch(API_ENDPOINTS.admin.unpromoteEvent(Number(eventId)), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('Promotion removed successfully!');
+        // Refresh events list
+        const { API_ENDPOINTS } = await import('../../config/api');
+        const statusParam = statusFilter === 'all' ? '' : `?status=${statusFilter}`;
+        const eventsResponse = await fetch(`${API_ENDPOINTS.admin.events}${statusParam}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        const eventsData = await eventsResponse.json();
+        if (eventsResponse.ok) {
+          const events = (eventsData.events || []).map((e: any) => ({
+            id: String(e.id),
+            title: e.title,
+            partner: e.partner?.business_name || 'N/A',
+            category: e.category?.name || 'N/A',
+            date: e.start_date ? new Date(e.start_date).toLocaleDateString() : 'TBD',
+            status: e.status,
+            poster_image: e.poster_image,
+            description: e.description,
+            is_promoted: e.is_promoted || false,
+            promotion_id: e.promotion_id || null,
+            fullEvent: e,
+          }));
+          setAllEvents(events);
+        }
+      } else {
+        toast.error(data.error || 'Failed to remove promotion');
+      }
+    } catch (error) {
+      console.error('Error removing promotion:', error);
+      toast.error('Failed to remove promotion');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   return (
     <div>
+      {/* Event Statistics Cards */}
+      {activeTab === 'all' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-blue-100 text-sm font-medium mb-1">Total Events</p>
+                <p className="text-3xl font-bold">{eventStats?.total_events || 0}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-sm font-medium mb-1">Free Events</p>
+                <p className="text-3xl font-bold">{eventStats?.free_events || 0}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-purple-100 text-sm font-medium mb-1">Paid Events</p>
+                <p className="text-3xl font-bold">{eventStats?.paid_events || 0}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-orange-100 text-sm font-medium mb-1">Multiday Events</p>
+                <p className="text-3xl font-bold">{eventStats?.multiday_events || 0}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Tabs */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
@@ -473,25 +637,44 @@ export default function EventsSection({}: EventsSectionProps) {
                 </div>
               )}
 
-              {/* Promote Button for Approved Events */}
+              {/* Promote/Unpromote Button for Approved Events */}
               {event.status === 'approved' && (
                 <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center space-x-1 text-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEventToPromote(event.fullEvent || event);
-                      setShowPromoteModal(true);
-                      const now = new Date();
-                      const dateStr = now.toISOString().split('T')[0];
-                      const timeStr = now.toTimeString().split(' ')[0].slice(0, 5);
-                      setPromoteStartDate(dateStr);
-                      setPromoteStartTime(timeStr);
-                    }}
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>Promote Event</span>
-                  </button>
+                  {event.is_promoted ? (
+                    <button
+                      className="w-full px-3 py-2 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-lg font-medium hover:from-red-700 hover:to-red-600 transition-all flex items-center justify-center space-x-1 text-sm"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await handleUnpromoteEvent(event.id);
+                      }}
+                      disabled={actionLoading === event.id}
+                    >
+                      <X className="w-4 h-4" />
+                      <span>{actionLoading === event.id ? 'Removing...' : 'Remove Promotion'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center space-x-1 text-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEventToPromote(event.fullEvent || event);
+                        setShowPromoteModal(true);
+                        const now = new Date();
+                        const dateStr = now.toISOString().split('T')[0];
+                        const timeStr = now.toTimeString().split(' ')[0].slice(0, 5);
+                        setPromoteStartDate(dateStr);
+                        setPromoteStartTime(timeStr);
+                        // Set end date to 7 days from now
+                        const endDate = new Date(now);
+                        endDate.setDate(endDate.getDate() + 7);
+                        setPromoteEndDate(endDate.toISOString().split('T')[0]);
+                        setPromoteEndTime(timeStr);
+                      }}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Promote Event</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -627,7 +810,7 @@ export default function EventsSection({}: EventsSectionProps) {
       {showPromoteModal && eventToPromote && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 rounded-t-2xl">
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] px-6 py-4 rounded-t-2xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-6 h-6 text-white" />
@@ -640,6 +823,8 @@ export default function EventsSection({}: EventsSectionProps) {
                     setPromoteDays(7);
                     setPromoteStartDate('');
                     setPromoteStartTime('');
+                    setPromoteEndDate('');
+                    setPromoteEndTime('');
                   }}
                   className="text-white hover:text-gray-200 transition-colors"
                 >
@@ -652,70 +837,166 @@ export default function EventsSection({}: EventsSectionProps) {
               {/* Event Info */}
               <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 border border-blue-100 dark:border-gray-600">
                 <h3 className="font-bold text-gray-900 dark:text-white mb-1">{eventToPromote.title}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">by {eventToPromote.partner}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  by {typeof eventToPromote.partner === 'string' 
+                    ? eventToPromote.partner 
+                    : eventToPromote.partner?.business_name || eventToPromote.fullEvent?.partner?.business_name || 'N/A'}
+                </p>
               </div>
 
               {/* Promotion Settings */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Promotion Duration
+              <div className="space-y-6">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-[#27aae2]" />
+                    Promotion Duration (Quick Select)
                   </label>
-                  <select
-                    value={promoteDays}
-                    onChange={(e) => setPromoteDays(Number(e.target.value))}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    <option value={1}>1 Day - KES 400</option>
-                    <option value={3}>3 Days - KES 1,200</option>
-                    <option value={7}>7 Days - KES 2,800</option>
-                    <option value={14}>14 Days - KES 5,600</option>
-                    <option value={30}>30 Days - KES 12,000</option>
-                  </select>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    {[1, 3, 7, 14, 30].map((days) => (
+                      <button
+                        key={days}
+                        onClick={() => {
+                          setPromoteDays(days);
+                          if (promoteStartDate) {
+                            const start = new Date(`${promoteStartDate}T${promoteStartTime || '00:00'}`);
+                            const end = new Date(start);
+                            end.setDate(end.getDate() + days);
+                            setPromoteEndDate(end.toISOString().split('T')[0]);
+                            setPromoteEndTime(promoteStartTime || '23:59');
+                          }
+                        }}
+                        className={`px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+                          promoteDays === days
+                            ? 'bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] text-white shadow-lg'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:border-[#27aae2]'
+                        }`}
+                      >
+                        {days} {days === 1 ? 'Day' : 'Days'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      value={promoteStartDate}
-                      onChange={(e) => setPromoteStartDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
+                <div className="space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                    <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      Promotion Start
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Date
+                        </label>
+                        <input
+                          type="date"
+                          value={promoteStartDate}
+                          onChange={(e) => {
+                            setPromoteStartDate(e.target.value);
+                            if (e.target.value && promoteDays) {
+                              const start = new Date(`${e.target.value}T${promoteStartTime || '00:00'}`);
+                              const end = new Date(start);
+                              end.setDate(end.getDate() + promoteDays);
+                              setPromoteEndDate(end.toISOString().split('T')[0]);
+                            }
+                          }}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Time
+                        </label>
+                        <input
+                          type="time"
+                          value={promoteStartTime}
+                          onChange={(e) => {
+                            setPromoteStartTime(e.target.value);
+                            if (promoteStartDate && promoteDays) {
+                              const start = new Date(`${promoteStartDate}T${e.target.value}`);
+                              const end = new Date(start);
+                              end.setDate(end.getDate() + promoteDays);
+                              setPromoteEndDate(end.toISOString().split('T')[0]);
+                              setPromoteEndTime(e.target.value);
+                            }
+                          }}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Start Time
-                    </label>
-                    <input
-                      type="time"
-                      value={promoteStartTime}
-                      onChange={(e) => setPromoteStartTime(e.target.value)}
-                      className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
+
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4 text-[#27aae2]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Promotion End
+                    </h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Date
+                        </label>
+                        <input
+                          type="date"
+                          value={promoteEndDate}
+                          onChange={(e) => {
+                            setPromoteEndDate(e.target.value);
+                            if (e.target.value && promoteStartDate) {
+                              const start = new Date(`${promoteStartDate}T${promoteStartTime || '00:00'}`);
+                              const end = new Date(`${e.target.value}T${promoteEndTime || '23:59'}`);
+                              const diffTime = Math.abs(end.getTime() - start.getTime());
+                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                              setPromoteDays(diffDays);
+                            }
+                          }}
+                          min={promoteStartDate || new Date().toISOString().split('T')[0]}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2] text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Time
+                        </label>
+                        <input
+                          type="time"
+                          value={promoteEndTime}
+                          onChange={(e) => setPromoteEndTime(e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2] text-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Summary */}
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Duration:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">{promoteDays} {promoteDays === 1 ? 'day' : 'days'}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Cost per day:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">KES 400</span>
-                </div>
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                  <div className="flex justify-between">
-                    <span className="font-bold text-gray-900 dark:text-white">Total Cost:</span>
-                    <span className="font-bold text-purple-600 dark:text-purple-400 text-lg">KES {(promoteDays * 400).toLocaleString()}</span>
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-5 border border-gray-200 dark:border-gray-600 space-y-3">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Promotion Summary</h4>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Duration</p>
+                    <p className="font-bold text-gray-900 dark:text-white">{promoteDays} {promoteDays === 1 ? 'day' : 'days'}</p>
                   </div>
+                </div>
+                {promoteStartDate && promoteEndDate && (
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Promotion Period</p>
+                    <p className="font-medium text-gray-900 dark:text-white text-sm">
+                      {new Date(promoteStartDate).toLocaleDateString()} {promoteStartTime && `at ${promoteStartTime}`} → {new Date(promoteEndDate).toLocaleDateString()} {promoteEndTime && `at ${promoteEndTime}`}
+                    </p>
+                  </div>
+                )}
+                <div className="bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] rounded-lg p-4 border border-[#1e8bb8]">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-white">Promotion Duration:</span>
+                    <span className="font-bold text-white text-xl">{promoteDays} {promoteDays === 1 ? 'Day' : 'Days'}</span>
+                  </div>
+                  <p className="text-xs text-blue-100 mt-1">Admin promotion - Free</p>
                 </div>
               </div>
 
@@ -728,6 +1009,8 @@ export default function EventsSection({}: EventsSectionProps) {
                     setPromoteDays(7);
                     setPromoteStartDate('');
                     setPromoteStartTime('');
+                    setPromoteEndDate('');
+                    setPromoteEndTime('');
                   }}
                   className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
@@ -744,7 +1027,27 @@ export default function EventsSection({}: EventsSectionProps) {
                       let startDateTime: Date;
                       let endDateTime: Date;
                       
-                      if (promoteStartDate && promoteStartTime) {
+                      if (promoteStartDate && promoteStartTime && promoteEndDate && promoteEndTime) {
+                        startDateTime = new Date(`${promoteStartDate}T${promoteStartTime}`);
+                        endDateTime = new Date(`${promoteEndDate}T${promoteEndTime}`);
+                        
+                        if (startDateTime < new Date()) {
+                          toast.error('Start date/time cannot be in the past');
+                          setActionLoading(null);
+                          return;
+                        }
+                        
+                        if (endDateTime <= startDateTime) {
+                          toast.error('End date/time must be after start date/time');
+                          setActionLoading(null);
+                          return;
+                        }
+                        
+                        // Calculate actual days
+                        const diffTime = Math.abs(endDateTime.getTime() - startDateTime.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        setPromoteDays(diffDays);
+                      } else if (promoteStartDate && promoteStartTime) {
                         startDateTime = new Date(`${promoteStartDate}T${promoteStartTime}`);
                         if (startDateTime < new Date()) {
                           toast.error('Start date/time cannot be in the past');
@@ -753,10 +1056,18 @@ export default function EventsSection({}: EventsSectionProps) {
                         }
                         endDateTime = new Date(startDateTime);
                         endDateTime.setDate(endDateTime.getDate() + promoteDays);
+                        setPromoteEndDate(endDateTime.toISOString().split('T')[0]);
+                        setPromoteEndTime(promoteStartTime);
                       } else {
                         startDateTime = new Date();
                         endDateTime = new Date();
                         endDateTime.setDate(endDateTime.getDate() + promoteDays);
+                        const dateStr = startDateTime.toISOString().split('T')[0];
+                        const timeStr = startDateTime.toTimeString().split(' ')[0].slice(0, 5);
+                        setPromoteStartDate(dateStr);
+                        setPromoteStartTime(timeStr);
+                        setPromoteEndDate(endDateTime.toISOString().split('T')[0]);
+                        setPromoteEndTime(timeStr);
                       }
 
                       const response = await fetch(`${API_BASE_URL}/api/admin/events/${eventToPromote.id}/promote`, {
@@ -782,6 +1093,8 @@ export default function EventsSection({}: EventsSectionProps) {
                         setPromoteDays(7);
                         setPromoteStartDate('');
                         setPromoteStartTime('');
+                        setPromoteEndDate('');
+                        setPromoteEndTime('');
                         // Refresh promoted events if on that tab
                         if (activeTab === 'promoted') {
                           const promoResponse = await fetch(`${API_BASE_URL}/api/admin/promoted-events`, {
@@ -806,7 +1119,7 @@ export default function EventsSection({}: EventsSectionProps) {
                     }
                   }}
                   disabled={actionLoading === eventToPromote.id}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] text-white rounded-lg font-semibold hover:from-[#1e8bb8] hover:to-[#27aae2] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {actionLoading === eventToPromote.id ? (
                     <>

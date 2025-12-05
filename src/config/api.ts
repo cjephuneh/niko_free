@@ -4,7 +4,7 @@
  */
 
 // Base URL for the API - defaults to localhost:5001 for development
-export const API_BASE_URL = 'https://nikofree-arhecnfueegrasf8.canadacentral-01.azurewebsites.net';
+export const API_BASE_URL = 'http://localhost:8000';
 
 
 // API Endpoints
@@ -26,6 +26,7 @@ export const API_ENDPOINTS = {
   admin: {
     dashboard: `${API_BASE_URL}/api/admin/dashboard`,
     partners: `${API_BASE_URL}/api/admin/partners`,
+    partnerStats: `${API_BASE_URL}/api/admin/partners/stats`,
     partner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}`,
     approvePartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/approve`,
     rejectPartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/reject`,
@@ -36,6 +37,7 @@ export const API_ENDPOINTS = {
     rejectEvent: (id: number) => `${API_BASE_URL}/api/admin/events/${id}/reject`,
     featureEvent: (id: number) => `${API_BASE_URL}/api/admin/events/${id}/feature`,
     promoteEvent: (id: number) => `${API_BASE_URL}/api/admin/events/${id}/promote`,
+    unpromoteEvent: (id: number) => `${API_BASE_URL}/api/admin/events/${id}/unpromote`,
     promotedEvents: `${API_BASE_URL}/api/admin/promoted-events`,
     users: `${API_BASE_URL}/api/admin/users`,
     user: (id: number) => `${API_BASE_URL}/api/admin/users/${id}`,
