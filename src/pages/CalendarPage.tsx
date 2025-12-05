@@ -277,7 +277,7 @@ export default function CalendarPage({ onNavigate, onEventClick }: CalendarPageP
         </div>
       </div>
 
-      <Footer />
+      <Footer onNavigate={onNavigate} />
       </div>
     </div>
   );

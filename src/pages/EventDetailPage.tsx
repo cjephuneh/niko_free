@@ -216,6 +216,69 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
     });
   };
 
+  // Format date range for multi-day events
+  const formatDateRange = (startDateString: string, endDateString?: string | null) => {
+    if (!startDateString) return 'TBA';
+    
+    const startDate = new Date(startDateString);
+    
+    // If no end date or same day, just return single date
+    if (!endDateString) {
+      return formatDate(startDateString);
+    }
+    
+    const endDate = new Date(endDateString);
+    
+    // Check if dates are valid
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return formatDate(startDateString);
+    }
+    
+    // Check if same day (ignoring time)
+    const isSameDay = startDate.toDateString() === endDate.toDateString();
+    if (isSameDay) {
+      return formatDate(startDateString);
+    }
+    
+    // Format start date: "Wed, Dec 24th"
+    const startFormatted = startDate.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
+    
+    // Format end date
+    const isSameMonth = startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear();
+    const isSameYear = startDate.getFullYear() === endDate.getFullYear();
+    
+    let endFormatted;
+    if (isSameMonth) {
+      // Same month: "Fri, Dec 27th"
+      endFormatted = endDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      });
+    } else if (isSameYear) {
+      // Different month, same year: "Fri, Jan 2nd"
+      endFormatted = endDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      });
+    } else {
+      // Different year: "Fri, Jan 2nd, 2026"
+      endFormatted = endDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+    
+    return `${startFormatted} - ${endFormatted}`;
+  };
+
   const formatTime = (dateString: string) => {
     if (!dateString) return 'TBA';
     try {
@@ -674,7 +737,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Date</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{formatDate(eventData.start_date)}</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">{formatDateRange(eventData.start_date, eventData.end_date)}</p>
                       </div>
                     </div>
 
@@ -1034,7 +1097,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
         </div>
       </div>
 
-      <Footer />
+      <Footer onNavigate={onNavigate} />
 
       {/* Login Modal */}
       <LoginModal

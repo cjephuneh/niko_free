@@ -1,6 +1,10 @@
 import { Calendar, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
-export default function Footer() {
+interface FooterProps {
+  onNavigate?: (page: string) => void;
+}
+
+export default function Footer({ onNavigate }: FooterProps) {
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-blue-900 to-black text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -53,8 +57,22 @@ export default function Footer() {
                 <li><button className="hover:text-white transition-colors">About Us</button></li>
                 {/* <li><button className="hover:text-white transition-colors">Careers</button></li> */}
                 <li><button className="hover:text-white transition-colors">Contact Us</button></li>
-                <li><button className="hover:text-white transition-colors">Privacy Policy</button></li>
-                <li><button className="hover:text-white transition-colors">Terms of Service</button></li>
+                <li>
+                  <button 
+                    onClick={() => onNavigate?.('privacy')}
+                    className="hover:text-white transition-colors"
+                  >
+                    Privacy Policy
+                  </button>
+                </li>
+                <li>
+                  <button 
+                    onClick={() => onNavigate?.('terms')}
+                    className="hover:text-white transition-colors"
+                  >
+                    Terms of Service
+                  </button>
+                </li>
                 <li><button className="hover:text-white transition-colors">Feedback</button></li>
               </ul>
             </div>

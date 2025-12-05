@@ -357,7 +357,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
             </button>
           </div>
         </div>
-        <Footer />
+        <Footer onNavigate={onNavigate} />
       </div>
     );
   }

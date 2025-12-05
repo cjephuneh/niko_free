@@ -1118,6 +1118,21 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                       </div>
                     </div>
 
+                    {/* End Date for Multiday Events */}
+                    {!isOneDayEvent && (
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          End Date
+                      </label>
+                      <input
+                          type="date"
+                          value={formData.endDate}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                      />
+                    </div>
+                    )}
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         End Time
@@ -1166,21 +1181,6 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                         </p>
                       )}
                     </div>
-
-                    {/* End Date for Multiday Events */}
-                    {!isOneDayEvent && (
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          End Date
-                      </label>
-                      <input
-                          type="date"
-                          value={formData.endDate}
-                          onChange={(e) => setFormData((prev) => ({ ...prev, endDate: e.target.value }))}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                      />
-                    </div>
-                    )}
                   </div>
                 </div>
               </div>

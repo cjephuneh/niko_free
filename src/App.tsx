@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useNavigate, useParams } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import EventDetailPage from './pages/EventDetailPage';
@@ -11,6 +11,8 @@ import AboutUs from './pages/AboutUs';
 import ThisWeekend from './pages/ThisWeekend';
 import CalendarPage from './pages/CalendarPage';
 import DownloadTicket from './pages/DownloadTicket';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import AdminRoute from './components/AdminRoute';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -120,6 +122,14 @@ function AppContent() {
         <Route 
           path="/api/tickets/download/:bookingNumber" 
           element={<DownloadTicket />} 
+        />
+        <Route 
+          path="/terms" 
+          element={<TermsOfService onNavigate={navigateTo} />} 
+        />
+        <Route 
+          path="/privacy" 
+          element={<PrivacyPolicy onNavigate={navigateTo} />} 
         />
       </Routes>
     </div>

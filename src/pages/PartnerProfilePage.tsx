@@ -794,7 +794,7 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
           </div>
         </div>
 
-        <Footer />
+        <Footer onNavigate={onNavigate} />
       </div>
     </>
   );

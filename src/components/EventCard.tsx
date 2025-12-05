@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Heart, Share2 } from 'lucide-react';
+import { Calendar, MapPin, Heart, Share2, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { addToBucketlist, removeFromBucketlist } from '../services/userService';
@@ -127,24 +127,10 @@ export default function EventCard({
             <span className="line-clamp-1 text-[8px] sm:text-xs md:text-sm">{location}</span>
           </div>
           <div className="flex items-center space-x-1 sm:space-x-1.5 md:space-x-2">
-            <div className="flex -space-x-1 sm:-space-x-1.5 md:-space-x-2">
-              <img
-                src={`https://i.pravatar.cc/150?img=${(parseInt(id) * 3) % 70}`}
-                alt="Attendee"
-                className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 rounded-full border border-white dark:border-gray-800"
-              />
-              <img
-                src={`https://i.pravatar.cc/150?img=${(parseInt(id) * 3 + 1) % 70}`}
-                alt="Attendee"
-                className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 rounded-full border border-white dark:border-gray-800"
-              />
-              <img
-                src={`https://i.pravatar.cc/150?img=${(parseInt(id) * 3 + 2) % 70}`}
-                alt="Attendee"
-                className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 rounded-full border border-white dark:border-gray-800"
-              />
-            </div>
-            <span className="text-[8px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400">+{attendees - 3} attending</span>
+            <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 flex-shrink-0" style={{ color: '#27aae2' }} />
+            <span className="text-[8px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-400 font-medium">
+              {attendees} {attendees === 1 ? 'attendee' : 'attendees'}
+            </span>
           </div>
         </div>
       </div>

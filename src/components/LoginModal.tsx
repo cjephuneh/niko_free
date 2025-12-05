@@ -37,6 +37,9 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
   const [partnerShowPassword, setPartnerShowPassword] = useState(false);
   const [partnerIsLoading, setPartnerIsLoading] = useState(false);
   const [partnerError, setPartnerError] = useState('');
+  // Privacy and Terms modals
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   if (!isOpen) return null;
 
@@ -276,8 +279,9 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
 
               {/* Terms and Privacy */}
               <p className="text-xs text-center text-gray-500 dark:text-gray-400 leading-relaxed">
-                By Signing In, I agree to AllEvents's{' '}
+                By Signing In, I agree to Niko Free's{' '}
                 <button 
+                  onClick={() => setShowPrivacyModal(true)}
                   className="font-medium transition-colors"
                   style={{ color: '#27aae2' }}
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1a8ec4'}
@@ -287,6 +291,7 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
                 </button>
                 {' '}and{' '}
                 <button 
+                  onClick={() => setShowTermsModal(true)}
                   className="font-medium transition-colors"
                   style={{ color: '#27aae2' }}
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1a8ec4'}
@@ -885,6 +890,235 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
                     )}
                   </button>
                 </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Privacy Policy Modal */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 z-[10001] overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 py-4">
+            <div
+              className="fixed inset-0 bg-gray-900 bg-opacity-90 backdrop-blur-sm"
+              onClick={() => setShowPrivacyModal(false)}
+            ></div>
+            <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto z-10">
+              <div className="sticky top-0 bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] text-white px-6 py-4 flex items-center justify-between rounded-t-2xl">
+                <h2 className="text-2xl font-bold">Privacy Policy</h2>
+                <button
+                  onClick={() => setShowPrivacyModal(false)}
+                  className="text-white/90 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="px-6 py-6 space-y-4 text-gray-700 dark:text-gray-300">
+                <p className="leading-relaxed">
+                  At <strong>NIKO FREE</strong>, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, store, and protect your data when you use our website and services.
+                </p>
+                <p className="leading-relaxed">
+                  By using the NIKO FREE platform, you consent to the practices described in this Privacy Policy. We comply with the <strong>Data Protection Act (2019)</strong> of Kenya and other applicable data protection regulations.
+                </p>
+
+                <div className="space-y-4 mt-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">1. Information We Collect</h3>
+                    <p className="mb-2">When you create an account, purchase tickets, or interact with our platform, we may collect:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>Full name, email address, phone number</li>
+                      <li>Payment information (processed securely through third-party providers)</li>
+                      <li>Profile information and preferences</li>
+                      <li>Location data (if enabled)</li>
+                      <li>Browser type, IP address, device information</li>
+                      <li>Cookies and tracking technologies</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">2. How We Use Your Information</h3>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>Account management and service delivery</li>
+                      <li>Payment processing and transaction facilitation</li>
+                      <li>Communication (booking confirmations, event updates)</li>
+                      <li>Personalization and event recommendations</li>
+                      <li>Marketing communications (opt-out available)</li>
+                      <li>Security and fraud prevention</li>
+                      <li>Legal compliance</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">3. Data Sharing</h3>
+                    <p className="mb-2">We do not sell your personal information. We may share data with:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>Event organizers (when you purchase tickets)</li>
+                      <li>Payment processors and service providers</li>
+                      <li>Legal authorities (when required by law)</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">4. Your Rights</h3>
+                    <p className="mb-2">Under the Data Protection Act (2019), you have rights to:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>Access your personal data</li>
+                      <li>Rectify inaccurate information</li>
+                      <li>Request data erasure</li>
+                      <li>Data portability</li>
+                      <li>Object to processing</li>
+                      <li>Withdraw consent</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">5. Security</h3>
+                    <p>We implement SSL/TLS encryption, secure password hashing, regular security audits, and access controls to protect your data.</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">6. Contact Us</h3>
+                    <p>For privacy concerns, contact us at <a href="mailto:privacy@niko-free.com" className="text-[#27aae2] hover:underline">privacy@niko-free.com</a></p>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
+                    <p className="text-sm">
+                      For the complete Privacy Policy, please visit our{' '}
+                      <button
+                        onClick={() => {
+                          setShowPrivacyModal(false);
+                          onClose();
+                          onNavigate('privacy');
+                        }}
+                        className="text-[#27aae2] hover:underline font-semibold"
+                      >
+                        Privacy Policy page
+                      </button>
+                      .
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setShowPrivacyModal(false)}
+                    className="w-full px-4 py-3 bg-[#27aae2] text-white rounded-xl font-semibold hover:bg-[#1e8bb8] transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Terms of Service Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 z-[10001] overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 py-4">
+            <div
+              className="fixed inset-0 bg-gray-900 bg-opacity-90 backdrop-blur-sm"
+              onClick={() => setShowTermsModal(false)}
+            ></div>
+            <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto z-10">
+              <div className="sticky top-0 bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] text-white px-6 py-4 flex items-center justify-between rounded-t-2xl">
+                <h2 className="text-2xl font-bold">Terms of Service</h2>
+                <button
+                  onClick={() => setShowTermsModal(false)}
+                  className="text-white/90 hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="px-6 py-6 space-y-4 text-gray-700 dark:text-gray-300">
+                <p className="leading-relaxed">
+                  Welcome to <strong>NIKO FREE</strong>. These Terms and Conditions ("Terms") govern your access to and use of the NIKO FREE website, including all content, features, tools, and services offered. By accessing or using the Website, you agree to be bound by these Terms.
+                </p>
+
+                <div className="space-y-4 mt-6">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">1. Acceptance of Terms</h3>
+                    <p>By accessing or using the Website, you confirm that you are at least 18 years old or have the legal capacity to enter these Terms.</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">2. User Responsibilities</h3>
+                    <p className="mb-2">You agree to use the Website lawfully and ethically. You may NOT:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>Use the Website for unlawful purposes</li>
+                      <li>Copy, modify, distribute, or sell content without permission</li>
+                      <li>Upload harmful code, viruses, or malicious software</li>
+                      <li>Attempt unauthorized access to systems</li>
+                      <li>Harass, exploit, or harm other users</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">3. Payment Terms</h3>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-3">
+                      <p className="font-semibold mb-2">Commission:</p>
+                      <p>For every ticket sold through NIKO FREE, a <strong>7% commission fee</strong> is automatically deducted as a service charge. This applies to all ticket categories.</p>
+                    </div>
+                    <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                      <p className="font-semibold mb-2">Refund Policy:</p>
+                      <p>Refunds are strictly between the Ticket Buyer and the Partner. NIKO FREE is only a medium of transaction and does not issue refunds on behalf of partners.</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">4. Account Security</h3>
+                    <p>You are responsible for maintaining the confidentiality of your login credentials. Notify us immediately if you suspect unauthorized access.</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">5. Limitation of Liability</h3>
+                    <p className="mb-2">To the fullest extent permitted by law, NIKO FREE will NOT be liable for:</p>
+                    <ul className="list-disc list-inside space-y-1 ml-4">
+                      <li>Direct or indirect damages</li>
+                      <li>Loss of profits, data, or goodwill</li>
+                      <li>Unauthorized access to your account</li>
+                      <li>Service interruptions or errors</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">6. Governing Law</h3>
+                    <p>These Terms shall be governed by the laws of Kenya. Any disputes will be resolved through negotiation or courts of the stated jurisdiction.</p>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">7. Contact Information</h3>
+                    <p>For questions about these Terms, contact us at <a href="mailto:support@niko-free.com" className="text-[#27aae2] hover:underline">support@niko-free.com</a></p>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
+                    <p className="text-sm">
+                      For the complete Terms of Service, please visit our{' '}
+                      <button
+                        onClick={() => {
+                          setShowTermsModal(false);
+                          onClose();
+                          onNavigate('terms');
+                        }}
+                        className="text-[#27aae2] hover:underline font-semibold"
+                      >
+                        Terms of Service page
+                      </button>
+                      .
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    onClick={() => setShowTermsModal(false)}
+                    className="w-full px-4 py-3 bg-[#27aae2] text-white rounded-xl font-semibold hover:bg-[#1e8bb8] transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             </div>
           </div>

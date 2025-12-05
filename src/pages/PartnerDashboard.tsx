@@ -455,8 +455,6 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
             };
             refreshData();
           }}
-          availableBalance={pendingEarnings}
-          onClose={() => setWithdrawOpen(false)}
           availableBalance={availableBalance}
         />
       </div>

@@ -171,19 +171,19 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
         </div>
 
         {/* Marketing Banner */}
-        <div 
+        {/* <div 
           className="relative overflow-hidden rounded-3xl mb-12 shadow-2xl"
           style={{
             background: 'linear-gradient(135deg, #27aae2 0%, #1a8ec4 100%)'
           }}
           data-aos="fade-up"
         >
-          {/* Decorative circles */}
+          
           <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-10 rounded-full translate-y-1/2 -translate-x-1/2"></div>
           
           <div className="relative px-6 sm:px-12 py-8 sm:py-12 flex flex-col md:flex-row items-center justify-between gap-6">
-            {/* Left Content */}
+            
             <div className="flex-1 text-center md:text-left">
               <div className="inline-block px-4 py-1 bg-white/20 backdrop-blur-sm rounded-full mb-4">
                 <span className="text-white text-sm font-semibold">🎉 Special Offer</span>
@@ -210,7 +210,7 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
               </div>
             </div>
 
-            {/* Right Image/Icon */}
+            
             <div className="hidden lg:block flex-shrink-0">
               <div className="w-48 h-48 relative">
                 <div className="absolute inset-0 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
@@ -222,9 +222,9 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
-        {/* Day Selection Buttons */}
+       
         <div className="flex flex-wrap gap-3 mb-8 justify-center" data-aos="fade-up">
           {days.map((day) => (
             <button
@@ -325,7 +325,7 @@ export default function ThisWeekend({ onNavigate, onEventClick }: ThisWeekendPro
         </div>
       </div>
 
-      <Footer />
+      <Footer onNavigate={onNavigate} />
       </div>
     </div>
   );

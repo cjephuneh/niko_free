@@ -242,7 +242,7 @@ export default function LandingPage({
 
   // Typing effect for hero heading
   React.useEffect(() => {
-    const fullText = "Discover Amazing Events";
+    const fullText = "Wellness is the New Luxury";
     let charIndex = 0;
     let isDeleting = false;
 
@@ -1172,10 +1172,11 @@ export default function LandingPage({
                     <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-white mb-2 sm:mb-3 md:mb-4 leading-tight">
                       {heroText}
                     </h1>
-                    <p className="text-sm sm:text-base md:text-lg lg:text-xl text-gray-100 leading-relaxed mb-3 sm:mb-4 md:mb-6">
-                      Skip the algorithm. Skip FOMO.
-                      See what's happening before it happens.
-                      Find your next event, activity or experience with Niko Free.
+                    <p className="text-sm sm:text-base md:text-lg lg:text-2xl text-gray-100 leading-relaxed mb-3 sm:mb-4 md:mb-6">
+                      Explore events, activities and experiences designed to evaluate your mind, energy, and lifestyle.
+                    </p>
+                    <p className="text-sm text-[#3290cf] sm:text-base md:text-sm lg:text-lg leading-relaxed mb-3 sm:mb-4 md:mb-6">
+                      Niko Free - redefine how you go out.
                     </p>
 
                     {/* Stats */}
@@ -1851,7 +1852,7 @@ export default function LandingPage({
           </div>
         </div>
 
-        <Footer />
+        <Footer onNavigate={onNavigate} />
 
         {/* Partner Login Modal */}
         <PartnerLoginModal
