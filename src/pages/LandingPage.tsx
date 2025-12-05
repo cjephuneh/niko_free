@@ -242,7 +242,7 @@ export default function LandingPage({
 
   // Typing effect for hero heading
   React.useEffect(() => {
-    const fullText = "Wellness is the new luxury";
+    const fullText = "Wellness is the New Luxury";
     let charIndex = 0;
     let isDeleting = false;
 

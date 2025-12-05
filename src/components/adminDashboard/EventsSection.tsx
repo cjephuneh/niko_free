@@ -58,6 +58,11 @@ export default function EventsSection({}: EventsSectionProps) {
   const [promoteStartTime, setPromoteStartTime] = React.useState('');
   const [promoteEndDate, setPromoteEndDate] = React.useState('');
   const [promoteEndTime, setPromoteEndTime] = React.useState('');
+  const [showApprovalModal, setShowApprovalModal] = React.useState(false);
+  const [showRejectionModal, setShowRejectionModal] = React.useState(false);
+  const [eventToApprove, setEventToApprove] = React.useState<any | null>(null);
+  const [eventToReject, setEventToReject] = React.useState<any | null>(null);
+  const [rejectionReason, setRejectionReason] = React.useState('');
 
   // Fetch event stats
   React.useEffect(() => {
@@ -218,13 +223,13 @@ export default function EventsSection({}: EventsSectionProps) {
           }
         };
         fetchEvents();
-        alert('Event approved successfully. Email sent to partner.');
+        setShowApprovalModal(false);
+        setEventToApprove(null);
         toast.success('Event approved successfully! Email sent to partner.', {
           position: 'top-right',
           autoClose: 3000,
         });
       } else {
-        alert(data.error || 'Failed to approve event');
         toast.error(data.error || 'Failed to approve event', {
           position: 'top-right',
           autoClose: 3000,
@@ -232,14 +237,13 @@ export default function EventsSection({}: EventsSectionProps) {
       }
     } catch (error) {
       console.error('Error approving event:', error);
-      alert('Error approving event');
+      toast.error('Error approving event');
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handleRejectEvent = async (eventId: string) => {
-    const reason = prompt('Enter rejection reason (optional):') || 'Event does not meet requirements';
+  const handleRejectEvent = async (eventId: string, reason: string) => {
     setActionLoading(eventId);
     try {
       const { API_ENDPOINTS } = await import('../../config/api');
@@ -283,13 +287,14 @@ export default function EventsSection({}: EventsSectionProps) {
           }
         };
         fetchEvents();
-        alert('Event rejected. Email sent to partner.');
+        setShowRejectionModal(false);
+        setEventToReject(null);
+        setRejectionReason('');
         toast.info('Event rejected. Email sent to partner.', {
           position: 'top-right',
           autoClose: 3000,
         });
       } else {
-        alert(data.error || 'Failed to reject event');
         toast.error(data.error || 'Failed to reject event', {
           position: 'top-right',
           autoClose: 3000,
@@ -297,7 +302,7 @@ export default function EventsSection({}: EventsSectionProps) {
       }
     } catch (error) {
       console.error('Error rejecting event:', error);
-      alert('Error rejecting event');
+      toast.error('Error rejecting event');
     } finally {
       setActionLoading(null);
     }
@@ -614,25 +619,27 @@ export default function EventsSection({}: EventsSectionProps) {
                 <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
                   <button
                     className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center justify-center space-x-1 disabled:opacity-50 text-sm"
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       e.stopPropagation();
-                      await handleApproveEvent(event.id);
+                      setEventToApprove(event);
+                      setShowApprovalModal(true);
                     }}
                     disabled={loading || actionLoading === event.id}
                   >
                     <CheckCircle className="w-4 h-4" />
-                    <span>{actionLoading === event.id ? 'Processing...' : 'Approve'}</span>
+                    <span>Approve</span>
                   </button>
                   <button
                     className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors flex items-center justify-center space-x-1 disabled:opacity-50 text-sm"
-                    onClick={async (e) => {
+                    onClick={(e) => {
                       e.stopPropagation();
-                      await handleRejectEvent(event.id);
+                      setEventToReject(event);
+                      setShowRejectionModal(true);
                     }}
                     disabled={loading || actionLoading === event.id}
                   >
                     <XCircle className="w-4 h-4" />
-                    <span>{actionLoading === event.id ? 'Processing...' : 'Reject'}</span>
+                    <span>Reject</span>
                   </button>
                 </div>
               )}
@@ -654,7 +661,7 @@ export default function EventsSection({}: EventsSectionProps) {
                     </button>
                   ) : (
                     <button
-                      className="w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center space-x-1 text-sm"
+                      className="w-full px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-lg font-medium hover:from-blue-700 hover:to-blue-600 transition-all flex items-center justify-center space-x-1 text-sm"
                       onClick={(e) => {
                         e.stopPropagation();
                         setEventToPromote(event.fullEvent || event);
@@ -1130,6 +1137,169 @@ export default function EventsSection({}: EventsSectionProps) {
                     <>
                       <Sparkles className="w-5 h-5" />
                       Promote Event
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approval Confirmation Modal */}
+      {showApprovalModal && eventToApprove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-6 h-6 text-white" />
+                  <h2 className="text-xl font-bold text-white">Approve Event</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowApprovalModal(false);
+                    setEventToApprove(null);
+                  }}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">{eventToApprove.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  by {eventToApprove.partner}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {eventToApprove.category} • {eventToApprove.date}
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                <p className="text-gray-700 dark:text-gray-300 text-center">
+                  Are you sure you want to approve this event?
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-2">
+                  An approval email will be sent to the partner.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowApprovalModal(false);
+                    setEventToApprove(null);
+                  }}
+                  className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    await handleApproveEvent(eventToApprove.id);
+                  }}
+                  disabled={actionLoading === eventToApprove.id}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-lg font-semibold hover:from-green-700 hover:to-green-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {actionLoading === eventToApprove.id ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Approving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      Approve Event
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Confirmation Modal */}
+      {showRejectionModal && eventToReject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4 rounded-t-2xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <XCircle className="w-6 h-6 text-white" />
+                  <h2 className="text-xl font-bold text-white">Reject Event</h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowRejectionModal(false);
+                    setEventToReject(null);
+                    setRejectionReason('');
+                  }}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">{eventToReject.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  by {eventToReject.partner}
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {eventToReject.category} • {eventToReject.date}
+                </p>
+              </div>
+
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Rejection Reason (Optional)
+                </label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Enter reason for rejection..."
+                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 min-h-[100px] resize-none"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  This reason will be sent to the partner via email.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowRejectionModal(false);
+                    setEventToReject(null);
+                    setRejectionReason('');
+                  }}
+                  className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    const reason = rejectionReason.trim() || 'Event does not meet requirements';
+                    await handleRejectEvent(eventToReject.id, reason);
+                  }}
+                  disabled={actionLoading === eventToReject.id}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-500 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {actionLoading === eventToReject.id ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Rejecting...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-5 h-5" />
+                      Reject Event
                     </>
                   )}
                 </button>

@@ -17,6 +17,12 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
         keywords="about niko free, wellness events, lifestyle platform, event discovery kenya, wellness culture, social wellness, meaningful experiences"
         url="https://niko-free.com/about"
       />
+      
+      {/* Sticky Navbar */}
+      <div className="sticky top-0 z-50 bg-white dark:bg-gray-900 shadow-md">
+        <Navbar onNavigate={onNavigate} currentPage="about" />
+      </div>
+
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 transition-colors duration-200 relative overflow-hidden">
       {/* Light mode dot pattern overlay */}
       <div className="block dark:hidden fixed inset-0 pointer-events-none z-0" style={{
@@ -31,7 +37,6 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
       }}></div>
       
       <div className="relative z-10">
-        <Navbar onNavigate={onNavigate} currentPage="about" />
 
         {/* Hero Section */}
         <div className="relative bg-gradient-to-br from-[#27aae2] via-[#1e8bb8] to-[#27aae2] text-white overflow-hidden">

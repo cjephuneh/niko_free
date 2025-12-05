@@ -534,10 +534,10 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <button className="w-full py-2.5 sm:py-3 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1e8bb8] transition-colors flex items-center justify-center gap-2">
+                  {/* <button className="w-full py-2.5 sm:py-3 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1e8bb8] transition-colors flex items-center justify-center gap-2">
                     <TicketIcon className="w-4 h-4" />
                     <span>View Ticket</span>
-                  </button>
+                  </button> */}
                   <button 
                     onClick={handleDownloadTicket}
                     className="w-full py-2.5 sm:py-3 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all flex items-center justify-center gap-2"
