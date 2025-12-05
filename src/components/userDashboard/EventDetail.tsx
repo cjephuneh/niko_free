@@ -115,7 +115,7 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
           description: evt.description || event.description,
           image: evt.poster_image ? `${API_BASE_URL}/uploads/${evt.poster_image}` : event.image,
           category: evt.category?.name || event.category,
-          attendees: evt.bookings_count || evt.attendee_count || event.attendees || 0,
+          attendees: evt.attendee_count || event.attendees || 0,
           time: formattedTime,
           organizer: evt.partner ? {
             name: evt.partner.business_name || 'Event Organizer',

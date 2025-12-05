@@ -1,7 +1,7 @@
 import { Calendar, MapPin, Users, Heart, Plus, Trash2, Edit, Sparkles, X, AlertTriangle, Clock, DollarSign, Tag, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { getPartnerEvents, deleteEvent } from '../../services/partnerService';
+import { getPartnerEvents, deleteEvent, updatePromoCode, deletePromoCode } from '../../services/partnerService';
 import { API_BASE_URL } from '../../config/api';
 import CreateEvent from './CreateEvent';
 import PromoteEventModal from './PromoteEventModal';
@@ -23,6 +23,18 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
   const [selectedEventForDetails, setSelectedEventForDetails] = useState<any>(null);
+  const [editingPromoCode, setEditingPromoCode] = useState<any>(null);
+  const [isPromoCodeEditModalOpen, setIsPromoCodeEditModalOpen] = useState(false);
+  const [promoCodeFormData, setPromoCodeFormData] = useState({
+    code: '',
+    discount_type: 'percentage',
+    discount_value: 0,
+    max_uses: null as number | null,
+    max_uses_per_user: 1,
+    valid_from: '',
+    valid_until: '',
+    is_active: true,
+  });
   
   // Fetch events on mount and when filter changes
   useEffect(() => {
@@ -147,6 +159,116 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
 
   const handlePromotionSuccess = () => {
     fetchEvents(); // Refresh events list
+  };
+
+  const handleEditPromoCode = (promo: any) => {
+    setEditingPromoCode(promo);
+    setPromoCodeFormData({
+      code: promo.code || '',
+      discount_type: promo.discount_type || 'percentage',
+      discount_value: promo.discount_value || 0,
+      max_uses: promo.max_uses || null,
+      max_uses_per_user: promo.max_uses_per_user || 1,
+      valid_from: promo.valid_from ? new Date(promo.valid_from).toISOString().split('T')[0] : '',
+      valid_until: promo.valid_until ? new Date(promo.valid_until).toISOString().split('T')[0] : '',
+      is_active: promo.is_active !== false,
+    });
+    setIsPromoCodeEditModalOpen(true);
+  };
+
+  const handleDeletePromoCode = async (promoCodeId: number) => {
+    if (!selectedEventForDetails) return;
+    
+    if (!window.confirm('Are you sure you want to delete this promo code?')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await deletePromoCode(selectedEventForDetails.id, promoCodeId);
+      
+      // Refresh event details by fetching the event again
+      const updatedPromoCodes = (selectedEventForDetails.promo_codes || []).filter((p: any) => p.id !== promoCodeId);
+      setSelectedEventForDetails({
+        ...selectedEventForDetails,
+        promo_codes: updatedPromoCodes,
+      });
+      
+      // Also update in events list
+      setEvents(prev => prev.map(e => 
+        e.id === selectedEventForDetails.id 
+          ? { ...e, promo_codes: updatedPromoCodes }
+          : e
+      ));
+      
+      toast.success('Promo code deleted successfully!');
+    } catch (err: any) {
+      console.error('Error deleting promo code:', err);
+      toast.error(err.message || 'Failed to delete promo code');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSavePromoCode = async () => {
+    if (!editingPromoCode || !selectedEventForDetails) return;
+
+    if (!promoCodeFormData.code.trim()) {
+      toast.error('Promo code is required');
+      return;
+    }
+
+    if (promoCodeFormData.discount_value <= 0) {
+      toast.error('Discount value must be greater than 0');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const updateData: any = {
+        code: promoCodeFormData.code.toUpperCase().trim(),
+        discount_type: promoCodeFormData.discount_type,
+        discount_value: promoCodeFormData.discount_value,
+        max_uses: promoCodeFormData.max_uses || null,
+        max_uses_per_user: promoCodeFormData.max_uses_per_user,
+        is_active: promoCodeFormData.is_active,
+      };
+
+      if (promoCodeFormData.valid_from) {
+        updateData.valid_from = new Date(promoCodeFormData.valid_from).toISOString();
+      }
+      if (promoCodeFormData.valid_until) {
+        updateData.valid_until = new Date(promoCodeFormData.valid_until).toISOString();
+      }
+
+      const result = await updatePromoCode(selectedEventForDetails.id, editingPromoCode.id, updateData);
+      
+      // Update with the response data
+      const updatedPromoCodes = (selectedEventForDetails.promo_codes || []).map((p: any) => 
+        p.id === editingPromoCode.id ? result.promo_code : p
+      );
+      
+      setSelectedEventForDetails({
+        ...selectedEventForDetails,
+        promo_codes: updatedPromoCodes,
+      });
+      
+      // Also update in events list
+      setEvents(prev => prev.map(e => 
+        e.id === selectedEventForDetails.id 
+          ? { ...e, promo_codes: updatedPromoCodes }
+          : e
+      ));
+      
+      setIsPromoCodeEditModalOpen(false);
+      setEditingPromoCode(null);
+      toast.success('Promo code updated successfully!');
+    } catch (err: any) {
+      console.error('Error updating promo code:', err);
+      toast.error(err.message || 'Failed to update promo code');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const getEventStatus = (event: any): string => {
@@ -720,33 +842,58 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
                         )}
                       </div>
 
-                      {/* Promo Codes */}
-                      {selectedEventForDetails.promo_codes && selectedEventForDetails.promo_codes.length > 0 && (
+                      {/* Promo Codes - Only show for paid events */}
+                      {!selectedEventForDetails.is_free && selectedEventForDetails.promo_codes && selectedEventForDetails.promo_codes.length > 0 && (
                         <div>
-                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Active Promo Codes</h3>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Promo Codes</h3>
                           <div className="space-y-2">
                             {selectedEventForDetails.promo_codes.map((promo: any, idx: number) => (
-                              <div key={idx} className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+                              <div key={promo.id || idx} className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
                                 <div className="flex items-center justify-between">
-                                  <div>
+                                  <div className="flex-1">
                                     <p className="font-mono font-bold text-purple-700 dark:text-purple-300">
                                       {promo.code}
                                     </p>
                                     <p className="text-xs text-gray-600 dark:text-gray-400">
                                       {promo.discount_type === 'percentage' ? `${promo.discount_value}% off` : `KES ${promo.discount_value} off`}
                                     </p>
-                                  </div>
-                                  {promo.usage_limit && (
-                                    <div className="text-right">
-                                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                                        {promo.times_used || 0} / {promo.usage_limit}
+                                    {promo.max_uses && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                        Uses: {promo.current_uses || 0} / {promo.max_uses}
                                       </p>
+                                    )}
+                                    {promo.valid_until && (
+                                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                                        Expires: {new Date(promo.valid_until).toLocaleDateString()}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 ml-4">
+                                    <button
+                                      onClick={() => handleEditPromoCode(promo)}
+                                      className="p-1.5 text-purple-600 dark:text-purple-400 hover:bg-purple-100 dark:hover:bg-purple-900/40 rounded transition-colors"
+                                      title="Edit promo code"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeletePromoCode(promo.id)}
+                                      className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 rounded transition-colors"
+                                      title="Delete promo code"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
                                     </div>
-                                  )}
                                 </div>
                               </div>
                             ))}
                           </div>
+                        </div>
+                      )}
+                      {!selectedEventForDetails.is_free && (!selectedEventForDetails.promo_codes || selectedEventForDetails.promo_codes.length === 0) && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Promo Codes</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">No promo codes added yet. Add them when editing the event.</p>
                         </div>
                       )}
                     </div>
@@ -863,6 +1010,148 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Promo Code Edit Modal */}
+      {isPromoCodeEditModalOpen && editingPromoCode && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4">
+            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsPromoCodeEditModalOpen(false)}></div>
+            <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6 z-10">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Edit Promo Code</h3>
+                <button
+                  onClick={() => setIsPromoCodeEditModalOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Promo Code
+                  </label>
+                  <input
+                    type="text"
+                    value={promoCodeFormData.code}
+                    onChange={(e) => setPromoCodeFormData({ ...promoCodeFormData, code: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder="PROMO123"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Discount Type
+                  </label>
+                  <select
+                    value={promoCodeFormData.discount_type}
+                    onChange={(e) => setPromoCodeFormData({ ...promoCodeFormData, discount_type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="percentage">Percentage</option>
+                    <option value="fixed">Fixed Amount</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Discount Value
+                  </label>
+                  <input
+                    type="number"
+                    value={promoCodeFormData.discount_value}
+                    onChange={(e) => setPromoCodeFormData({ ...promoCodeFormData, discount_value: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Max Uses (leave empty for unlimited)
+                  </label>
+                  <input
+                    type="number"
+                    value={promoCodeFormData.max_uses || ''}
+                    onChange={(e) => setPromoCodeFormData({ ...promoCodeFormData, max_uses: e.target.value ? parseInt(e.target.value) : null })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    min="1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Max Uses Per User
+                  </label>
+                  <input
+                    type="number"
+                    value={promoCodeFormData.max_uses_per_user}
+                    onChange={(e) => setPromoCodeFormData({ ...promoCodeFormData, max_uses_per_user: parseInt(e.target.value) || 1 })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    min="1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Valid From (optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={promoCodeFormData.valid_from}
+                    onChange={(e) => setPromoCodeFormData({ ...promoCodeFormData, valid_from: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Valid Until (optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={promoCodeFormData.valid_until}
+                    onChange={(e) => setPromoCodeFormData({ ...promoCodeFormData, valid_until: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={promoCodeFormData.is_active}
+                    onChange={(e) => setPromoCodeFormData({ ...promoCodeFormData, is_active: e.target.checked })}
+                    className="w-4 h-4 text-[#27aae2] border-gray-300 rounded focus:ring-[#27aae2]"
+                  />
+                  <label htmlFor="is_active" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    Active
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setIsPromoCodeEditModalOpen(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSavePromoCode}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bc3] transition-colors disabled:opacity-50"
+                >
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
               </div>
             </div>
           </div>

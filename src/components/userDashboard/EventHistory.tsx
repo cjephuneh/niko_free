@@ -52,7 +52,7 @@ export default function EventHistory({ onEventClick, onBack }: EventHistoryProps
           location: event.venue_name || event.venue_address || 'Location TBA',
           rating: 5, // TODO: Get actual rating from reviews
           category: event.category?.name || 'General',
-          attendees: event.bookings_count || event.attendee_count || 0
+          attendees: event.attendee_count || 0
         };
       });
       

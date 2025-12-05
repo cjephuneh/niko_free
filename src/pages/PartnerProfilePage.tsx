@@ -147,7 +147,7 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
           contact_person: partner.contact_person,
           total_events: partnerEvents.length,
           total_attendees: partnerEvents.reduce((sum: number, event: any) => 
-            sum + (event.bookings_count || event.attendee_count || 0), 0
+            sum + (event.attendee_count || 0), 0
           ),
           followers_count: partner.followers_count || 0,
         });
@@ -221,7 +221,7 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
       location: event.is_online 
         ? 'Online Event' 
         : event.venue_name || event.venue_address || 'Location TBA',
-      attendees: event.bookings_count || 0,
+      attendees: event.attendee_count || 0,
       category: event.category?.name || 'General',
       price: event.is_free ? 'Free' : 'Paid',
       onClick: (id: string) => onNavigate('event-detail', { eventId: id }),

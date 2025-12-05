@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Building2, Globe, Camera, Save, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Building2, Globe, Camera, Save, AlertCircle, FileText } from 'lucide-react';
 import { getPartnerProfile, updatePartnerProfile, uploadPartnerLogo, getPartner } from '../../services/partnerService';
 import { getImageUrl } from '../../config/api';
 
@@ -307,6 +307,19 @@ export default function MyProfile() {
               value={formData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <FileText className="w-4 h-4 inline mr-1" />
+              About
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+              placeholder="Tell us about your business, what events you organize, and your experience..."
             />
           </div>
           <div>

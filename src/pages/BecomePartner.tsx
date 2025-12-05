@@ -19,6 +19,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
     interests: '',
     email: '',
     phone: '',
+    about: '',
     signature: '',
     acceptTerms: false
   });
@@ -92,6 +93,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
         signature_name: formData.signature,
         terms_accepted: 'true',
         logo: formData.logo || undefined,
+        description: formData.about.trim() || undefined,
       };
 
       // Call API
@@ -754,6 +756,26 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
                 )}
                 {!phoneError && formData.phone && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">This will be displayed to attendees for inquiries</p>
+                )}
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  <FileText className="w-4 h-4" />
+                  <span>About Your Business (Optional)</span>
+                </label>
+                <textarea
+                  value={formData.about}
+                  onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-white rounded-xl focus:outline-none transition-colors resize-none"
+                  onFocus={(e) => e.target.style.borderColor = '#27aae2'}
+                  onBlur={(e) => { if (!formData.about) e.target.style.borderColor = ''; }}
+                  placeholder="Tell us about your business, what events you organize, and your experience..."
+                  rows={4}
+                  style={{ borderColor: formData.about ? '#27aae2' : '' }}
+                />
+                {formData.about && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">This will help us understand your business better</p>
                 )}
               </div>
 

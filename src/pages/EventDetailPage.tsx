@@ -39,6 +39,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
   const [promoCode, setPromoCode] = useState('');
   const [promoCodeError, setPromoCodeError] = useState('');
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
+  const [validatedPromoCode, setValidatedPromoCode] = useState<{ discount_type: string; discount_value: number } | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [averageRating, setAverageRating] = useState(0);
   const [totalReviews, setTotalReviews] = useState(0);
@@ -94,8 +95,16 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
 
       if (response.ok && data.valid) {
         setPromoCodeError('');
+        // Store validated promo code data for discount calculation
+        if (data.promo_code) {
+          setValidatedPromoCode({
+            discount_type: data.promo_code.discount_type,
+            discount_value: data.promo_code.discount_value
+          });
+        }
       } else {
         setPromoCodeError(data.error || 'Invalid promo code');
+        setValidatedPromoCode(null);
       }
     } catch (err: any) {
       console.error('Error validating promo code:', err);
@@ -698,8 +707,13 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Attendees</p>
                         <p className="font-semibold text-gray-900 dark:text-white">
-                          {eventData.bookings_count || eventData.attendee_count || 0} {eventData.capacity ? `/ ${eventData.capacity}` : ''} attending
+                          {eventData.attendee_count || 0} {eventData.tickets_left !== null && eventData.tickets_left !== undefined ? `/ ${(eventData.attendee_count || 0) + eventData.tickets_left} tickets` : ''} attending
                         </p>
+                        {eventData.tickets_left !== null && eventData.tickets_left !== undefined && (
+                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            {eventData.tickets_left} tickets left
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -953,10 +967,18 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                       isRSVPed={false}
                       onBuyTicket={handleBuyTicket}
                       promoCode={promoCode}
-                      onPromoCodeChange={setPromoCode}
+                      onPromoCodeChange={(code) => {
+                        setPromoCode(code);
+                        // Clear validated promo code when user changes the input
+                        if (!code.trim()) {
+                          setValidatedPromoCode(null);
+                          setPromoCodeError('');
+                        }
+                      }}
                       promoCodeError={promoCodeError}
                       isValidatingPromo={isValidatingPromo}
                       onValidatePromo={handleValidatePromo}
+                      validatedPromoCode={validatedPromoCode}
                       maxQuantity={eventData.is_free ? 5 : undefined}
                     />
                   ) : null}

@@ -99,7 +99,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           location: event.venue_name || event.venue_address || 'Location TBA',
           ticketId: booking.booking_number || `TKT-${booking.id}`,
           eventId: event.id,
-          attendees: event.bookings_count || event.attendee_count || 0
+          attendees: event.attendee_count || 0
         };
       });
       setUpcomingEvents(upcoming);
@@ -124,7 +124,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           eventId: event.id,
           status: event.status, // Include status so we can show it if needed
           is_published: event.is_published,
-          attendees: event.bookings_count || event.attendee_count || 0
+          attendees: event.attendee_count || 0
         };
       });
       setBucketlistEvents(bucketlist);
@@ -144,7 +144,7 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
           location: event.venue_name || event.venue_address || 'Location TBA',
           rating: 5, // TODO: Get actual rating from reviews
           eventId: event.id,
-          attendees: event.bookings_count || event.attendee_count || 0
+          attendees: event.attendee_count || 0
         };
       });
       setEventHistory(history);

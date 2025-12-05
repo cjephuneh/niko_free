@@ -10,6 +10,7 @@ import BecomePartner from './pages/BecomePartner';
 import AboutUs from './pages/AboutUs';
 import ThisWeekend from './pages/ThisWeekend';
 import CalendarPage from './pages/CalendarPage';
+import DownloadTicket from './pages/DownloadTicket';
 import AdminRoute from './components/AdminRoute';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -111,6 +112,14 @@ function AppContent() {
               onEventClick={navigateToEventDetail} 
             />
           } 
+        />
+        <Route 
+          path="/download-ticket/:bookingNumber" 
+          element={<DownloadTicket />} 
+        />
+        <Route 
+          path="/api/tickets/download/:bookingNumber" 
+          element={<DownloadTicket />} 
         />
       </Routes>
     </div>
