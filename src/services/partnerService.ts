@@ -325,13 +325,16 @@ export const updatePartnerProfile = async (profileData: FormData | Record<string
 /**
  * Get partner analytics
  */
-export const getPartnerAnalytics = async (): Promise<any> => {
+export const getPartnerAnalytics = async (days: number = 30): Promise<any> => {
   const token = getPartnerToken();
   if (!token) {
     throw new Error('Not authenticated');
   }
 
-  const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.analytics}`, {
+  const url = new URL(`${API_BASE_URL}${API_ENDPOINTS.partner.analytics}`);
+  url.searchParams.append('days', days.toString());
+
+  const response = await fetch(url.toString(), {
     headers: {
       'Authorization': `Bearer ${token}`,
     },

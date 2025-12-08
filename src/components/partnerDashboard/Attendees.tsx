@@ -56,7 +56,9 @@ export default function Attendees() {
         eventDate: item.eventDate ? new Date(item.eventDate).toISOString().split('T')[0] : '',
         bookingDate: item.bookingDate ? new Date(item.bookingDate).toISOString().split('T')[0] : '',
         status: item.status === 'Confirmed' ? 'Confirmed' : 'Pending',
-        isCurrentEvent: item.isCurrentEvent || false
+        isCurrentEvent: item.isCurrentEvent || false,
+        // Store booking data for event ID lookup
+        booking: item.booking || null
       }));
       
       setAttendees(formattedAttendees);
@@ -104,131 +106,7 @@ export default function Attendees() {
     }
   };
 
-  // Mock data removed - now using real data from API
-  const mockAttendees: Attendee[] = [
-    {
-      id: 1,
-      name: 'John Kamau',
-      email: 'john***@gmail.com',
-      phone: '+2547***890',
-      age: 28,
-      gender: 'Male',
-      location: 'Nairobi',
-      ticketType: 'VIP',
-      event: 'PICNICS AT NGONG HILLS',
-      eventDate: '2025-11-20',
-      bookingDate: '2025-11-10',
-      status: 'Confirmed',
-      isCurrentEvent: true
-    },
-    {
-      id: 2,
-      name: 'Sarah Muthoni',
-      email: 'sarah***@yahoo.com',
-      phone: '+2547***234',
-      age: 32,
-      gender: 'Female',
-      location: 'Kiambu',
-      ticketType: 'Regular',
-      event: 'Tech Meetup Nairobi',
-      eventDate: '2025-11-25',
-      bookingDate: '2025-11-08',
-      status: 'Confirmed',
-      isCurrentEvent: true
-    },
-    {
-      id: 3,
-      name: 'David Ochieng',
-      email: 'david***@gmail.com',
-      phone: '+2547***567',
-      age: 25,
-      gender: 'Male',
-      location: 'Mombasa',
-      ticketType: 'VIP',
-      event: 'PICNICS AT NGONG HILLS',
-      eventDate: '2025-11-20',
-      bookingDate: '2025-11-09',
-      status: 'Confirmed',
-      isCurrentEvent: true
-    },
-    {
-      id: 4,
-      name: 'Mary Njeri',
-      email: 'mary***@outlook.com',
-      phone: '+2547***901',
-      age: 30,
-      gender: 'Female',
-      location: 'Nakuru',
-      ticketType: 'Regular',
-      event: 'Sunset Yoga Session',
-      eventDate: '2025-10-15',
-      bookingDate: '2025-10-05',
-      status: 'Confirmed',
-      isCurrentEvent: false
-    },
-    {
-      id: 5,
-      name: 'Peter Kimani',
-      email: 'peter***@gmail.com',
-      phone: '+2547***345',
-      age: 35,
-      gender: 'Male',
-      location: 'Nairobi',
-      ticketType: 'VIP',
-      event: 'Tech Meetup Nairobi',
-      eventDate: '2025-11-25',
-      bookingDate: '2025-11-11',
-      status: 'Confirmed',
-      isCurrentEvent: true
-    },
-    {
-      id: 6,
-      name: 'Grace Wanjiku',
-      email: 'grace***@gmail.com',
-      phone: '+2547***678',
-      age: 27,
-      gender: 'Female',
-      location: 'Kisumu',
-      ticketType: 'Regular',
-      event: 'Food & Wine Expo',
-      eventDate: '2025-09-20',
-      bookingDate: '2025-09-10',
-      status: 'Confirmed',
-      isCurrentEvent: false
-    },
-    {
-      id: 7,
-      name: 'James Mutua',
-      email: 'james***@yahoo.com',
-      phone: '+2547***123',
-      age: 42,
-      gender: 'Male',
-      location: 'Eldoret',
-      ticketType: 'VIP',
-      event: 'Sunset Yoga Session',
-      eventDate: '2025-10-15',
-      bookingDate: '2025-10-01',
-      status: 'Confirmed',
-      isCurrentEvent: false
-    },
-    {
-      id: 8,
-      name: 'Anne Akinyi',
-      email: 'anne***@gmail.com',
-      phone: '+2547***456',
-      age: 29,
-      gender: 'Female',
-      location: 'Nairobi',
-      ticketType: 'Regular',
-      event: 'PICNICS AT NGONG HILLS',
-      eventDate: '2025-11-20',
-      bookingDate: '2025-11-12',
-      status: 'Confirmed',
-      isCurrentEvent: true
-    }
-  ];
-
-  const filteredAttendees = (attendees.length > 0 ? attendees : mockAttendees).filter(attendee => {
+  const filteredAttendees = attendees.filter(attendee => {
     const matchesSearch = attendee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          attendee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          attendee.event.toLowerCase().includes(searchTerm.toLowerCase());
@@ -237,7 +115,7 @@ export default function Attendees() {
   });
 
   // Get unique ticket types for filtering
-  const allAttendees = attendees.length > 0 ? attendees : mockAttendees;
+  const allAttendees = attendees;
 
   // Calculate demographics
   // Use dashboard stats for event counts (more accurate than counting from attendees)
@@ -306,39 +184,130 @@ export default function Attendees() {
     setSelectedEvent(event);
   };
 
-  const handleShowEventDetails = (eventName: string, e: React.MouseEvent) => {
+  const handleShowEventDetails = async (eventName: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Get all attendees for this event
-    const eventAttendees = allAttendees.filter(a => a.event === eventName);
-    
-    // Calculate ticket type breakdown
-    const ticketTypeBreakdown = eventAttendees.reduce((acc: any, attendee) => {
-      const ticketType = attendee.ticketType;
-      if (!acc[ticketType]) {
-        acc[ticketType] = {
-          type: ticketType,
-          sold: 0,
-          total: 100, // This should come from your event data
-          available: 100
-        };
+    try {
+      // Get all attendees for this event
+      const eventAttendees = allAttendees.filter(a => a.event === eventName);
+      
+      // Find the event ID from the first attendee's booking data
+      const firstAttendee = eventAttendees[0];
+      let eventId: number | null = null;
+      
+      if (firstAttendee) {
+        const booking = (firstAttendee as any).booking;
+        if (booking) {
+          // Try event.id first (from event object), then event_id
+          eventId = booking.event?.id || booking.event_id || null;
+        }
       }
-      acc[ticketType].sold += 1;
-      acc[ticketType].available = acc[ticketType].total - acc[ticketType].sold;
-      return acc;
-    }, {});
+      
+      // Fetch event details to get actual ticket type information
+      let ticketTypes: any[] = [];
+      if (eventId) {
+        const { getPartnerToken } = await import('../../services/partnerService');
+        const { API_BASE_URL, API_ENDPOINTS } = await import('../../config/api');
+        const token = getPartnerToken();
+        
+        if (token) {
+          const eventResponse = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.event(eventId)}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (eventResponse.ok) {
+            const eventData = await eventResponse.json();
+            const event = eventData.event || eventData;
+            
+            // Get ticket types from event
+            if (event.ticket_types && Array.isArray(event.ticket_types)) {
+              // Calculate sold tickets per type from attendees
+              const ticketTypeBreakdown = eventAttendees.reduce((acc: any, attendee) => {
+                const ticketTypeName = attendee.ticketType;
+                if (!acc[ticketTypeName]) {
+                  acc[ticketTypeName] = 0;
+                }
+                acc[ticketTypeName] += 1;
+                return acc;
+              }, {});
+              
+              // Map event ticket types with sold counts
+              ticketTypes = event.ticket_types.map((tt: any) => {
+                const sold = ticketTypeBreakdown[tt.name] || 0;
+                const total = tt.quantity_total !== null && tt.quantity_total !== undefined 
+                  ? tt.quantity_total 
+                  : null; // null means unlimited
+                const available = total !== null ? Math.max(0, total - sold) : null;
+                
+                return {
+                  type: tt.name,
+                  sold: sold,
+                  total: total,
+                  available: available
+                };
+              });
+            }
+          }
+        }
+      }
+      
+      // Fallback: if we couldn't fetch event data, calculate from attendees only
+      if (ticketTypes.length === 0) {
+        const ticketTypeBreakdown = eventAttendees.reduce((acc: any, attendee) => {
+          const ticketType = attendee.ticketType;
+          if (!acc[ticketType]) {
+            acc[ticketType] = {
+              type: ticketType,
+              sold: 0,
+              total: null, // Unknown total
+              available: null
+            };
+          }
+          acc[ticketType].sold += 1;
+          return acc;
+        }, {});
+        
+        ticketTypes = Object.values(ticketTypeBreakdown);
+      }
+      
+      const totalTicketsSold = eventAttendees.length;
+      const totalUsers = new Set(eventAttendees.map(a => a.email)).size;
 
-    const ticketTypes = Object.values(ticketTypeBreakdown);
-    const totalTicketsSold = eventAttendees.length;
-    const totalUsers = new Set(eventAttendees.map(a => a.email)).size;
-
-    setSelectedEventDetails({
-      eventName,
-      totalTicketsSold,
-      totalUsers,
-      ticketTypes
-    });
-    setShowEventDetailsModal(true);
+      setSelectedEventDetails({
+        eventName,
+        totalTicketsSold,
+        totalUsers,
+        ticketTypes
+      });
+      setShowEventDetailsModal(true);
+    } catch (err) {
+      console.error('Error fetching event details:', err);
+      // Still show modal with basic info
+      const eventAttendees = allAttendees.filter(a => a.event === eventName);
+      const ticketTypeBreakdown = eventAttendees.reduce((acc: any, attendee) => {
+        const ticketType = attendee.ticketType;
+        if (!acc[ticketType]) {
+          acc[ticketType] = {
+            type: ticketType,
+            sold: 0,
+            total: null,
+            available: null
+          };
+        }
+        acc[ticketType].sold += 1;
+        return acc;
+      }, {});
+      
+      setSelectedEventDetails({
+        eventName,
+        totalTicketsSold: eventAttendees.length,
+        totalUsers: new Set(eventAttendees.map(a => a.email)).size,
+        ticketTypes: Object.values(ticketTypeBreakdown)
+      });
+      setShowEventDetailsModal(true);
+    }
   };
 
   if (isLoading) {
@@ -616,8 +585,10 @@ export default function Attendees() {
                   </h3>
                   <div className="space-y-3">
                     {selectedEventDetails.ticketTypes.map((ticket: any, index: number) => {
-                      const soldPercentage = (ticket.sold / ticket.total) * 100;
-                      const isSoldOut = ticket.available <= 0;
+                      const soldPercentage = ticket.total !== null && ticket.total > 0 
+                        ? (ticket.sold / ticket.total) * 100 
+                        : 0;
+                      const isSoldOut = ticket.total !== null && ticket.available !== null && ticket.available <= 0;
 
                       return (
                         <div 
@@ -637,31 +608,46 @@ export default function Attendees() {
                             </div>
                             <div className="text-right">
                               <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                {ticket.sold} / {ticket.total}
+                                {ticket.sold} {ticket.total !== null ? ` / ${ticket.total}` : ''}
                               </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {ticket.available} available
-                              </p>
+                              {ticket.available !== null ? (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {ticket.available} available
+                                </p>
+                              ) : (
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Unlimited
+                                </p>
+                              )}
                             </div>
                           </div>
                           
-                          {/* Progress Bar */}
-                          <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 overflow-hidden">
-                            <div
-                              className={`h-2.5 rounded-full transition-all ${
-                                isSoldOut
-                                  ? 'bg-red-500'
-                                  : soldPercentage > 80
-                                  ? 'bg-orange-500'
-                                  : 'bg-[#27aae2]'
-                              }`}
-                              style={{ width: `${soldPercentage}%` }}
-                            ></div>
-                          </div>
-                          
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {soldPercentage.toFixed(1)}% sold
-                          </p>
+                          {/* Progress Bar - only show if we have total tickets */}
+                          {ticket.total !== null && (
+                            <>
+                              <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2.5 overflow-hidden">
+                                <div
+                                  className={`h-2.5 rounded-full transition-all ${
+                                    isSoldOut
+                                      ? 'bg-red-500'
+                                      : soldPercentage > 80
+                                      ? 'bg-orange-500'
+                                      : 'bg-[#27aae2]'
+                                  }`}
+                                  style={{ width: `${Math.min(100, soldPercentage)}%` }}
+                                ></div>
+                              </div>
+                              
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {soldPercentage.toFixed(1)}% sold
+                              </p>
+                            </>
+                          )}
+                          {ticket.total === null && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {ticket.sold} sold (unlimited tickets)
+                            </p>
+                          )}
                         </div>
                       );
                     })}

@@ -102,22 +102,45 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
       const allCurrent = [...upcoming, ...ongoing];
       
       // Format current events
-      const formattedCurrent = allCurrent.map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        image: event.poster_image 
-          ? (event.poster_image.startsWith('http') ? event.poster_image : `${API_BASE_URL}/${event.poster_image.replace(/^\/+/, '')}`)
-          : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
-        date: new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        attendees: `${event.attendee_count || 0}/${event.total_tickets_sold || 0}`,
-        ticketsSold: event.total_tickets_sold || 0,
-        totalTickets: event.total_tickets_sold || 0, // Will calculate from ticket types if needed
-        grossRevenue: `Ksh ${((event.revenue || 0) / 0.93).toLocaleString()}`,
-        netEarnings: `Ksh ${(event.revenue || 0).toLocaleString()}`,
-        views: (event.view_count || 0).toLocaleString(),
-        status: 'active',
-        rawEvent: event
-      }));
+      const formattedCurrent = allCurrent.map((event: any) => {
+        // Calculate total tickets from ticket types
+        let totalTickets = 0;
+        let hasLimitedTickets = false;
+        
+        if (event.ticket_types && Array.isArray(event.ticket_types)) {
+          event.ticket_types.forEach((tt: any) => {
+            if (tt.quantity_total !== null && tt.quantity_total !== undefined) {
+              hasLimitedTickets = true;
+              totalTickets += tt.quantity_total || 0;
+            }
+          });
+        }
+        
+        // If no limited tickets, use attendee_capacity or show as unlimited
+        if (!hasLimitedTickets) {
+          totalTickets = event.attendee_capacity || event.total_tickets_sold || 0;
+        }
+        
+        const ticketsSold = event.total_tickets_sold || 0;
+        const attendeeCount = event.attendee_count || 0;
+        
+        return {
+          id: event.id,
+          title: event.title,
+          image: event.poster_image 
+            ? (event.poster_image.startsWith('http') ? event.poster_image : `${API_BASE_URL}/${event.poster_image.replace(/^\/+/, '')}`)
+            : 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400&h=300&fit=crop',
+          date: new Date(event.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          attendees: `${attendeeCount}${totalTickets > 0 ? `/${totalTickets}` : ''}`,
+          ticketsSold: ticketsSold,
+          totalTickets: totalTickets || ticketsSold || 1, // Use 1 as fallback to avoid division by zero
+          grossRevenue: `Ksh ${((event.revenue || 0) / 0.93).toLocaleString()}`,
+          netEarnings: `Ksh ${(event.revenue || 0).toLocaleString()}`,
+          views: (event.view_count || 0).toLocaleString(),
+          status: 'active',
+          rawEvent: event
+        };
+      });
       
       setCurrentEvents(formattedCurrent);
       
@@ -185,8 +208,7 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
       subtext: 'After 7% deduction',
       icon: TrendingUp,
       color: 'from-green-500 to-emerald-600',
-      change: '+0%',
-      isPositive: true
+      // No change percentage for all-time earnings
     },
     {
       label: 'Amount Withdrawn',
@@ -239,13 +261,6 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
                 <div className={`w-12 h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center`}>
                   <Icon className="w-6 h-6 text-white" />
                 </div>
-                {stat.change && (
-                  <span className={`text-sm font-semibold px-2 py-1 rounded-full ${
-                    stat.isPositive ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {stat.change}
-                  </span>
-                )}
               </div>
               <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">{stat.label}</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white mb-1">{stat.value}</p>
@@ -413,15 +428,23 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">{event.views}</span>
                   </div> */}
-                  <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                    <div
-                      className="bg-[#27aae2] h-2 rounded-full transition-all"
-                      style={{ width: `${(event.ticketsSold / event.totalTickets) * 100}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 text-right">
-                    {event.ticketsSold}/{event.totalTickets} tickets sold
-                  </p>
+                  {event.totalTickets > 0 ? (
+                    <>
+                      <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                        <div
+                          className="bg-[#27aae2] h-2 rounded-full transition-all"
+                          style={{ width: `${Math.min(100, (event.ticketsSold / event.totalTickets) * 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 text-right">
+                        {event.ticketsSold}/{event.totalTickets} tickets sold
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-gray-600 dark:text-gray-400 text-right">
+                      {event.ticketsSold} tickets sold (unlimited)
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

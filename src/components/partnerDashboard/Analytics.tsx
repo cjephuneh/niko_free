@@ -3,6 +3,8 @@ import { Clock, Calendar, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getPartnerAnalytics } from '../../services/partnerService';
 
+type TimePeriod = 'today' | '7_days' | '30_days' | 'all_time';
+
 interface ChartDataPoint {
 	date: string;
 	active_events: number;
@@ -35,13 +37,38 @@ export default function Analytics() {
 	const [data, setData] = useState<AnalyticsData | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState('');
+	const [timePeriod, setTimePeriod] = useState<TimePeriod>('30_days');
+
+	const timePeriodOptions = [
+		{ value: 'today', label: 'Today' },
+		{ value: '7_days', label: 'Last 7 Days' },
+		{ value: '30_days', label: 'Last 1 Month' },
+		{ value: 'all_time', label: 'All Time' },
+	];
+
+	// Map time period to days for API
+	const getDaysForPeriod = (period: TimePeriod): number => {
+		switch (period) {
+			case 'today':
+				return 1;
+			case '7_days':
+				return 7;
+			case '30_days':
+				return 30;
+			case 'all_time':
+				return 365; // Get all time data
+			default:
+				return 30;
+		}
+	};
 
 	useEffect(() => {
 		const fetchData = async () => {
 			try {
 				setLoading(true);
 				setError('');
-				const response = await getPartnerAnalytics(30);
+				const days = getDaysForPeriod(timePeriod);
+				const response = await getPartnerAnalytics(days);
 				console.log('Analytics response:', response);
 				if (response && (response.summary || response.last_7_days || response.last_24_hours)) {
 					setData(response);
@@ -57,7 +84,7 @@ export default function Analytics() {
 		};
 
 		fetchData();
-	}, []);
+	}, [timePeriod]);
 
 	const formatCurrency = (value?: number) =>
 		`KES ${(value || 0).toLocaleString()}`;
@@ -191,7 +218,26 @@ export default function Analytics() {
 									{formatCurrency(data?.last_7_days.revenue)}
 								</div>
 							</div>
-							<div className="text-sm text-green-500 font-medium">+12%</div>
+							{(() => {
+								// Calculate percentage change: compare 7 days revenue to previous 7 days
+								// We need to get previous period data, but for now show nothing if we can't calculate
+								const sevenDaysRevenue = data?.last_7_days.revenue || 0;
+								const periodRevenue = data?.period?.revenue || 0;
+								const periodDays = data?.period?.days || 30;
+								
+								// If period is 7 days, we can compare
+								if (periodDays === 7 && periodRevenue > 0) {
+									const change = ((sevenDaysRevenue - periodRevenue) / periodRevenue) * 100;
+									if (Math.abs(change) > 0.1) {
+										return (
+											<div className={`text-sm font-medium ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+												{change >= 0 ? '+' : ''}{change.toFixed(1)}%
+											</div>
+										);
+									}
+								}
+								return null;
+							})()}
 						</div>
 						<p className="text-xs text-gray-500 dark:text-gray-400 mt-3">Earnings in the last 7 days.</p>
 					</div>
@@ -204,10 +250,51 @@ export default function Analytics() {
 									{formatCurrency(data?.last_24_hours.revenue)}
 								</div>
 							</div>
-							<div className="text-sm text-red-500 font-medium">-4%</div>
+							{(() => {
+								// Calculate percentage change: compare 24h revenue to previous 24h
+								// For now, compare to 7 days average
+								const last24hRevenue = data?.last_24_hours.revenue || 0;
+								const sevenDaysRevenue = data?.last_7_days.revenue || 0;
+								
+								if (sevenDaysRevenue > 0) {
+									// Average daily revenue over 7 days
+									const avgDailyRevenue = sevenDaysRevenue / 7;
+									if (avgDailyRevenue > 0) {
+										const change = ((last24hRevenue - avgDailyRevenue) / avgDailyRevenue) * 100;
+										if (Math.abs(change) > 0.1) {
+											return (
+												<div className={`text-sm font-medium ${change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+													{change >= 0 ? '+' : ''}{change.toFixed(1)}%
+												</div>
+											);
+										}
+									}
+								}
+								return null;
+							})()}
 						</div>
 						<p className="text-xs text-gray-500 dark:text-gray-400 mt-3">Earnings in the last 24 hours.</p>
 					</div>
+				</div>
+			</div>
+
+			{/* Time Period Filter */}
+			<div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+				<div className="flex items-center gap-2 flex-wrap">
+					<span className="text-sm font-semibold text-gray-700 dark:text-gray-300 mr-2">Time Period:</span>
+					{timePeriodOptions.map((option) => (
+						<button
+							key={option.value}
+							onClick={() => setTimePeriod(option.value as TimePeriod)}
+							className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+								timePeriod === option.value
+									? 'bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] text-white shadow-lg'
+									: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+							}`}
+						>
+							{option.label}
+						</button>
+					))}
 				</div>
 			</div>
 
