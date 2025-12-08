@@ -120,7 +120,7 @@ export default function MyProfile() {
       }
 
       // Update profile
-      await updatePartnerProfile({
+      const updateResponse = await updatePartnerProfile({
         business_name: formData.organizationName,
         contact_person: formData.contactPerson,
         phone_number: formData.phone,
@@ -129,6 +129,37 @@ export default function MyProfile() {
         website: formData.website,
         description: formData.description,
       });
+
+      // Update form data with the response from API to ensure we have the latest data
+      if (updateResponse && updateResponse.partner) {
+        const updatedPartner = updateResponse.partner;
+        setFormData({
+          organizationName: updatedPartner.business_name || '',
+          contactPerson: updatedPartner.contact_person || '',
+          email: updatedPartner.email || '',
+          phone: updatedPartner.phone_number || '',
+          address: updatedPartner.address || '',
+          location: updatedPartner.location || '',
+          website: updatedPartner.website || '',
+          description: updatedPartner.description || '',
+        });
+      } else {
+        // Fallback: refresh from API if response doesn't have partner data
+        const profileResponse = await getPartnerProfile();
+        if (profileResponse && profileResponse.partner) {
+          const data = profileResponse.partner;
+          setFormData({
+            organizationName: data.business_name || '',
+            contactPerson: data.contact_person || '',
+            email: data.email || '',
+            phone: data.phone_number || '',
+            address: data.address || '',
+            location: data.location || '',
+            website: data.website || '',
+            description: data.description || '',
+          });
+        }
+      }
 
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
