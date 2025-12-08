@@ -122,6 +122,28 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [accountMenuOpen]);
+
+  // Handle navigation to events from notifications
+  useEffect(() => {
+    function handleNavigateEvent(event: CustomEvent) {
+      const { eventId } = event.detail;
+      if (eventId) {
+        // Switch to events tab
+        setActiveTab('events');
+        // Dispatch another event to EventsSection to highlight/select the event
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('events-section-select-event', { 
+            detail: { eventId: eventId } 
+          }));
+        }, 100);
+      }
+    }
+    
+    window.addEventListener('admin-navigate-event', handleNavigateEvent as EventListener);
+    return () => {
+      window.removeEventListener('admin-navigate-event', handleNavigateEvent as EventListener);
+    };
+  }, []);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Removed hardcoded data - components now fetch their own data

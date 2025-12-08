@@ -8,6 +8,9 @@ interface AdminNotification {
   description: string;
   time: string;
   read: boolean;
+  action_url?: string;
+  action_text?: string;
+  event_id?: number;
 }
 
 export default function NotificationsPage() {
@@ -28,6 +31,9 @@ export default function NotificationsPage() {
         description: notif.message || '',
         time: notif.created_at || '',
         read: notif.is_read || false,
+        action_url: notif.action_url,
+        action_text: notif.action_text,
+        event_id: notif.event_id,
       }));
 
       setNotificationList(formatted);
@@ -141,14 +147,44 @@ export default function NotificationsPage() {
                   <span className="text-xs text-gray-500 dark:text-gray-400">{formatTime(note.time)}</span>
                 </div>
                 <p className="text-gray-700 dark:text-gray-300 text-sm">{note.description}</p>
-                {!note.read && (
-                  <button
-                    className="mt-2 self-end px-3 py-1 rounded bg-[#27aae2] text-white text-xs font-semibold hover:bg-[#1a8ec4] transition-colors"
-                    onClick={() => handleMarkAsRead(note.id)}
-                  >
-                    Mark as Read
-                  </button>
-                )}
+                <div className="flex items-center justify-between mt-2">
+                  {note.action_url && note.action_text && (
+                    <button
+                      className="px-4 py-2 rounded-lg bg-[#27aae2] text-white text-sm font-semibold hover:bg-[#1a8ec4] transition-colors"
+                      onClick={() => {
+                        // Handle navigation to event details
+                        if (note.event_id) {
+                          // Switch to events tab and trigger event selection
+                          // The parent AdminDashboard will handle this via a custom event
+                          window.dispatchEvent(new CustomEvent('admin-navigate-event', { 
+                            detail: { eventId: note.event_id } 
+                          }));
+                        } else if (note.action_url) {
+                          // For other action URLs, navigate directly
+                          if (note.action_url.startsWith('/')) {
+                            window.location.href = note.action_url;
+                          } else {
+                            window.location.href = `/${note.action_url}`;
+                          }
+                        }
+                        // Mark as read when action is taken
+                        if (!note.read) {
+                          handleMarkAsRead(note.id);
+                        }
+                      }}
+                    >
+                      {note.action_text}
+                    </button>
+                  )}
+                  {!note.read && (
+                    <button
+                      className="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                      onClick={() => handleMarkAsRead(note.id)}
+                    >
+                      Mark as Read
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}
