@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, CreditCard, Shield, Lock, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import { Bell, CreditCard, Shield, Lock, Save, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { changePartnerPassword } from '../../services/partnerService';
 
 export default function Settings() {
@@ -36,6 +36,9 @@ export default function Settings() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChangePassword = async () => {
     setPasswordError('');
@@ -105,7 +108,7 @@ export default function Settings() {
                 <Shield className="w-5 h-5" />
                 <span>Security</span>
               </button>
-              <button
+              {/* <button
                 onClick={() => setActiveSection('notifications')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all ${
                   activeSection === 'notifications'
@@ -115,8 +118,8 @@ export default function Settings() {
               >
                 <Bell className="w-5 h-5" />
                 <span>Notifications</span>
-              </button>
-              <button
+              </button> */}
+              {/* <button
                 onClick={() => setActiveSection('billing')}
                 className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all ${
                   activeSection === 'billing'
@@ -126,7 +129,7 @@ export default function Settings() {
               >
                 <CreditCard className="w-5 h-5" />
                 <span>Billing</span>
-              </button>
+              </button> */}
             </nav>
           </div>
         </div>
@@ -167,33 +170,59 @@ export default function Settings() {
                           <Lock className="w-4 h-4 inline mr-1" />
                           Current Password
                         </label>
-                        <input
-                          type="password"
-                          value={formData.currentPassword}
-                          onChange={(e) => {
-                            handleInputChange('currentPassword', e.target.value);
-                            setPasswordError('');
-                            setPasswordSuccess('');
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                          autoComplete="current-password"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            value={formData.currentPassword}
+                            onChange={(e) => {
+                              handleInputChange('currentPassword', e.target.value);
+                              setPasswordError('');
+                              setPasswordSuccess('');
+                            }}
+                            className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            autoComplete="current-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                          >
+                            {showCurrentPassword ? (
+                              <EyeOff className="w-5 h-5" />
+                            ) : (
+                              <Eye className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           New Password
                         </label>
-                        <input
-                          type="password"
-                          value={formData.newPassword}
-                          onChange={(e) => {
-                            handleInputChange('newPassword', e.target.value);
-                            setPasswordError('');
-                            setPasswordSuccess('');
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                          autoComplete="new-password"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            value={formData.newPassword}
+                            onChange={(e) => {
+                              handleInputChange('newPassword', e.target.value);
+                              setPasswordError('');
+                              setPasswordSuccess('');
+                            }}
+                            className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                          >
+                            {showNewPassword ? (
+                              <EyeOff className="w-5 h-5" />
+                            ) : (
+                              <Eye className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           Must be at least 8 characters long
                         </p>
@@ -202,17 +231,30 @@ export default function Settings() {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Confirm New Password
                         </label>
-                        <input
-                          type="password"
-                          value={formData.confirmPassword}
-                          onChange={(e) => {
-                            handleInputChange('confirmPassword', e.target.value);
-                            setPasswordError('');
-                            setPasswordSuccess('');
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                          autoComplete="new-password"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={formData.confirmPassword}
+                            onChange={(e) => {
+                              handleInputChange('confirmPassword', e.target.value);
+                              setPasswordError('');
+                              setPasswordSuccess('');
+                            }}
+                            className="w-full px-4 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            autoComplete="new-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="w-5 h-5" />
+                            ) : (
+                              <Eye className="w-5 h-5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                       <button
                         onClick={handleChangePassword}
