@@ -64,7 +64,7 @@ interface EventFormData {
   isFree: boolean;
   ticketTypes: TicketType[];
   
-  // Step 7: Promo Codes & Hosts
+  // Promo Codes & Hosts (optional, shown on last step)
   promoCodes: PromoCode[];
   hosts: Host[];
 }
@@ -152,7 +152,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
 
   const [isOneDayEvent, setIsOneDayEvent] = useState(true);
 
-  const totalSteps = 7;
+  const totalSteps = 7; // Step 7 for promo codes (paid events only)
 
   // Helper functions for time conversion
   const parseTime = (time24: string): { hour: string; minute: string; period: 'AM' | 'PM' } => {
@@ -442,6 +442,12 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
         return;
       }
       setError(''); // Clear any previous errors
+    }
+    
+    // Skip step 7 (promo codes) if event is free
+    if (currentStep === 6 && formData.isFree) {
+      // Skip to submission for free events
+      return;
     }
     
     if (currentStep < totalSteps) {
@@ -1436,13 +1442,13 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
               </div>
             )}
 
-            {/* Step 5: Description & Limits */}
+            {/* Step 5: Description */}
             {currentStep === 5 && (
               <div className="space-y-6">
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     <FileText className="w-5 h-5 inline mr-2" />
-                    Description & Capacity
+                    Event Description
                   </h4>
 
                   <div className="mb-6">
@@ -1465,50 +1471,6 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                       placeholder="Describe your event..."
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      <Users className="w-4 h-4 inline mr-1" />
-                      Attendee Capacity
-                    </label>
-                    
-                    <div className="flex items-center gap-4 mb-4">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          checked={formData.isUnlimited}
-                          onChange={() => setFormData(prev => ({ ...prev, isUnlimited: true, attendeeLimit: null }))}
-                          className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2]"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">Unlimited</span>
-                      </label>
-                      
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          checked={!formData.isUnlimited}
-                          onChange={() => setFormData(prev => ({ ...prev, isUnlimited: false }))}
-                          className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2]"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">Limited</span>
-                      </label>
-                    </div>
-
-                    {!formData.isUnlimited && (
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={formData.attendeeLimit || ''}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, '');
-                          setFormData(prev => ({ ...prev, attendeeLimit: val ? parseInt(val) : null }));
-                        }}
-                        placeholder="Maximum attendees"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                      />
-                    )}
                   </div>
                 </div>
               </div>
@@ -1545,8 +1507,76 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                     </label>
                   </div>
 
+                  {/* Free Event - Attendee Capacity */}
+                  {formData.isFree && (
+                    <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/30">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        <Users className="w-4 h-4 inline mr-1" />
+                        Attendee Capacity
+                      </label>
+                      
+                      <div className="flex items-center gap-4 mb-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={formData.isUnlimited}
+                            onChange={() => setFormData(prev => ({ ...prev, isUnlimited: true, attendeeLimit: null }))}
+                            className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2]"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Unlimited</span>
+                        </label>
+                        
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={!formData.isUnlimited}
+                            onChange={() => setFormData(prev => ({ ...prev, isUnlimited: false }))}
+                            className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2]"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Limited</span>
+                        </label>
+                      </div>
+
+                      {!formData.isUnlimited && (
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={formData.attendeeLimit || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, '');
+                            setFormData(prev => ({ ...prev, attendeeLimit: val ? parseInt(val) : null }));
+                          }}
+                          placeholder="Maximum attendees"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Paid Event - Tickets */}
                   {!formData.isFree && (
                     <div>
+                      {/* Unlimited Checkbox for Paid Events */}
+                      <div className="mb-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/30">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.isUnlimited}
+                            onChange={(e) => setFormData(prev => ({ ...prev, isUnlimited: e.target.checked }))}
+                            className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2] rounded"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">
+                            Unlimited capacity (capacity determined by ticket quantities)
+                          </span>
+                        </label>
+                        {!formData.isUnlimited && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            Total capacity will be calculated from the sum of all ticket quantities below
+                          </p>
+                        )}
+                      </div>
+
                       {/* Ticket Types Info */}
                       <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <h5 className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">Ticket Types Guide:</h5>
@@ -1852,211 +1882,106 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
               </div>
             )}
 
-            {/* Step 7: Promo Codes */}
-            {currentStep === 7 && (
+            {/* Step 7: Promo Codes (Paid Events Only) */}
+            {currentStep === 7 && !formData.isFree && (
               <div className="space-y-6">
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Promo Codes
+                    <Tag className="w-5 h-5 inline mr-2" />
+                    Promo Codes (Optional)
                   </h4>
 
-                  {/* Hosts Section */}
-                  <div className="">
-                    {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      Add Event Hosts (Max 2)
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Add promotional codes to offer discounts to your attendees. This step is optional.
+                  </p>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Discount Codes
                     </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                      Hosts must be Niko Free members and will receive all RSVPs, bookings, and bucket lists.
-                    </p> */}
-
-                    {/* {formData.hosts.length < 2 && (
-                      <div className="mb-4">
-                        <input
-                          type="text"
-                          placeholder="Search by username or name..."
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              const results = searchHost(e.target.value);
-                              console.log('Search results:', results);
-                            }
-                          }}
-                        />
-                        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Suggested hosts:</p>
-                          <div className="space-y-2">
-                            <button
-                              onClick={() => addHost({ id: '1', username: '@annalane', name: 'Anna Lane', isVerified: true })}
-                              className="w-full flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-[#27aae2] transition-colors"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                  AL
-                                </div>
-                                <div className="text-left">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-white">Anna Lane</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">@annalane</p>
-                                </div>
-                              </div>
-                              {formData.hosts.find(h => h.id === '1') ? (
-                                <Check className="w-5 h-5 text-green-500" />
-                              ) : (
-                                <Plus className="w-5 h-5 text-[#27aae2]" />
-                              )}
-                            </button>
-
-                            <button
-                              onClick={() => addHost({ id: '2', username: '@victormuli', name: 'Victor Muli', isVerified: true })}
-                              className="w-full flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-[#27aae2] transition-colors"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                  VM
-                                </div>
-                                <div className="text-left">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-white">Victor Muli</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">@victormuli</p>
-                                </div>
-                              </div>
-                              {formData.hosts.find(h => h.id === '2') ? (
-                                <Check className="w-5 h-5 text-green-500" />
-                              ) : (
-                                <Plus className="w-5 h-5 text-[#27aae2]" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )} */}
-
-                    
-                    {formData.hosts.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Selected Hosts:</p>
-                        {formData.hosts.map(host => (
-                          <div key={host.id} className="flex items-center justify-between px-4 py-3 bg-[#27aae2]/10 border border-[#27aae2]/30 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] rounded-full flex items-center justify-center text-white font-bold">
-                                {host.name.split(' ').map(n => n[0]).join('')}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{host.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{host.username}</p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => removeHost(host.id)}
-                              className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Host Preview */}
-                    {formData.hosts.length > 0 && (
-                      <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">Event will display as:</p>
-                        <p className="font-bold text-gray-900 dark:text-white">{formData.eventName || 'EVENT NAME'}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Hosted by {formData.hosts.map(h => h.name).join(' & ')}
-                        </p>
-                      </div>
-                    )}
+                    <button
+                      onClick={addPromoCode}
+                      className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Promo Code
+                    </button>
                   </div>
 
-                  {/* Promo Codes Section */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Promo Codes (Optional)
-                      </label>
-                      <button
-                        onClick={addPromoCode}
-                        className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Promo
-                      </button>
-                    </div>
+                  <div className="space-y-3">
+                    {formData.promoCodes.map(promo => (
+                      <div key={promo.id} className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Promo Code</label>
+                            <input
+                              type="text"
+                              value={promo.code}
+                              onChange={(e) => updatePromoCode(promo.id, 'code', e.target.value.toUpperCase())}
+                              placeholder="e.g., EARLYBIRD"
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            />
+                          </div>
 
-                    <div className="space-y-3">
-                      {formData.promoCodes.map(promo => (
-                        <div key={promo.id} className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Promo Code</label>
-                              <input
-                                type="text"
-                                value={promo.code}
-                                onChange={(e) => updatePromoCode(promo.id, 'code', e.target.value.toUpperCase())}
-                                placeholder="e.g., EARLYBIRD"
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              />
-                            </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Discount Type</label>
+                            <select
+                              value={promo.discountType}
+                              onChange={(e) => updatePromoCode(promo.id, 'discountType', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            >
+                              <option value="percentage">Percentage (%)</option>
+                              <option value="fixed">Fixed Amount (KES)</option>
+                            </select>
+                          </div>
 
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Discount Type</label>
-                              <select
-                                value={promo.discountType}
-                                onChange={(e) => updatePromoCode(promo.id, 'discountType', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              >
-                                <option value="percentage">Percentage (%)</option>
-                                <option value="fixed">Fixed Amount (KES)</option>
-                              </select>
-                            </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Discount Value</label>
+                            <input
+                              type="number"
+                              value={promo.discount}
+                              onChange={(e) => updatePromoCode(promo.id, 'discount', parseFloat(e.target.value) || 0)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            />
+                          </div>
 
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Discount Value</label>
-                              <input
-                                type="number"
-                                value={promo.discount}
-                                onChange={(e) => updatePromoCode(promo.id, 'discount', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              />
-                            </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max Uses</label>
+                            <input
+                              type="number"
+                              value={promo.maxUses}
+                              onChange={(e) => updatePromoCode(promo.id, 'maxUses', parseInt(e.target.value) || 0)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            />
+                          </div>
 
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max Uses</label>
-                              <input
-                                type="number"
-                                value={promo.maxUses}
-                                onChange={(e) => updatePromoCode(promo.id, 'maxUses', parseInt(e.target.value) || 0)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              />
-                            </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Expiry Date</label>
+                            <input
+                              type="date"
+                              value={promo.expiryDate}
+                              onChange={(e) => updatePromoCode(promo.id, 'expiryDate', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            />
+                          </div>
 
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Expiry Date</label>
-                              <input
-                                type="date"
-                                value={promo.expiryDate}
-                                onChange={(e) => updatePromoCode(promo.id, 'expiryDate', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              />
-                            </div>
-
-                            <div className="flex items-end">
-                              <button
-                                onClick={() => removePromoCode(promo.id)}
-                                className="w-full p-2 text-red-500 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4 mx-auto" />
-                              </button>
-                            </div>
+                          <div className="flex items-end">
+                            <button
+                              onClick={() => removePromoCode(promo.id)}
+                              className="w-full p-2 text-red-500 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 mx-auto" />
+                            </button>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    ))}
 
-                      {formData.promoCodes.length === 0 && (
-                        <p className="text-center text-gray-500 dark:text-gray-400 py-4 text-sm">
-                          No promo codes added. Promo codes are optional.
-                        </p>
-                      )}
-                    </div>
+                    {formData.promoCodes.length === 0 && (
+                      <p className="text-center text-gray-500 dark:text-gray-400 py-8 text-sm">
+                        No promo codes added yet. Promo codes are optional and can help you offer special discounts.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2075,7 +2000,8 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
             </button>
 
             <div className="flex items-center gap-2">
-              {currentStep < totalSteps ? (
+              {/* Show Next button or Submit button based on step and event type */}
+              {(currentStep < totalSteps && !(currentStep === 6 && formData.isFree)) ? (
                 <button
                   onClick={handleNext}
                   className="flex items-center gap-2 px-6 py-2 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bb8] transition-colors"

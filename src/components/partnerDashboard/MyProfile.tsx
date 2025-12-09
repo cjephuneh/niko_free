@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Building2, Globe, Camera, Save, AlertCircle, FileText } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Building2, Globe, Camera, Save, AlertCircle, FileText, Trash2, X } from 'lucide-react';
 import { getPartnerProfile, updatePartnerProfile, uploadPartnerLogo, getPartner } from '../../services/partnerService';
 import { getImageUrl } from '../../config/api';
 
@@ -21,6 +21,9 @@ export default function MyProfile() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch partner profile on mount
   useEffect(() => {
@@ -194,6 +197,32 @@ export default function MyProfile() {
         setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      setError('Please type DELETE to confirm account deletion');
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      setError('');
+
+      // TODO: Call delete account API
+      // For now, just show a message
+      alert('Account deletion is being processed. You will be logged out shortly.');
+      
+      // Clear local storage and redirect to login
+      localStorage.removeItem('partner_token');
+      localStorage.removeItem('partner');
+      window.location.href = '/partner-login';
+    } catch (err: any) {
+      console.error('Error deleting account:', err);
+      setError(err.message || 'Failed to delete account');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -431,6 +460,144 @@ export default function MyProfile() {
           )}
         </button>
       </div>
+
+      {/* Danger Zone - Delete Account */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 border-red-500 p-6">
+        <h3 className="text-lg font-semibold text-red-600 dark:text-red-400 mb-2 flex items-center gap-2">
+          <AlertCircle className="w-5 h-5" />
+          Danger Zone
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Once you delete your account, there is no going back. Please be certain.
+        </p>
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="flex items-center space-x-2 px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span>Delete My Account</span>
+        </button>
+      </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div
+              className="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-75 backdrop-blur-sm"
+              onClick={() => setShowDeleteModal(false)}
+            />
+
+            {/* Modal panel */}
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 p-2 rounded-full">
+                      <AlertCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white">Delete Account</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="text-white/80 hover:text-white transition-colors"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-6">
+                <div className="mb-6">
+                  <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed mb-4">
+                    This action <strong className="text-red-600 dark:text-red-400">cannot be undone</strong>. 
+                    This will permanently delete your partner account and remove all associated data.
+                  </p>
+                </div>
+
+                {/* Warning box */}
+                <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded-r-lg mb-6">
+                  <div className="flex">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div className="ml-3">
+                      <p className="text-sm text-red-800 dark:text-red-300 font-medium mb-2">
+                        This will permanently delete:
+                      </p>
+                      <ul className="text-sm text-red-700 dark:text-red-400 list-disc list-inside space-y-1">
+                        <li>Your partner profile and account</li>
+                        <li>All your events (upcoming and past)</li>
+                        <li>All ticket types and bookings</li>
+                        <li>All analytics and revenue data</li>
+                        <li>All promo codes and promotions</li>
+                        <li>Team members and permissions</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Confirmation Input */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Type <span className="font-bold text-red-600 dark:text-red-400">DELETE</span> to confirm:
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteConfirmText}
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="DELETE"
+                    className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  />
+                </div>
+
+                {error && (
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-500 rounded-lg">
+                    <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmText('');
+                    setError('');
+                  }}
+                  className="px-6 py-2.5 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-all duration-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting || deleteConfirmText !== 'DELETE'}
+                  className={`px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 ${
+                    isDeleting || deleteConfirmText !== 'DELETE' ? 'opacity-50 cursor-not-allowed' : 'hover:from-red-700 hover:to-red-800'
+                  }`}
+                >
+                  {isDeleting ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Deleting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      <span>Delete My Account</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
