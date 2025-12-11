@@ -302,3 +302,46 @@ export const isAdmin = (): boolean => {
   return user?.is_admin === true;
 };
 
+// Google login
+export const googleLogin = async (token: string): Promise<AuthResponse> => {
+  const response = await fetch(API_ENDPOINTS.auth.googleLogin, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ token }),
+  });
+
+  // Handle 429 (Too Many Requests) with better error message
+  if (response.status === 429) {
+    let errorMessage = 'Too many login attempts. Please wait a moment before trying again.';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorData.error || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use default message
+    }
+    throw new Error(errorMessage);
+  }
+
+  // Check if response is JSON before parsing
+  const contentType = response.headers.get('content-type');
+  if (!contentType || !contentType.includes('application/json')) {
+    throw new Error('Server returned an invalid response. Please try again.');
+  }
+
+  const responseData = await response.json();
+
+  if (!response.ok) {
+    throw new Error(responseData.error || responseData.message || 'Google login failed');
+  }
+
+  // Store token and user data
+  if (responseData.access_token) {
+    setToken(responseData.access_token);
+    setUser(responseData.user);
+  }
+
+  return responseData;
+};
+

@@ -13,7 +13,7 @@ import BucketList from '../components/userDashboard/BucketList';
 import PendingBookings from '../components/userDashboard/PendingBookings';
 import EventHistory from '../components/userDashboard/EventHistory';
 import { getUserProfile, getUserBookings, getBucketlist, getUserNotifications } from '../services/userService';
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, getImageUrl } from '../config/api';
 
 interface UserDashboardProps {
   onNavigate: (page: string) => void;
@@ -68,8 +68,9 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
       const profileData = await getUserProfile();
       const userData = profileData.user || profileData;
       const fullName = `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User';
+      // Use getImageUrl helper to properly handle profile picture URLs (handles /uploads/ paths and full URLs)
       const avatar = userData.profile_picture 
-        ? `${API_BASE_URL}${userData.profile_picture.startsWith('/') ? '' : '/'}${userData.profile_picture}`
+        ? getImageUrl(userData.profile_picture)
         : '';
       const joinDate = userData.created_at 
         ? new Date(userData.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -270,6 +271,9 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                     src={userProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.name)}&background=27aae2&color=fff`}
                     alt={userProfile.name}
                     className="w-9 h-9 rounded-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.name)}&background=27aae2&color=fff`;
+                    }}
                   />
                   <div className="hidden sm:block text-left">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{userProfile.name}</p>
@@ -349,6 +353,9 @@ export default function UserDashboard({ onNavigate }: UserDashboardProps) {
                   src={userProfile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.name)}&background=27aae2&color=fff&size=128`}
                   alt={userProfile.name}
                   className="w-24 h-24 rounded-full object-cover mx-auto mb-3 border-4 border-[#27aae2]/20"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile.name)}&background=27aae2&color=fff&size=128`;
+                  }}
                 />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{userProfile.name}</h2>
                 {userProfile.joinDate && (
