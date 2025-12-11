@@ -1,4 +1,4 @@
-import { Calendar, Users, Zap, Home, Bell, UserPlus, QrCode, Award, Menu, X, Search, User, Settings as SettingsIcon, LogOut, Moon, Sun, BarChart3, HelpCircle } from 'lucide-react';
+import { Calendar, Users, Zap, Home, Bell, UserPlus, QrCode, Award, Menu, X, Search, User, Settings as SettingsIcon, LogOut, Moon, Sun, BarChart3, HelpCircle, AlertTriangle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
@@ -37,6 +37,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [pendingEarnings, setPendingEarnings] = useState<number>(0);
   const [availableBalance, setAvailableBalance] = useState(0);
+  const [showPasswordWarning, setShowPasswordWarning] = useState(false);
   const navigate = useNavigate();
 
   // Check authentication on mount
@@ -66,6 +67,15 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
         const response = await getPartnerProfile();
         if (response) {
           setPartnerData(response.partner || response);
+          
+          // Check if password needs to be changed (first login)
+          const partner = response.partner || response;
+          const hasSeenPasswordWarning = localStorage.getItem(`partner_password_warning_${partner.id}`);
+          
+          // Show warning if password_changed_at is null/undefined and user hasn't seen the warning
+          if (!partner.password_changed_at && !hasSeenPasswordWarning) {
+            setShowPasswordWarning(true);
+          }
         }
       } catch (err: any) {
         console.error('Error fetching partner data:', err);
@@ -457,6 +467,73 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
           }}
           availableBalance={availableBalance}
         />
+
+        {/* Password Change Warning Modal */}
+        {showPasswordWarning && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border-4 border-red-500">
+              {/* Header with red gradient */}
+              <div className="bg-gradient-to-r from-red-500 to-red-600 px-6 py-4 flex items-center space-x-3">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <AlertTriangle className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Security Alert</h2>
+                  <p className="text-sm text-red-100">Action Required</p>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                    Update Your Password
+                  </h3>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">
+                    For your security, please update your default password immediately. This is required for all new partner accounts.
+                  </p>
+                  <div className="bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4 rounded">
+                    <p className="text-sm text-red-800 dark:text-red-200 font-medium">
+                      ⚠️ Your account is using a default password. Please change it to secure your account.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => {
+                      if (partnerData?.id) {
+                        localStorage.setItem(`partner_password_warning_${partnerData.id}`, 'true');
+                      }
+                      setShowPasswordWarning(false);
+                      setActiveTab('settings');
+                    }}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-semibold hover:from-red-600 hover:to-red-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                  >
+                    <SettingsIcon className="w-5 h-5" />
+                    <span>Update Password Now</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (partnerData?.id) {
+                        localStorage.setItem(`partner_password_warning_${partnerData.id}`, 'true');
+                      }
+                      setShowPasswordWarning(false);
+                    }}
+                    className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+                  >
+                    Later
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
+                  You can update your password anytime in Settings → Security
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       </div>
     </div>

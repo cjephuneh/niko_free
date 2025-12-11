@@ -60,8 +60,8 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
     setFormData(prev => ({
       ...prev,
       categories: prev.categories.includes(categoryId)
-        ? prev.categories.filter(id => id !== categoryId)
-        : [...prev.categories, categoryId]
+        ? [] // Deselect if clicking the same category
+        : [categoryId] // Select only this category
     }));
   };
 
@@ -324,7 +324,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
   };
 
   const canProceedStep1 = formData.businessName && formData.location && formData.logo && !businessNameError && !logoError;
-  const canProceedStep2 = formData.categories.length > 0;
+  const canProceedStep2 = formData.categories.length > 0 && customInterests.length >= 3;
   const canProceedStep3 = formData.email && formData.phone && !emailError && !phoneError;
   const canProceedStep4 = formData.signature && formData.acceptTerms;
 
@@ -568,7 +568,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
               <div>
                 <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
                   <Tag className="w-4 h-4" />
-                  <span>Select Categories * (Choose at least one)</span>
+                  <span>Select One Category *</span>
                 </label>
                 <div className="flex flex-wrap gap-3">
                   {categories.map((category) => {
@@ -609,7 +609,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
               <div>
                 <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   <FileText className="w-4 h-4" />
-                  <span>Additional Interests (Optional)</span>
+                  <span>Additional Interests * (Add at least 3)</span>
                 </label>
                 <div className="flex gap-2 mb-3">
                   <input
@@ -631,8 +631,11 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
                     Add
                   </button>
                 </div>
+                <p className={`text-sm mt-2 ${customInterests.length >= 3 ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                  {customInterests.length} of 3 interests added {customInterests.length >= 3 && '✓'}
+                </p>
                 {customInterests.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mt-3">
                     {customInterests.map((interest, index) => (
                       <div
                         key={index}

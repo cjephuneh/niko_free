@@ -559,9 +559,9 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
                   {isSignUp ? 'Sign up to get started' : 'Log in to continue'}
                 </p>
 
-                {/* Error Display */}
-                {error && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 rounded-xl p-3 flex items-start space-x-2">
+                {/* Error Display - Only for non-password errors or when in Login mode */}
+                {error && !isSignUp && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 rounded-xl p-3 flex items-start space-x-2 mb-4">
                     <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                     <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
                   </div>
@@ -689,6 +689,15 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
                     <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Password
                     </label>
+                    
+                    {/* Error Display - Above password field for Sign Up */}
+                    {error && isSignUp && (
+                      <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-500 rounded-xl p-3 flex items-start space-x-2 mb-3">
+                        <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                      </div>
+                    )}
+                    
                     <div className="relative">
                     <input
                         type={showPassword ? 'text' : 'password'}
@@ -717,9 +726,46 @@ export default function LoginModal({ isOpen, onClose, onNavigate }: LoginModalPr
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
+                    
+                    {/* Password Strength Indicators - Only for Sign Up */}
+                    {isSignUp && password && (
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center space-x-2">
+                          {password.length >= 8 ? (
+                            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600"></div>
+                          )}
+                          <span className={`text-xs ${password.length >= 8 ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                            At least 8 characters
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {/[A-Z]/.test(password) ? (
+                            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600"></div>
+                          )}
+                          <span className={`text-xs ${/[A-Z]/.test(password) ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                            Contains a capital letter
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {/[0-9]/.test(password) ? (
+                            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full border-2 border-gray-300 dark:border-gray-600"></div>
+                          )}
+                          <span className={`text-xs ${/[0-9]/.test(password) ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                            Contains a number
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                    
                     {/* Forgot Password Link - Only for Log In */}
                     {!isSignUp && (
-                      <div className="text-right">
+                      <div className="text-right mt-2">
                         <button
                           type="button"
                           onClick={() => {

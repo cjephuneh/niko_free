@@ -379,7 +379,14 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Events</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Events</h2>
+            {!isLoading && (
+              <span className="px-3 py-1 bg-[#27aae2] text-white rounded-full text-sm font-semibold">
+                {events.length}
+              </span>
+            )}
+          </div>
           <p className="text-gray-600 dark:text-gray-400 mt-1">Manage and track your events</p>
         </div>
         <button 

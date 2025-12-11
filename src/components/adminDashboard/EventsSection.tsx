@@ -614,6 +614,48 @@ export default function EventsSection({}: EventsSectionProps) {
                 </div>
               </div>
 
+              {/* Revenue & Stats Section */}
+              {!event.fullEvent?.is_free && event.fullEvent?.revenue !== undefined && (
+                <div className="space-y-2 mb-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
+                      <p className="text-gray-600 dark:text-gray-400 mb-0.5">Total Revenue</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">
+                        KES {((event.fullEvent?.revenue || 0) / 0.93).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2">
+                      <p className="text-gray-600 dark:text-gray-400 mb-0.5">Net Earnings</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">
+                        KES {(event.fullEvent?.revenue || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 dark:text-gray-400 text-xs">Attendees</span>
+                      <span className="font-semibold text-gray-900 dark:text-white text-xs">
+                        {event.fullEvent?.attendee_count || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Free Event - Show Attendees Only */}
+              {event.fullEvent?.is_free && (
+                <div className="mb-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600 dark:text-gray-400 text-xs">Attendees</span>
+                      <span className="font-semibold text-gray-900 dark:text-white text-xs">
+                        {event.fullEvent?.attendee_count || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               {event.status === 'pending' && (
                 <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">

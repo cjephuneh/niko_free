@@ -770,7 +770,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Attendees</p>
                         <p className="font-semibold text-gray-900 dark:text-white">
-                          {eventData.attendee_count || 0} {eventData.tickets_left !== null && eventData.tickets_left !== undefined ? `/ ${(eventData.attendee_count || 0) + eventData.tickets_left} tickets` : ''} attending
+                          {eventData.attendee_count || 0} attending
                         </p>
                         {eventData.tickets_left !== null && eventData.tickets_left !== undefined && (
                           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
@@ -835,7 +835,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                             <h4 className="font-semibold text-gray-900 dark:text-white text-lg truncate">
                               {eventData.partner.business_name}
                             </h4>
-                            {eventData.partner.is_verified && (
+                            {((eventData.partner.total_events || 0) >= 10 || (eventData.partner.total_attendees || 0) >= 500) && (
                               <span className="px-2 py-0.5 text-xs font-medium bg-black text-white rounded-full flex-shrink-0 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
                                 Verified

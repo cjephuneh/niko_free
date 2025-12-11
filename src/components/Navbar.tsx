@@ -1,7 +1,7 @@
 import { Menu, X, LogIn, Moon, Sun, User, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import LoginModal from './LoginModal';
-import logo from '../images/Niko Free Logo.png';
+import logo from '../images/homenavbar.png';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getUser, isAdmin } from '../services/authService';
@@ -99,7 +99,7 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
                   currentPage === 'landing' 
                     ? 'text-white/90 backdrop-blur-md bg-white/5'
                     : currentPage === 'about'
-                    ? 'text-gray-700 dark:text-gray-300 border-b-2'
+                    ? 'text-gray-700 dark:text-gray-300 border-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'about' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
@@ -126,7 +126,7 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
                   currentPage === 'landing' 
                     ? 'text-white/90 backdrop-blur-md bg-white/5'
                     : currentPage === 'this-weekend'
-                    ? 'text-gray-700 dark:text-gray-300 border-b-2'
+                    ? 'text-gray-700 dark:text-gray-300 border-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'this-weekend' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
@@ -153,7 +153,7 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
                   currentPage === 'landing' 
                     ? 'text-white/90 backdrop-blur-md bg-white/5'
                     : currentPage === 'calendar'
-                    ? 'text-gray-700 dark:text-gray-300 border-b-2'
+                    ? 'text-gray-700 dark:text-gray-300 border-2'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
                 style={currentPage === 'calendar' ? { color: '#27aae2', borderColor: '#27aae2' } : {}}
@@ -288,7 +288,7 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               style={{ background: 'linear-gradient(to right, #27aae2, #1a8ec4)' }}
             >
               <LogIn className="w-3 h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4" />
-              <span>Sign In</span>
+              <span>Log In</span>
             </button>
             )}
           </div>
@@ -439,7 +439,7 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               className="block w-full px-4 py-2.5 text-white rounded-lg font-medium"
               style={{ background: 'linear-gradient(to right, #27aae2, #1a8ec4)' }}
             >
-              Sign In
+              Log In
             </button>
             )}
           </div>

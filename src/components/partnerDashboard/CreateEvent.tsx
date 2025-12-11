@@ -64,7 +64,7 @@ interface EventFormData {
   isFree: boolean;
   ticketTypes: TicketType[];
   
-  // Step 7: Promo Codes & Hosts
+  // Promo Codes & Hosts (optional, shown on last step)
   promoCodes: PromoCode[];
   hosts: Host[];
 }
@@ -86,6 +86,7 @@ interface TicketType {
   endTime?: string; // End time for timeslot tickets
   price: number;
   quantity: number;
+  isUnlimited?: boolean; // For unlimited ticket availability
   vatIncluded?: boolean;
   existingId?: number; // For editing existing tickets
 }
@@ -114,6 +115,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
   const [error, setError] = useState('');
+  const [timeslotErrors, setTimeslotErrors] = useState<Record<string, string>>({});
   const [categories, setCategories] = useState<any[]>([]);
   const [showCustomTicketForm, setShowCustomTicketForm] = useState(false);
   const [customTicket, setCustomTicket] = useState<Partial<TicketType>>({
@@ -123,6 +125,9 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
     quantity: 0,
   });
   const isEditMode = !!eventId;
+  const [locationSuggestions, setLocationSuggestions] = useState<any[]>([]);
+  const [showLocationSuggestions, setShowLocationSuggestions] = useState(false);
+  const [locationSearchTimeout, setLocationSearchTimeout] = useState<NodeJS.Timeout | null>(null);
   const [formData, setFormData] = useState<EventFormData>({
     locationType: 'physical',
     locationName: '',
@@ -149,7 +154,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
 
   const [isOneDayEvent, setIsOneDayEvent] = useState(true);
 
-  const totalSteps = 7;
+  const totalSteps = 7; // Step 7 for promo codes (paid events only)
 
   // Helper functions for time conversion
   const parseTime = (time24: string): { hour: string; minute: string; period: 'AM' | 'PM' } => {
@@ -258,8 +263,18 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
       fetchCategories();
       // Reset to step 1 whenever the modal opens
       setCurrentStep(1);
+      // Clear location suggestions when modal closes
+      setLocationSuggestions([]);
+      setShowLocationSuggestions(false);
     }
-  }, [isOpen]);
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (locationSearchTimeout) {
+        clearTimeout(locationSearchTimeout);
+      }
+    };
+  }, [isOpen, locationSearchTimeout]);
 
   // Load event data if editing
   useEffect(() => {
@@ -431,6 +446,12 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
       setError(''); // Clear any previous errors
     }
     
+    // Skip step 7 (promo codes) if event is free
+    if (currentStep === 6 && formData.isFree) {
+      // Skip to submission for free events
+      return;
+    }
+    
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
@@ -457,6 +478,56 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
       ...prev,
       openInterests: prev.openInterests.filter(i => i !== interest)
     }));
+  };
+
+  // Location search functionality
+  const fetchLocationSuggestions = async (query: string) => {
+    if (query.length < 3) {
+      setLocationSuggestions([]);
+      setShowLocationSuggestions(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=ke`
+      );
+      const data = await response.json();
+      setLocationSuggestions(data);
+      setShowLocationSuggestions(true);
+    } catch (error) {
+      console.error('Error fetching location suggestions:', error);
+    }
+  };
+
+  const handleLocationChange = (value: string) => {
+    setFormData(prev => ({ ...prev, locationName: value }));
+    
+    // Clear previous timeout
+    if (locationSearchTimeout) {
+      clearTimeout(locationSearchTimeout);
+    }
+    
+    // Debounce the API call
+    const timeoutId = setTimeout(() => {
+      fetchLocationSuggestions(value);
+    }, 300);
+    
+    setLocationSearchTimeout(timeoutId);
+  };
+
+  const selectLocationSuggestion = (location: any) => {
+    const locationName = location.display_name.split(',')[0];
+    setFormData(prev => ({ 
+      ...prev, 
+      locationName: locationName,
+      coordinates: {
+        lat: parseFloat(location.lat),
+        lng: parseFloat(location.lon)
+      }
+    }));
+    setShowLocationSuggestions(false);
+    setLocationSuggestions([]);
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -581,6 +652,25 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
       return;
     }
     
+    // Validate timeslot tickets
+    if (customTicket.ticketStructure === 'timeslot') {
+      if (!customTicket.startTime || !customTicket.endTime) {
+        alert('Please specify both start and end times for time slot tickets.');
+        return;
+      }
+      // Show error but don't prevent save
+      if (customTicket.endTime <= customTicket.startTime) {
+        setTimeslotErrors(prev => ({ ...prev, custom: 'End time cannot be lower than start time' }));
+      }
+    }
+    
+    // Clear any errors before saving
+    setTimeslotErrors(prev => {
+      const newErrors = { ...prev };
+      delete newErrors.custom;
+      return newErrors;
+    });
+    
     const newTicket: TicketType = {
       id: Date.now().toString(),
       name: customTicket.name,
@@ -590,6 +680,8 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
       seasonType: customTicket.seasonType,
       seasonDuration: customTicket.seasonDuration,
       timeslot: customTicket.timeslot,
+      startTime: customTicket.startTime,
+      endTime: customTicket.endTime,
       price: customTicket.price || 0,
       quantity: customTicket.quantity || 0,
       vatIncluded: false,
@@ -972,7 +1064,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
 
                   {/* Physical/Hybrid Location */}
                   {(formData.locationType === 'physical' || formData.locationType === 'hybrid') && (
-                    <div className="mb-4">
+                    <div className="mb-4 relative">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <MapPin className="w-4 h-4 inline mr-1" />
                         Location Name
@@ -980,10 +1072,32 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                       <input
                         type="text"
                         value={formData.locationName}
-                        onChange={(e) => setFormData(prev => ({ ...prev, locationName: e.target.value }))}
+                        onChange={(e) => handleLocationChange(e.target.value)}
+                        onFocus={() => {
+                          if (formData.locationName.length >= 3) {
+                            setShowLocationSuggestions(true);
+                          }
+                        }}
                         placeholder="e.g., Ngong Hills, Nairobi"
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                       />
+                      
+                      {/* Location Suggestions Dropdown */}
+                      {showLocationSuggestions && locationSuggestions.length > 0 && (
+                        <div className="absolute z-10 w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                          {locationSuggestions.map((location, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() => selectLocationSuggestion(location)}
+                              className="w-full px-4 py-3 text-left transition-colors flex items-start space-x-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            >
+                              <MapPin className="w-4 h-4 mt-1 flex-shrink-0 text-[#27aae2]" />
+                              <span className="text-sm text-gray-700 dark:text-gray-300">{location.display_name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                       {/* <button className="mt-2 text-sm text-[#27aae2] hover:text-[#1e8bb8] font-medium">
                         📍 Pin on Map
                       </button> */}
@@ -1351,13 +1465,13 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
               </div>
             )}
 
-            {/* Step 5: Description & Limits */}
+            {/* Step 5: Description */}
             {currentStep === 5 && (
               <div className="space-y-6">
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     <FileText className="w-5 h-5 inline mr-2" />
-                    Description & Capacity
+                    Event Description
                   </h4>
 
                   <div className="mb-6">
@@ -1380,50 +1494,6 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                       placeholder="Describe your event..."
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      <Users className="w-4 h-4 inline mr-1" />
-                      Attendee Capacity
-                    </label>
-                    
-                    <div className="flex items-center gap-4 mb-4">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          checked={formData.isUnlimited}
-                          onChange={() => setFormData(prev => ({ ...prev, isUnlimited: true, attendeeLimit: null }))}
-                          className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2]"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">Unlimited</span>
-                      </label>
-                      
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="radio"
-                          checked={!formData.isUnlimited}
-                          onChange={() => setFormData(prev => ({ ...prev, isUnlimited: false }))}
-                          className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2]"
-                        />
-                        <span className="text-sm text-gray-700 dark:text-gray-300">Limited</span>
-                      </label>
-                    </div>
-
-                    {!formData.isUnlimited && (
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                        value={formData.attendeeLimit || ''}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, '');
-                          setFormData(prev => ({ ...prev, attendeeLimit: val ? parseInt(val) : null }));
-                        }}
-                        placeholder="Maximum attendees"
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                      />
-                    )}
                   </div>
                 </div>
               </div>
@@ -1460,6 +1530,54 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                     </label>
                   </div>
 
+                  {/* Free Event - Attendee Capacity */}
+                  {formData.isFree && (
+                    <div className="mb-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700/30">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        <Users className="w-4 h-4 inline mr-1" />
+                        Attendee Capacity
+                      </label>
+                      
+                      <div className="flex items-center gap-4 mb-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={formData.isUnlimited}
+                            onChange={() => setFormData(prev => ({ ...prev, isUnlimited: true, attendeeLimit: null }))}
+                            className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2]"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Unlimited</span>
+                        </label>
+                        
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            checked={!formData.isUnlimited}
+                            onChange={() => setFormData(prev => ({ ...prev, isUnlimited: false }))}
+                            className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2]"
+                          />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Limited</span>
+                        </label>
+                      </div>
+
+                      {!formData.isUnlimited && (
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          value={formData.attendeeLimit || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9]/g, '');
+                            setFormData(prev => ({ ...prev, attendeeLimit: val ? parseInt(val) : null }));
+                          }}
+                          placeholder="Maximum attendees"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Paid Event - Tickets */}
                   {!formData.isFree && (
                     <div>
                       {/* Ticket Types Info */}
@@ -1536,18 +1654,161 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                             </div>
                             <div>
                               <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Quantity</label>
-                              <input
-                                type="text"
-                                inputMode="numeric"
-                                pattern="[0-9]*"
-                                value={customTicket.quantity ?? 0}
-                                onChange={(e) => setCustomTicket(prev => ({ ...prev, quantity: Number(e.target.value) }))}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              />
+                              {!customTicket.isUnlimited && (
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  value={customTicket.quantity ?? 0}
+                                  onChange={(e) => setCustomTicket(prev => ({ ...prev, quantity: Number(e.target.value) }))}
+                                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                />
+                              )}
+                              <div className="flex items-center gap-2 mt-2">
+                                <input
+                                  type="checkbox"
+                                  checked={customTicket.isUnlimited || false}
+                                  onChange={(e) => setCustomTicket(prev => ({ ...prev, isUnlimited: e.target.checked }))}
+                                  className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2] rounded"
+                                />
+                                <label className="text-xs text-gray-600 dark:text-gray-400">Unlimited</label>
+                              </div>
                             </div>
                           </div>
 
-                          {/* Extra fields for timeslot / class / loyalty can be added here if needed */}
+                          {/* Extra fields for timeslot tickets */}
+                          {customTicket.ticketStructure === 'timeslot' && (
+                            <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                              <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Time Slot Details</h5>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Start Time</label>
+                                  <div className="flex gap-2">
+                                    <select
+                                      value={customTicket.startTime ? parseTime(customTicket.startTime).hour : '09'}
+                                      onChange={(e) => {
+                                        const currentStart = customTicket.startTime ? parseTime(customTicket.startTime) : { hour: '09', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                        const newTime = formatTimeTo24(e.target.value, currentStart.minute, currentStart.period);
+                                        setCustomTicket(prev => ({ ...prev, startTime: newTime }));
+                                      }}
+                                      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                    >
+                                      {Array.from({ length: 12 }, (_, i) => {
+                                        const hour = (i + 1).toString().padStart(2, '0');
+                                        return <option key={hour} value={hour}>{hour}</option>;
+                                      })}
+                                    </select>
+                                    <select
+                                      value={customTicket.startTime ? parseTime(customTicket.startTime).minute : '00'}
+                                      onChange={(e) => {
+                                        const currentStart = customTicket.startTime ? parseTime(customTicket.startTime) : { hour: '09', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                        const newTime = formatTimeTo24(currentStart.hour, e.target.value, currentStart.period);
+                                        setCustomTicket(prev => ({ ...prev, startTime: newTime }));
+                                      }}
+                                      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                    >
+                                      {['00', '15', '30', '45'].map(min => (
+                                        <option key={min} value={min}>{min}</option>
+                                      ))}
+                                    </select>
+                                    <select
+                                      value={customTicket.startTime ? parseTime(customTicket.startTime).period : 'AM'}
+                                      onChange={(e) => {
+                                        const currentStart = customTicket.startTime ? parseTime(customTicket.startTime) : { hour: '09', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                        const newTime = formatTimeTo24(currentStart.hour, currentStart.minute, e.target.value as 'AM' | 'PM');
+                                        setCustomTicket(prev => ({ ...prev, startTime: newTime }));
+                                      }}
+                                      className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                    >
+                                      <option value="AM">AM</option>
+                                      <option value="PM">PM</option>
+                                    </select>
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">End Time</label>
+                                  <div className="flex gap-2">
+                                    <select
+                                      value={customTicket.endTime ? parseTime(customTicket.endTime).hour : '10'}
+                                      onChange={(e) => {
+                                        const currentEnd = customTicket.endTime ? parseTime(customTicket.endTime) : { hour: '10', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                        const newTime = formatTimeTo24(e.target.value, currentEnd.minute, currentEnd.period);
+                                        setCustomTicket(prev => ({ ...prev, endTime: newTime }));
+                                        // Validate that end time is after start time
+                                        if (customTicket.startTime && newTime <= customTicket.startTime) {
+                                          setTimeslotErrors(prev => ({ ...prev, custom: 'End time cannot be lower than start time' }));
+                                        } else {
+                                          setTimeslotErrors(prev => {
+                                            const newErrors = { ...prev };
+                                            delete newErrors.custom;
+                                            return newErrors;
+                                          });
+                                        }
+                                      }}
+                                      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                    >
+                                      {Array.from({ length: 12 }, (_, i) => {
+                                        const hour = (i + 1).toString().padStart(2, '0');
+                                        return <option key={hour} value={hour}>{hour}</option>;
+                                      })}
+                                    </select>
+                                    <select
+                                      value={customTicket.endTime ? parseTime(customTicket.endTime).minute : '00'}
+                                      onChange={(e) => {
+                                        const currentEnd = customTicket.endTime ? parseTime(customTicket.endTime) : { hour: '10', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                        const newTime = formatTimeTo24(currentEnd.hour, e.target.value, currentEnd.period);
+                                        setCustomTicket(prev => ({ ...prev, endTime: newTime }));
+                                        // Validate that end time is after start time
+                                        if (customTicket.startTime && newTime <= customTicket.startTime) {
+                                          setTimeslotErrors(prev => ({ ...prev, custom: 'End time cannot be lower than start time' }));
+                                        } else {
+                                          setTimeslotErrors(prev => {
+                                            const newErrors = { ...prev };
+                                            delete newErrors.custom;
+                                            return newErrors;
+                                          });
+                                        }
+                                      }}
+                                      className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                    >
+                                      {['00', '15', '30', '45'].map(min => (
+                                        <option key={min} value={min}>{min}</option>
+                                      ))}
+                                    </select>
+                                    <select
+                                      value={customTicket.endTime ? parseTime(customTicket.endTime).period : 'AM'}
+                                      onChange={(e) => {
+                                        const currentEnd = customTicket.endTime ? parseTime(customTicket.endTime) : { hour: '10', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                        const newTime = formatTimeTo24(currentEnd.hour, currentEnd.minute, e.target.value as 'AM' | 'PM');
+                                        setCustomTicket(prev => ({ ...prev, endTime: newTime }));
+                                        // Validate that end time is after start time
+                                        if (customTicket.startTime && newTime <= customTicket.startTime) {
+                                          setTimeslotErrors(prev => ({ ...prev, custom: 'End time cannot be lower than start time' }));
+                                        } else {
+                                          setTimeslotErrors(prev => {
+                                            const newErrors = { ...prev };
+                                            delete newErrors.custom;
+                                            return newErrors;
+                                          });
+                                        }
+                                      }}
+                                      className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                    >
+                                      <option value="AM">AM</option>
+                                      <option value="PM">PM</option>
+                                    </select>
+                                  </div>
+                                  {timeslotErrors.custom && (
+                                    <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400">
+                                      <AlertCircle className="h-4 w-4" />
+                                      <p className="text-xs">{timeslotErrors.custom}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
                           <div className="flex items-center justify-end gap-2 mt-3">
                             <button
@@ -1672,20 +1933,127 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                                 {ticket.ticketStructure === 'timeslot' && (
                                   <div>
                                     <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Start Time</label>
-                                    <input
-                                      type="time"
-                                      value={ticket.startTime || ''}
-                                      onChange={(e) => updateTicketType(ticket.id, 'startTime', e.target.value)}
-                                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                                    />
+                                    <div className="flex gap-2">
+                                      <select
+                                        value={ticket.startTime ? parseTime(ticket.startTime).hour : '09'}
+                                        onChange={(e) => {
+                                          const currentStart = ticket.startTime ? parseTime(ticket.startTime) : { hour: '09', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                          const newTime = formatTimeTo24(e.target.value, currentStart.minute, currentStart.period);
+                                          updateTicketType(ticket.id, 'startTime', newTime);
+                                        }}
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                      >
+                                        {Array.from({ length: 12 }, (_, i) => {
+                                          const hour = (i + 1).toString().padStart(2, '0');
+                                          return <option key={hour} value={hour}>{hour}</option>;
+                                        })}
+                                      </select>
+                                      <select
+                                        value={ticket.startTime ? parseTime(ticket.startTime).minute : '00'}
+                                        onChange={(e) => {
+                                          const currentStart = ticket.startTime ? parseTime(ticket.startTime) : { hour: '09', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                          const newTime = formatTimeTo24(currentStart.hour, e.target.value, currentStart.period);
+                                          updateTicketType(ticket.id, 'startTime', newTime);
+                                        }}
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                      >
+                                        {['00', '15', '30', '45'].map(min => (
+                                          <option key={min} value={min}>{min}</option>
+                                        ))}
+                                      </select>
+                                      <select
+                                        value={ticket.startTime ? parseTime(ticket.startTime).period : 'AM'}
+                                        onChange={(e) => {
+                                          const currentStart = ticket.startTime ? parseTime(ticket.startTime) : { hour: '09', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                          const newTime = formatTimeTo24(currentStart.hour, currentStart.minute, e.target.value as 'AM' | 'PM');
+                                          updateTicketType(ticket.id, 'startTime', newTime);
+                                        }}
+                                        className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                      >
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                      </select>
+                                    </div>
 
                                     <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1 mt-2">End Time</label>
-                                    <input
-                                      type="time"
-                                      value={ticket.endTime || ''}
-                                      onChange={(e) => updateTicketType(ticket.id, 'endTime', e.target.value)}
-                                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                                    />
+                                    <div className="flex gap-2">
+                                      <select
+                                        value={ticket.endTime ? parseTime(ticket.endTime).hour : '10'}
+                                        onChange={(e) => {
+                                          const currentEnd = ticket.endTime ? parseTime(ticket.endTime) : { hour: '10', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                          const newTime = formatTimeTo24(e.target.value, currentEnd.minute, currentEnd.period);
+                                          updateTicketType(ticket.id, 'endTime', newTime);
+                                          // Validate that end time is after start time
+                                          if (ticket.startTime && newTime <= ticket.startTime) {
+                                            setTimeslotErrors(prev => ({ ...prev, [ticket.id]: 'End time cannot be lower than start time' }));
+                                          } else {
+                                            setTimeslotErrors(prev => {
+                                              const newErrors = { ...prev };
+                                              delete newErrors[ticket.id];
+                                              return newErrors;
+                                            });
+                                          }
+                                        }}
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                      >
+                                        {Array.from({ length: 12 }, (_, i) => {
+                                          const hour = (i + 1).toString().padStart(2, '0');
+                                          return <option key={hour} value={hour}>{hour}</option>;
+                                        })}
+                                      </select>
+                                      <select
+                                        value={ticket.endTime ? parseTime(ticket.endTime).minute : '00'}
+                                        onChange={(e) => {
+                                          const currentEnd = ticket.endTime ? parseTime(ticket.endTime) : { hour: '10', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                          const newTime = formatTimeTo24(currentEnd.hour, e.target.value, currentEnd.period);
+                                          updateTicketType(ticket.id, 'endTime', newTime);
+                                          // Validate that end time is after start time
+                                          if (ticket.startTime && newTime <= ticket.startTime) {
+                                            setTimeslotErrors(prev => ({ ...prev, [ticket.id]: 'End time cannot be lower than start time' }));
+                                          } else {
+                                            setTimeslotErrors(prev => {
+                                              const newErrors = { ...prev };
+                                              delete newErrors[ticket.id];
+                                              return newErrors;
+                                            });
+                                          }
+                                        }}
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                      >
+                                        {['00', '15', '30', '45'].map(min => (
+                                          <option key={min} value={min}>{min}</option>
+                                        ))}
+                                      </select>
+                                      <select
+                                        value={ticket.endTime ? parseTime(ticket.endTime).period : 'AM'}
+                                        onChange={(e) => {
+                                          const currentEnd = ticket.endTime ? parseTime(ticket.endTime) : { hour: '10', minute: '00', period: 'AM' as 'AM' | 'PM' };
+                                          const newTime = formatTimeTo24(currentEnd.hour, currentEnd.minute, e.target.value as 'AM' | 'PM');
+                                          updateTicketType(ticket.id, 'endTime', newTime);
+                                          // Validate that end time is after start time
+                                          if (ticket.startTime && newTime <= ticket.startTime) {
+                                            setTimeslotErrors(prev => ({ ...prev, [ticket.id]: 'End time cannot be lower than start time' }));
+                                          } else {
+                                            setTimeslotErrors(prev => {
+                                              const newErrors = { ...prev };
+                                              delete newErrors[ticket.id];
+                                              return newErrors;
+                                            });
+                                          }
+                                        }}
+                                        className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                      >
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                      </select>
+                                    </div>
+                                    
+                                    {timeslotErrors[ticket.id] && (
+                                      <div className="flex items-center gap-2 mt-2 text-red-600 dark:text-red-400">
+                                        <AlertCircle className="h-4 w-4" />
+                                        <p className="text-xs">{timeslotErrors[ticket.id]}</p>
+                                      </div>
+                                    )}
 
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Max 8 time slots per event</p>
                                   </div>
@@ -1711,18 +2079,29 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                                 {/* Quantity */}
                                 <div>
                                   <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Quantity Available</label>
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    value={ticket.quantity || ''}
-                                    onChange={(e) => {
-                                      const v = e.target.value.replace(/[^0-9]/g, '');
-                                      updateTicketType(ticket.id, 'quantity', parseInt(v) || 0);
-                                    }}
-                                    placeholder="0"
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                                  />
+                                  {!ticket.isUnlimited && (
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      value={ticket.quantity || ''}
+                                      onChange={(e) => {
+                                        const v = e.target.value.replace(/[^0-9]/g, '');
+                                        updateTicketType(ticket.id, 'quantity', parseInt(v) || 0);
+                                      }}
+                                      placeholder="0"
+                                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                                    />
+                                  )}
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <input
+                                      type="checkbox"
+                                      checked={ticket.isUnlimited || false}
+                                      onChange={(e) => updateTicketType(ticket.id, 'isUnlimited', e.target.checked)}
+                                      className="w-4 h-4 text-[#27aae2] focus:ring-[#27aae2] rounded"
+                                    />
+                                    <label className="text-xs text-gray-600 dark:text-gray-400">Unlimited</label>
+                                  </div>
                                 </div>
                               </div>
 
@@ -1745,7 +2124,18 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                                   {ticket.ticketStructure === 'class' && ` (${ticket.classType?.toUpperCase() || 'CLASS'})`}
                                   {ticket.ticketStructure === 'loyalty' && ` (${ticket.loyaltyType?.replace(/([A-Z])/g, ' $1').trim() || 'LOYALTY TYPE'})`}
                                   {ticket.ticketStructure === 'season' && ticket.seasonType === 'season' && ` (${ticket.seasonDuration || 0}-Day Pass)`}
-                                  {ticket.ticketStructure === 'timeslot' && ` (${ticket.timeslot || 'TIME SLOT'})`}
+                                  {ticket.ticketStructure === 'timeslot' && ticket.startTime && ticket.endTime && (
+                                    <span>
+                                      {' ('}
+                                      {(() => {
+                                        const start = parseTime(ticket.startTime);
+                                        const end = parseTime(ticket.endTime);
+                                        return `${start.hour}:${start.minute} ${start.period} - ${end.hour}:${end.minute} ${end.period}`;
+                                      })()}
+                                      {')'}
+                                    </span>
+                                  )}
+                                  {ticket.ticketStructure === 'timeslot' && (!ticket.startTime || !ticket.endTime) && ` (TIME SLOT)`}
                                 </p>
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
                                   KES {ticket.price.toLocaleString()} • {ticket.quantity} available
@@ -1767,211 +2157,106 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
               </div>
             )}
 
-            {/* Step 7: Promo Codes */}
-            {currentStep === 7 && (
+            {/* Step 7: Promo Codes (Paid Events Only) */}
+            {currentStep === 7 && !formData.isFree && (
               <div className="space-y-6">
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Promo Codes
+                    <Tag className="w-5 h-5 inline mr-2" />
+                    Promo Codes (Optional)
                   </h4>
 
-                  {/* Hosts Section */}
-                  <div className="">
-                    {/* <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      Add Event Hosts (Max 2)
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Add promotional codes to offer discounts to your attendees. This step is optional.
+                  </p>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Discount Codes
                     </label>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                      Hosts must be Niko Free members and will receive all RSVPs, bookings, and bucket lists.
-                    </p> */}
-
-                    {/* {formData.hosts.length < 2 && (
-                      <div className="mb-4">
-                        <input
-                          type="text"
-                          placeholder="Search by username or name..."
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                          onChange={(e) => {
-                            if (e.target.value) {
-                              const results = searchHost(e.target.value);
-                              console.log('Search results:', results);
-                            }
-                          }}
-                        />
-                        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Suggested hosts:</p>
-                          <div className="space-y-2">
-                            <button
-                              onClick={() => addHost({ id: '1', username: '@annalane', name: 'Anna Lane', isVerified: true })}
-                              className="w-full flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-[#27aae2] transition-colors"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                  AL
-                                </div>
-                                <div className="text-left">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-white">Anna Lane</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">@annalane</p>
-                                </div>
-                              </div>
-                              {formData.hosts.find(h => h.id === '1') ? (
-                                <Check className="w-5 h-5 text-green-500" />
-                              ) : (
-                                <Plus className="w-5 h-5 text-[#27aae2]" />
-                              )}
-                            </button>
-
-                            <button
-                              onClick={() => addHost({ id: '2', username: '@victormuli', name: 'Victor Muli', isVerified: true })}
-                              className="w-full flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg hover:border-[#27aae2] transition-colors"
-                            >
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                  VM
-                                </div>
-                                <div className="text-left">
-                                  <p className="text-sm font-medium text-gray-900 dark:text-white">Victor Muli</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">@victormuli</p>
-                                </div>
-                              </div>
-                              {formData.hosts.find(h => h.id === '2') ? (
-                                <Check className="w-5 h-5 text-green-500" />
-                              ) : (
-                                <Plus className="w-5 h-5 text-[#27aae2]" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )} */}
-
-                    
-                    {formData.hosts.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Selected Hosts:</p>
-                        {formData.hosts.map(host => (
-                          <div key={host.id} className="flex items-center justify-between px-4 py-3 bg-[#27aae2]/10 border border-[#27aae2]/30 rounded-lg">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gradient-to-br from-[#27aae2] to-[#1e8bb8] rounded-full flex items-center justify-center text-white font-bold">
-                                {host.name.split(' ').map(n => n[0]).join('')}
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white">{host.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{host.username}</p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => removeHost(host.id)}
-                              className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Host Preview */}
-                    {formData.hosts.length > 0 && (
-                      <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">Event will display as:</p>
-                        <p className="font-bold text-gray-900 dark:text-white">{formData.eventName || 'EVENT NAME'}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Hosted by {formData.hosts.map(h => h.name).join(' & ')}
-                        </p>
-                      </div>
-                    )}
+                    <button
+                      onClick={addPromoCode}
+                      className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Promo Code
+                    </button>
                   </div>
 
-                  {/* Promo Codes Section */}
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Promo Codes (Optional)
-                      </label>
-                      <button
-                        onClick={addPromoCode}
-                        className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Add Promo
-                      </button>
-                    </div>
+                  <div className="space-y-3">
+                    {formData.promoCodes.map(promo => (
+                      <div key={promo.id} className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Promo Code</label>
+                            <input
+                              type="text"
+                              value={promo.code}
+                              onChange={(e) => updatePromoCode(promo.id, 'code', e.target.value.toUpperCase())}
+                              placeholder="e.g., EARLYBIRD"
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            />
+                          </div>
 
-                    <div className="space-y-3">
-                      {formData.promoCodes.map(promo => (
-                        <div key={promo.id} className="p-4 border border-gray-300 dark:border-gray-600 rounded-lg">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Promo Code</label>
-                              <input
-                                type="text"
-                                value={promo.code}
-                                onChange={(e) => updatePromoCode(promo.id, 'code', e.target.value.toUpperCase())}
-                                placeholder="e.g., EARLYBIRD"
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              />
-                            </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Discount Type</label>
+                            <select
+                              value={promo.discountType}
+                              onChange={(e) => updatePromoCode(promo.id, 'discountType', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            >
+                              <option value="percentage">Percentage (%)</option>
+                              <option value="fixed">Fixed Amount (KES)</option>
+                            </select>
+                          </div>
 
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Discount Type</label>
-                              <select
-                                value={promo.discountType}
-                                onChange={(e) => updatePromoCode(promo.id, 'discountType', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              >
-                                <option value="percentage">Percentage (%)</option>
-                                <option value="fixed">Fixed Amount (KES)</option>
-                              </select>
-                            </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Discount Value</label>
+                            <input
+                              type="number"
+                              value={promo.discount}
+                              onChange={(e) => updatePromoCode(promo.id, 'discount', parseFloat(e.target.value) || 0)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            />
+                          </div>
 
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Discount Value</label>
-                              <input
-                                type="number"
-                                value={promo.discount}
-                                onChange={(e) => updatePromoCode(promo.id, 'discount', parseFloat(e.target.value) || 0)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              />
-                            </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max Uses</label>
+                            <input
+                              type="number"
+                              value={promo.maxUses}
+                              onChange={(e) => updatePromoCode(promo.id, 'maxUses', parseInt(e.target.value) || 0)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            />
+                          </div>
 
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Max Uses</label>
-                              <input
-                                type="number"
-                                value={promo.maxUses}
-                                onChange={(e) => updatePromoCode(promo.id, 'maxUses', parseInt(e.target.value) || 0)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              />
-                            </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Expiry Date</label>
+                            <input
+                              type="date"
+                              value={promo.expiryDate}
+                              onChange={(e) => updatePromoCode(promo.id, 'expiryDate', e.target.value)}
+                              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
+                            />
+                          </div>
 
-                            <div>
-                              <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Expiry Date</label>
-                              <input
-                                type="date"
-                                value={promo.expiryDate}
-                                onChange={(e) => updatePromoCode(promo.id, 'expiryDate', e.target.value)}
-                                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#27aae2]"
-                              />
-                            </div>
-
-                            <div className="flex items-end">
-                              <button
-                                onClick={() => removePromoCode(promo.id)}
-                                className="w-full p-2 text-red-500 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4 mx-auto" />
-                              </button>
-                            </div>
+                          <div className="flex items-end">
+                            <button
+                              onClick={() => removePromoCode(promo.id)}
+                              className="w-full p-2 text-red-500 border border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4 mx-auto" />
+                            </button>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    ))}
 
-                      {formData.promoCodes.length === 0 && (
-                        <p className="text-center text-gray-500 dark:text-gray-400 py-4 text-sm">
-                          No promo codes added. Promo codes are optional.
-                        </p>
-                      )}
-                    </div>
+                    {formData.promoCodes.length === 0 && (
+                      <p className="text-center text-gray-500 dark:text-gray-400 py-8 text-sm">
+                        No promo codes added yet. Promo codes are optional and can help you offer special discounts.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1990,7 +2275,8 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
             </button>
 
             <div className="flex items-center gap-2">
-              {currentStep < totalSteps ? (
+              {/* Show Next button or Submit button based on step and event type */}
+              {(currentStep < totalSteps && !(currentStep === 6 && formData.isFree)) ? (
                 <button
                   onClick={handleNext}
                   className="flex items-center gap-2 px-6 py-2 bg-[#27aae2] text-white rounded-lg hover:bg-[#1e8bb8] transition-colors"

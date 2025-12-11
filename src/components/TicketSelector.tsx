@@ -183,9 +183,9 @@ export default function TicketSelector({
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h4 className="font-bold text-gray-900 dark:text-white">{ticket.name}</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className={`text-xs ${ticket.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
                     {ticket.available !== null && ticket.available !== undefined 
-                      ? `${ticket.available} tickets left` 
+                      ? (ticket.available === 0 ? 'Sold Out' : `${ticket.available} tickets left`)
                       : 'Unlimited tickets'}
                   </p>
                 </div>
@@ -251,7 +251,9 @@ export default function TicketSelector({
                 <div>
                   <h4 className="font-bold text-gray-900 dark:text-white">{ticket.name}</h4>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{ticket.deadline}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{ticket.available} left</p>
+                  <p className={`text-xs ${ticket.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {ticket.available === 0 ? 'Sold Out' : `${ticket.available} left`}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-[#27aae2]">KES {getTotalPrice(ticket, getQuantity(ticket.id)).toLocaleString()}</p>
@@ -310,7 +312,9 @@ export default function TicketSelector({
                   {ticket.discount && (
                     <p className="text-xs text-green-600 dark:text-green-400 font-semibold mt-1">{ticket.discount}</p>
                   )}
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{ticket.available} available</p>
+                  <p className={`text-xs mt-1 ${ticket.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {ticket.available === 0 ? 'Sold Out' : `${ticket.available} available`}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-[#27aae2]">KES {getTotalPrice(ticket, getQuantity(ticket.id)).toLocaleString()}</p>
@@ -358,8 +362,8 @@ export default function TicketSelector({
                 }`}
               >
                 <p className="text-sm font-semibold text-gray-900 dark:text-white">{slot.name}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {slot.available > 0 ? `${slot.available} slots left` : 'Fully booked'}
+                <p className={`text-xs mt-1 ${slot.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {slot.available === 0 ? 'Sold Out' : (slot.available > 0 ? `${slot.available} slots left` : 'Fully booked')}
                 </p>
                 <p className="text-sm font-bold text-[#27aae2] mt-1">KES {getTotalPrice(slot, getQuantity(slot.id)).toLocaleString()}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">KES {slot.price} each × {getQuantity(slot.id)}</p>
@@ -406,9 +410,9 @@ export default function TicketSelector({
                 <div>
                   <h4 className="font-bold text-gray-900 dark:text-white">{ticket.name}</h4>
                   {ticket.price > 0 && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className={`text-xs ${ticket.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
                       {ticket.available !== undefined && ticket.available !== null 
-                        ? `${ticket.available} tickets left` 
+                        ? (ticket.available === 0 ? 'Sold Out' : `${ticket.available} tickets left`)
                         : 'Unlimited tickets available'}
                     </p>
                   )}

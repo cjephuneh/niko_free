@@ -370,7 +370,7 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
                       </span>
                     </div>
                   )}
-                  {partnerData.is_verified && (
+                  {((partnerData.total_events || 0) >= 10 || (partnerData.total_attendees || 0) >= 500) && (
                     <div className="absolute -bottom-2 -right-2 bg-black text-white p-2 rounded-full">
                       <CheckCircle2 className="w-6 h-6" />
                     </div>
@@ -383,7 +383,7 @@ export default function PartnerProfilePage({ partnerId, onNavigate }: PartnerPro
                     <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
                       {partnerData.business_name}
                     </h1>
-                    {partnerData.is_verified && (
+                    {((partnerData.total_events || 0) >= 10 || (partnerData.total_attendees || 0) >= 500) && (
                       <span className="px-3 py-1 text-sm font-medium bg-black text-white rounded-full flex items-center gap-1">
                         <CheckCircle2 className="w-4 h-4" />
                         Verified Partner
