@@ -4,7 +4,7 @@
  */
 
 // Base URL for the API - use environment variable or default to localhost for development
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+export const API_BASE_URL = "https://nikofree-arhecnfueegrasf8.canadacentral-01.azurewebsites.net";
 
 
 // API Endpoints
