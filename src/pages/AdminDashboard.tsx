@@ -20,6 +20,7 @@ import MyProfilePage from '../components/adminDashboard/MyProfilePage';
 import SettingsPage from '../components/adminDashboard/SettingsPage';
 import NotificationsPage from '../components/adminDashboard/NotificationsPage';
 import SupportPage from '../components/adminDashboard/SupportPage';
+import InboxPage from '../components/adminDashboard/InboxPage';
 
 interface AdminDashboardProps {
   onNavigate: (page: string) => void;
@@ -32,7 +33,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   // Dynamic notification count based on unread notifications
   const [notificationCount, setNotificationCount] = useState(0);
   const [darkMode, setDarkMode] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'partners' | 'events' | 'settings' | 'reports' | 'revenue' | 'users' | 'profile' | 'notifications' | 'messages' | 'support'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'partners' | 'events' | 'settings' | 'reports' | 'revenue' | 'users' | 'profile' | 'notifications' | 'messages' | 'support' | 'inbox'>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   // Ref for account menu
@@ -295,6 +296,18 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                 <HelpCircle className="w-5 h-5" />
                 <span>Support</span>
               </button>
+
+              <button
+                onClick={() => setActiveTab('inbox')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl font-medium transition-all ${
+                  activeTab === 'inbox'
+                    ? 'bg-[#27aae2] text-white shadow-lg'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span>Inbox</span>
+              </button>
             </div>
           </nav>
         </div>
@@ -436,6 +449,7 @@ export default function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           {activeTab === 'messages' && <MessagesPage />}
           {activeTab === 'notifications' && <NotificationsPage />}
           {activeTab === 'users' && <UsersPage />}
+          {activeTab === 'inbox' && <InboxPage />}
           {activeTab === 'overview' && (
             <div className="space-y-8">
               <OverviewStats onNavigate={(tab) => setActiveTab(tab)} />

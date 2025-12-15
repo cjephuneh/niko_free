@@ -66,10 +66,18 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
         // Then fetch fresh profile data
         const response = await getPartnerProfile();
         if (response) {
-          setPartnerData(response.partner || response);
+          const partner = response.partner || response;
+          
+          // Ensure logo is included - don't filter out valid logos
+          const updatedPartnerData = {
+            ...partner,
+            // Keep the logo field even if it exists, don't filter base64 here
+            logo: partner.logo || cachedPartner?.logo || null
+          };
+          
+          setPartnerData(updatedPartnerData);
           
           // Check if password needs to be changed (first login)
-          const partner = response.partner || response;
           const hasSeenPasswordWarning = localStorage.getItem(`partner_password_warning_${partner.id}`);
           
           // Show warning if password_changed_at is null/undefined and user hasn't seen the warning
@@ -243,7 +251,6 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
                 </li>
               </ul>
             </nav>
-  {/* ...existing code... */}
           </div>
         </aside>
 

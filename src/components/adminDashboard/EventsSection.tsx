@@ -599,7 +599,7 @@ export default function EventsSection({}: EventsSectionProps) {
               </div>
 
               {/* Event Details */}
-              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-3">
                 <div className="flex items-center gap-2">
                   <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -614,47 +614,65 @@ export default function EventsSection({}: EventsSectionProps) {
                 </div>
               </div>
 
-              {/* Revenue & Stats Section */}
-              {!event.fullEvent?.is_free && event.fullEvent?.revenue !== undefined && (
-                <div className="space-y-2 mb-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2">
-                      <p className="text-gray-600 dark:text-gray-400 mb-0.5">Total Revenue</p>
-                      <p className="font-semibold text-gray-900 dark:text-white">
-                        KES {((event.fullEvent?.revenue || 0) / 0.93).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-2">
-                      <p className="text-gray-600 dark:text-gray-400 mb-0.5">Net Earnings</p>
-                      <p className="font-semibold text-gray-900 dark:text-white">
-                        KES {(event.fullEvent?.revenue || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600 dark:text-gray-400 text-xs">Attendees</span>
-                      <span className="font-semibold text-gray-900 dark:text-white text-xs">
-                        {event.fullEvent?.attendee_count || 0}
+              {/* Stats Section - Tickets, Likes, Attendees */}
+              <div className="space-y-2 mb-4">
+                {/* Tickets Progress (for paid events with tickets) */}
+                {!event.fullEvent?.is_free && event.fullEvent?.ticket_types && event.fullEvent.ticket_types.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                        </svg>
+                        Tickets
+                      </span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {event.fullEvent?.total_tickets_sold || 0}/{event.fullEvent?.ticket_types?.reduce((sum: number, tt: any) => sum + (tt.quantity_total || 0), 0) || 0}
                       </span>
                     </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-[#27aae2] to-blue-500 h-full rounded-full transition-all duration-300"
+                        style={{ 
+                          width: `${event.fullEvent?.ticket_types?.reduce((sum: number, tt: any) => sum + (tt.quantity_total || 0), 0) > 0 
+                            ? ((event.fullEvent?.total_tickets_sold || 0) / event.fullEvent?.ticket_types?.reduce((sum: number, tt: any) => sum + (tt.quantity_total || 0), 0) * 100)
+                            : 0}%` 
+                        }}
+                      ></div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Free Event - Show Attendees Only */}
-              {event.fullEvent?.is_free && (
-                <div className="mb-4 pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600 dark:text-gray-400 text-xs">Attendees</span>
-                      <span className="font-semibold text-gray-900 dark:text-white text-xs">
-                        {event.fullEvent?.attendee_count || 0}
-                      </span>
+                {/* Likes and Attendees */}
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex items-center gap-3 text-xs">
+                    {/* Likes */}
+                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                      <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                      </svg>
+                      <span className="font-medium">{event.fullEvent?.likes_count || 0}</span>
+                    </div>
+
+                    {/* Attendees */}
+                    <div className="flex items-center gap-1 text-gray-600 dark:text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                      </svg>
+                      <span className="font-medium">{event.fullEvent?.attendee_count || 0}</span>
                     </div>
                   </div>
+
+                  {/* Event Type Badge */}
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    event.fullEvent?.is_free 
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                  }`}>
+                    {event.fullEvent?.is_free ? 'FREE' : 'PAID'}
+                  </span>
                 </div>
-              )}
+              </div>
 
               {/* Action Buttons */}
               {event.status === 'pending' && (
