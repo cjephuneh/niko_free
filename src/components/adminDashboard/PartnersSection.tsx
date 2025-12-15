@@ -52,6 +52,9 @@ export default function PartnersSection({}: PartnersProps) {
   const [detailsNoteText, setDetailsNoteText] = React.useState('');
   const [successMessage, setSuccessMessage] = React.useState<string | null>(null);
   const [actionLoading, setActionLoading] = React.useState<string | null>(null);
+  const [rejectModalOpen, setRejectModalOpen] = React.useState(false);
+  const [partnerToReject, setPartnerToReject] = React.useState<Partner | null>(null);
+  const [rejectionReason, setRejectionReason] = React.useState('');
 
   // Categories
   const landingCategories = [
@@ -189,9 +192,28 @@ export default function PartnersSection({}: PartnersProps) {
 
       const data = await response.json();
       if (response.ok) {
-        toast.success('Partner approved successfully! Email sent to partner.');
-        // Refresh data
-        window.location.reload();
+        toast.success('✅ Partner approved successfully! Email sent to partner.', {
+          position: 'top-right',
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        
+        // Update local state instead of reloading
+        setAllPartners(prev => prev.map(p => 
+          p.id === partnerId ? { ...p, status: 'approved' } : p
+        ));
+        
+        // Update stats
+        if (partnerStats) {
+          setPartnerStats({
+            ...partnerStats,
+            pending_partners: partnerStats.pending_partners - 1,
+            active_partners: partnerStats.active_partners + 1,
+          });
+        }
       } else {
         toast.error(data.error || 'Failed to approve partner');
       }
@@ -203,12 +225,22 @@ export default function PartnersSection({}: PartnersProps) {
     }
   };
 
-  // Handle reject partner
-  const handleRejectPartner = async (partnerId: string) => {
-    const reason = prompt('Enter rejection reason (optional):') || 'Application does not meet requirements';
-    setActionLoading(partnerId);
+  // Handle reject partner - open modal
+  const handleRejectPartner = (partner: Partner) => {
+    setPartnerToReject(partner);
+    setRejectionReason('');
+    setRejectModalOpen(true);
+  };
+
+  // Confirm reject partner
+  const confirmRejectPartner = async () => {
+    if (!partnerToReject) return;
+    
+    const reason = rejectionReason.trim() || 'Application does not meet requirements';
+    setActionLoading(partnerToReject.id);
+    
     try {
-      const response = await fetch(API_ENDPOINTS.admin.rejectPartner(Number(partnerId)), {
+      const response = await fetch(API_ENDPOINTS.admin.rejectPartner(Number(partnerToReject.id)), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -219,8 +251,35 @@ export default function PartnersSection({}: PartnersProps) {
 
       const data = await response.json();
       if (response.ok) {
-        toast.success('Partner rejected. Email sent to partner.');
-        window.location.reload();
+        toast.error('❌ Partner rejected. Email sent to partner.', {
+          position: 'top-right',
+          autoClose: 4000,
+        });
+        
+        // Add note to partner notes
+        addNoteForPartner(partnerToReject.id, {
+          text: `Rejected: ${reason}`,
+          type: 'delete',
+          date: new Date().toISOString(),
+          author: 'Admin',
+        });
+        
+        // Update local state
+        setAllPartners(prev => prev.filter(p => p.id !== partnerToReject.id));
+        
+        // Update stats
+        if (partnerStats) {
+          setPartnerStats({
+            ...partnerStats,
+            pending_partners: partnerStats.pending_partners - 1,
+            total_partners: partnerStats.total_partners - 1,
+          });
+        }
+        
+        // Close modal
+        setRejectModalOpen(false);
+        setPartnerToReject(null);
+        setRejectionReason('');
       } else {
         toast.error(data.error || 'Failed to reject partner');
       }
@@ -252,8 +311,24 @@ export default function PartnersSection({}: PartnersProps) {
 
       const data = await response.json();
       if (response.ok) {
-        toast.success('Partner unsuspended successfully! Account is now active.');
-        window.location.reload();
+        toast.success('✅ Partner unsuspended successfully! Account is now active.', {
+          position: 'top-right',
+          autoClose: 4000,
+        });
+        
+        // Update local state
+        setAllPartners(prev => prev.map(p => 
+          p.id === partnerId ? { ...p, status: 'approved', suspendedDate: undefined } : p
+        ));
+        
+        // Update stats
+        if (partnerStats) {
+          setPartnerStats({
+            ...partnerStats,
+            suspended_partners: partnerStats.suspended_partners - 1,
+            active_partners: partnerStats.active_partners + 1,
+          });
+        }
       } else {
         toast.error(data.error || 'Failed to unsuspend partner');
       }
@@ -547,9 +622,9 @@ export default function PartnersSection({}: PartnersProps) {
                     </button>
                     <button
                       className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.stopPropagation();
-                        await handleRejectPartner(partner.id);
+                        handleRejectPartner(partner);
                       }}
                       disabled={actionLoading === partner.id}
                     >

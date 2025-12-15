@@ -1,4 +1,4 @@
-import { Upload, CheckCircle, Building2, Mail, Phone, Tag, FileText, ArrowRight, ArrowLeft, MapPin, PenTool, Plus, Minus, AlertCircle, X } from 'lucide-react';
+import { Upload, CheckCircle, Building2, Mail, Phone, Tag, FileText, ArrowRight, ArrowLeft, MapPin, PenTool, Plus, Minus, AlertCircle, X, Sparkles } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -37,6 +37,7 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
   const [logoError, setLogoError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [isGeneratingAbout, setIsGeneratingAbout] = useState(false);
 
   // Categories matching backend database IDs
   const categories = [
@@ -320,6 +321,68 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
     if (e.key === 'Enter') {
       e.preventDefault();
       handleAddCustomInterest();
+    }
+  };
+
+  const handleGenerateAbout = async () => {
+    if (!formData.businessName || formData.categories.length === 0) {
+      alert('Please fill in your business name and select a category first');
+      return;
+    }
+
+    setIsGeneratingAbout(true);
+    try {
+      // Get category name
+      const selectedCategory = categories.find(cat => cat.id === formData.categories[0]);
+      const categoryName = selectedCategory?.name || 'Events';
+      
+      // Create a prompt based on available information
+      const interests = customInterests.length > 0 ? customInterests.join(', ') : 'various activities';
+      const prompt = `Write a professional and engaging business description (2-3 sentences) for "${formData.businessName}", an event organizer in ${formData.location || 'Kenya'} specializing in ${categoryName} events. They organize events related to ${interests}. Make it compelling and professional.`;
+
+      // Call GitHub Copilot Chat API or OpenAI API
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY || ''}`
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional business description writer. Create concise, engaging, and professional descriptions.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          max_tokens: 150,
+          temperature: 0.7
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate description');
+      }
+
+      const data = await response.json();
+      const generatedText = data.choices[0]?.message?.content?.trim() || '';
+      
+      if (generatedText) {
+        setFormData({ ...formData, about: generatedText });
+      }
+    } catch (error) {
+      console.error('Error generating description:', error);
+      // Fallback to a template-based description
+      const selectedCategory = categories.find(cat => cat.id === formData.categories[0]);
+      const categoryName = selectedCategory?.name || 'Events';
+      const fallbackDescription = `${formData.businessName} is a premier event organizer based in ${formData.location || 'Kenya'}, specializing in ${categoryName} events. We are passionate about creating memorable experiences that bring people together and celebrate the best of ${customInterests.length > 0 ? customInterests.slice(0, 3).join(', ') : 'our community'}. With a commitment to excellence and attention to detail, we ensure every event is executed flawlessly.`;
+      setFormData({ ...formData, about: fallbackDescription });
+    } finally {
+      setIsGeneratingAbout(false);
     }
   };
 
@@ -764,10 +827,37 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
               </div>
 
               <div>
-                <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  <FileText className="w-4 h-4" />
-                  <span>About Your Business (Optional)</span>
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="flex items-center space-x-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    <FileText className="w-4 h-4" />
+                    <span>About Your Business (Optional)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateAbout}
+                    disabled={isGeneratingAbout || !formData.businessName || formData.categories.length === 0}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      isGeneratingAbout || !formData.businessName || formData.categories.length === 0
+                        ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-md hover:shadow-lg'
+                    }`}
+                  >
+                    {isGeneratingAbout ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Generate with AI</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <textarea
                   value={formData.about}
                   onChange={(e) => setFormData({ ...formData, about: e.target.value })}
@@ -777,10 +867,16 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
                   placeholder="Tell us about your business, what events you organize, and your experience..."
                   rows={4}
                   style={{ borderColor: formData.about ? '#27aae2' : '' }}
+                  disabled={isGeneratingAbout}
                 />
-                {formData.about && (
+                {formData.about && !isGeneratingAbout && (
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">This will help us understand your business better</p>
                 )}
+                {!formData.businessName || formData.categories.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    <span className="text-amber-600 dark:text-amber-400">💡 Tip:</span> Fill in your business name and category to enable AI generation
+                  </p>
+                ) : null}
               </div>
 
               <div className="flex justify-between pt-4">
