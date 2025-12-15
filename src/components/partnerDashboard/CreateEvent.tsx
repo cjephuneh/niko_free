@@ -437,13 +437,97 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
   }, [isOpen, isEditMode, eventId]);
 
   const handleNext = () => {
-    // Validate step 2 (Date & Time)
+    // Clear any previous errors
+    setError('');
+    
+    // Step 1 validation: Location
+    if (currentStep === 1) {
+      if (formData.locationType === 'physical' || formData.locationType === 'hybrid') {
+        if (!formData.locationName.trim()) {
+          setError('Please enter a location name');
+          return;
+        }
+      }
+      if (formData.locationType === 'online' || formData.locationType === 'hybrid') {
+        if (!formData.onlineLink.trim()) {
+          setError('Please enter an event link');
+          return;
+        }
+      }
+    }
+    
+    // Step 2 validation: Date & Time
     if (currentStep === 2) {
+      if (!formData.startDate) {
+        setError('Please select a start date');
+        return;
+      }
+      if (!formData.startTime) {
+        setError('Please select a start time');
+        return;
+      }
+      if (!formData.endTime) {
+        setError('Please select an end time');
+        return;
+      }
+      if (!isOneDayEvent && !formData.endDate) {
+        setError('Please select an end date for multi-day events');
+        return;
+      }
       if (isOneDayEvent && !isEndTimeValid()) {
         setError('End time must be after start time for one-day events');
         return;
       }
-      setError(''); // Clear any previous errors
+    }
+    
+    // Step 3 validation: Categories
+    if (currentStep === 3) {
+      if (formData.closedCategories.length === 0) {
+        setError('Please select at least one category');
+        return;
+      }
+    }
+    
+    // Step 4 validation: Event Details
+    if (currentStep === 4) {
+      if (!formData.eventName.trim()) {
+        setError('Please enter an event name');
+        return;
+      }
+      if (!formData.eventPhoto && !formData.photoPreview) {
+        setError('Please upload an event photo');
+        return;
+      }
+    }
+    
+    // Step 5 validation: Description
+    if (currentStep === 5) {
+      if (!formData.description.trim()) {
+        setError('Please enter an event description');
+        return;
+      }
+    }
+    
+    // Step 6 validation: Pricing
+    if (currentStep === 6) {
+      if (!formData.isFree) {
+        if (formData.ticketTypes.length === 0) {
+          setError('Please add at least one ticket type for paid events');
+          return;
+        }
+        // Validate all ticket types have required fields
+        const invalidTicket = formData.ticketTypes.find(t => !t.name.trim() || t.price <= 0 || (!t.isUnlimited && t.quantity <= 0));
+        if (invalidTicket) {
+          setError('Please fill in all ticket details (name, price, and quantity)');
+          return;
+        }
+      } else {
+        // For free events, check if unlimited is false and no capacity is set
+        if (!formData.isUnlimited && !formData.attendeeLimit) {
+          setError('Please set an attendee capacity or select unlimited');
+          return;
+        }
+      }
     }
     
     // Skip step 7 (promo codes) if event is free
@@ -1015,7 +1099,9 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Event Location</h4>
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Event Location <span className="text-red-500">*</span>
+                  </h4>
                   
                   {/* Location Type */}
                   <div className="grid grid-cols-3 gap-4 mb-6">
@@ -1067,7 +1153,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                     <div className="mb-4 relative">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <MapPin className="w-4 h-4 inline mr-1" />
-                        Location Name
+                        Location Name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1110,7 +1196,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           <LinkIcon className="w-4 h-4 inline mr-1" />
-                          Event Link
+                          Event Link <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="url"
@@ -1148,7 +1234,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     <Calendar className="w-5 h-5 inline mr-2" />
-                    Date & Time
+                    Date & Time <span className="text-red-500">*</span>
                   </h4>
 
                   {/* Toggle for One-Day or Multiday Event */}
@@ -1179,7 +1265,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Start Date
+                        Start Date <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="date"
@@ -1191,7 +1277,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Start Time
+                        Start Time <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2">
                         {/* Hour */}
@@ -1236,7 +1322,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                     {!isOneDayEvent && (
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          End Date
+                          End Date <span className="text-red-500">*</span>
                       </label>
                       <input
                           type="date"
@@ -1249,7 +1335,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        End Time
+                        End Time <span className="text-red-500">*</span>
                       </label>
                       <div className="flex gap-2">
                         {/* Hour */}
@@ -1306,13 +1392,13 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     <Tag className="w-5 h-5 inline mr-2" />
-                    Categories & Interests
+                    Categories & Interests <span className="text-red-500">*</span>
                   </h4>
 
                   {/* Closed Categories */}
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      Select Category
+                      Select Category <span className="text-red-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {categories.length > 0 ? (
@@ -1410,12 +1496,12 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
               <div className="space-y-6">
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    Event Details
+                    Event Details <span className="text-red-500">*</span>
                   </h4>
 
                   <div className="mb-6">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Event Name
+                      Event Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -1429,7 +1515,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       <ImageIcon className="w-4 h-4 inline mr-1" />
-                      Event Photo
+                      Event Photo <span className="text-red-500">*</span>
                     </label>
                     
                     {formData.photoPreview ? (
@@ -1471,13 +1557,13 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     <FileText className="w-5 h-5 inline mr-2" />
-                    Event Description
+                    Event Description <span className="text-red-500">*</span>
                   </h4>
 
                   <div className="mb-6">
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Event Description
+                        Event Description <span className="text-red-500">*</span>
                       </label>
                       <button
                         onClick={generateAIDescription}
@@ -1505,7 +1591,7 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                     <DollarSign className="w-5 h-5 inline mr-2" />
-                    Event Pricing
+                    Event Pricing <span className="text-red-500">*</span>
                   </h4>
 
                   <div className="flex items-center gap-4 mb-6">
