@@ -190,8 +190,23 @@ export default function PartnersSection({}: PartnersProps) {
       const data = await response.json();
       if (response.ok) {
         toast.success('Partner approved successfully! Email sent to partner.');
-        // Refresh data
-        window.location.reload();
+        // Update local state instead of reloading
+        setAllPartners(prevPartners => 
+          prevPartners.map(p => 
+            p.id === partnerId ? { ...p, status: 'approved' } : p
+          )
+        );
+        // Refresh stats
+        const statsResponse = await fetch(API_ENDPOINTS.admin.partnerStats, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setPartnerStats(statsData);
+        }
       } else {
         toast.error(data.error || 'Failed to approve partner');
       }
@@ -220,7 +235,23 @@ export default function PartnersSection({}: PartnersProps) {
       const data = await response.json();
       if (response.ok) {
         toast.success('Partner rejected. Email sent to partner.');
-        window.location.reload();
+        // Update local state instead of reloading
+        setAllPartners(prevPartners => 
+          prevPartners.map(p => 
+            p.id === partnerId ? { ...p, status: 'rejected' } : p
+          )
+        );
+        // Refresh stats
+        const statsResponse = await fetch(API_ENDPOINTS.admin.partnerStats, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setPartnerStats(statsData);
+        }
       } else {
         toast.error(data.error || 'Failed to reject partner');
       }
@@ -253,7 +284,23 @@ export default function PartnersSection({}: PartnersProps) {
       const data = await response.json();
       if (response.ok) {
         toast.success('Partner unsuspended successfully! Account is now active.');
-        window.location.reload();
+        // Update local state instead of reloading
+        setAllPartners(prevPartners => 
+          prevPartners.map(p => 
+            p.id === partnerId ? { ...p, status: 'approved' } : p
+          )
+        );
+        // Refresh stats
+        const statsResponse = await fetch(API_ENDPOINTS.admin.partnerStats, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setPartnerStats(statsData);
+        }
       } else {
         toast.error(data.error || 'Failed to unsuspend partner');
       }
@@ -292,7 +339,23 @@ export default function PartnersSection({}: PartnersProps) {
         const data = await response.json();
         if (response.ok) {
           toast.error(`Partner suspended: ${confirmAction.partner.name}`);
-          window.location.reload();
+          // Update local state instead of reloading
+          setAllPartners(prevPartners => 
+            prevPartners.map(p => 
+              p.id === partnerId ? { ...p, status: 'suspended' } : p
+            )
+          );
+          // Refresh stats
+          const statsResponse = await fetch(API_ENDPOINTS.admin.partnerStats, {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+            },
+          });
+          if (statsResponse.ok) {
+            const statsData = await statsResponse.json();
+            setPartnerStats(statsData);
+          }
         } else {
           toast.error(data.error || 'Failed to suspend partner');
         }
