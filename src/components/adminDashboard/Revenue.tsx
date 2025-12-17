@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DollarSign, BarChart3, Download, TrendingUp } from 'lucide-react';
+import { DollarSign, BarChart3, Download, TrendingUp, Wallet, Zap, Loader, X } from 'lucide-react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { getDashboard, formatCurrency } from '../../services/adminService';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
@@ -14,6 +14,11 @@ export default function Revenue() {
 	const [loading, setLoading] = useState(true);
 	const [chartLoading, setChartLoading] = useState(true);
 	const [timePeriod, setTimePeriod] = useState<TimePeriod>('all_time');
+	const [selectedRevenueType, setSelectedRevenueType] = useState<string | null>(null);
+	const [revenueChartData, setRevenueChartData] = useState<any>(null);
+	const [isLoadingChart, setIsLoadingChart] = useState(false);
+	const [periodRevenueData, setPeriodRevenueData] = useState<any>(null);
+	const [isLoadingPeriodData, setIsLoadingPeriodData] = useState(false);
 
 	useEffect(() => {
 		const fetchData = async () => {
@@ -67,6 +72,105 @@ export default function Revenue() {
 		fetchChartData();
 	}, [timePeriod]);
 
+	// Fetch revenue breakdown data when time period changes
+	useEffect(() => {
+		const fetchPeriodRevenue = async () => {
+			setIsLoadingPeriodData(true);
+			try {
+				// Fetch revenue data for the selected period
+				const periodMap: Record<string, string> = {
+					'today': 'today',
+					'7_days': '7_days',
+					'30_days': '30_days',
+					'all_time': 'all_time'
+				};
+
+				const period = periodMap[timePeriod] || 'all_time';
+
+				// Fetch all three revenue types for the period
+				const [platformFeesRes, withdrawalFeesRes, promotionsRes] = await Promise.all([
+					fetch(API_ENDPOINTS.admin.revenueCharts('platform_fees', period), {
+						headers: {
+							'Content-Type': 'application/json',
+							...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+						},
+					}),
+					fetch(API_ENDPOINTS.admin.revenueCharts('withdrawal_fees', period), {
+						headers: {
+							'Content-Type': 'application/json',
+							...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+						},
+					}),
+					fetch(API_ENDPOINTS.admin.revenueCharts('promotions', period), {
+						headers: {
+							'Content-Type': 'application/json',
+							...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+						},
+					}),
+				]);
+
+				const platformFeesData = await platformFeesRes.json();
+				const withdrawalFeesData = await withdrawalFeesRes.json();
+				const promotionsData = await promotionsRes.json();
+
+				if (platformFeesRes.ok && withdrawalFeesRes.ok && promotionsRes.ok) {
+					setPeriodRevenueData({
+						platform_fees: platformFeesData.total || 0,
+						withdrawal_fees: withdrawalFeesData.total || 0,
+						promotion_revenue: promotionsData.total || 0,
+						total_revenue: (platformFeesData.total || 0) + (withdrawalFeesData.total || 0) + (promotionsData.total || 0),
+					});
+				}
+			} catch (error) {
+				console.error('Failed to fetch period revenue data:', error);
+			} finally {
+				setIsLoadingPeriodData(false);
+			}
+		};
+
+		fetchPeriodRevenue();
+	}, [timePeriod]);
+
+	// Fetch revenue chart data when a revenue card is clicked
+	useEffect(() => {
+		const fetchRevenueChart = async () => {
+			if (!selectedRevenueType) {
+				setRevenueChartData(null);
+				return;
+			}
+
+			setIsLoadingChart(true);
+			try {
+				// Use the current time period for the chart
+				const periodMap: Record<string, string> = {
+					'today': 'today',
+					'7_days': '7_days',
+					'30_days': '30_days',
+					'all_time': 'all_time'
+				};
+				const period = periodMap[timePeriod] || 'all_time';
+
+				const response = await fetch(API_ENDPOINTS.admin.revenueCharts(selectedRevenueType, period), {
+					headers: {
+						'Content-Type': 'application/json',
+						...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+					},
+				});
+
+				const data = await response.json();
+				if (response.ok) {
+					setRevenueChartData(data);
+				}
+			} catch (error) {
+				console.error('Error fetching revenue chart:', error);
+			} finally {
+				setIsLoadingChart(false);
+			}
+		};
+
+		fetchRevenueChart();
+	}, [selectedRevenueType, timePeriod]);
+
 	const timePeriodOptions = [
 		{ value: 'today', label: 'Today' },
 		{ value: '7_days', label: 'Last 7 Days' },
@@ -86,40 +190,84 @@ export default function Revenue() {
 				</button>
 			</div>
 
-			{/* Revenue Summary Cards */}
-			{loading ? (
+			{/* Revenue Breakdown Cards */}
+			{loading || isLoadingPeriodData ? (
 				<div className="text-center py-8 text-gray-500">Loading revenue data...</div>
 			) : (
-				<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-					<div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-6 text-white shadow-lg">
-						<div className="flex items-center justify-between mb-2">
-							<DollarSign className="w-8 h-8 opacity-90" />
-							<TrendingUp className="w-5 h-5 opacity-75" />
+				<div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+					<h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Revenue Breakdown</h3>
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+						{/* Total Revenue Card */}
+						<div
+							className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 hover:shadow-lg transition-all"
+						>
+							<div className="flex items-center justify-between mb-4">
+								<div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+									<DollarSign className="w-6 h-6 text-white" />
+								</div>
+							</div>
+							<p className="text-white/80 text-sm mb-1">Total Revenue</p>
+							<p className="text-2xl font-bold text-white mb-2">
+								{formatCurrency(periodRevenueData?.total_revenue || dashboardData?.stats?.total_revenue || 0)}
+							</p>
+							<p className="text-white/70 text-xs">
+								{timePeriod === 'today' ? 'Today' :
+								 timePeriod === '7_days' ? 'Last 7 Days' :
+								 timePeriod === '30_days' ? 'Last 30 Days' :
+								 'All Time'}
+							</p>
 						</div>
-						<p className="text-orange-100 text-sm font-medium mb-1">Total Revenue</p>
-						<p className="text-3xl font-bold">
-							{formatCurrency(dashboardData?.stats?.total_revenue || 0)}
-						</p>
-					</div>
-					<div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white shadow-lg">
-						<div className="flex items-center justify-between mb-2">
-							<BarChart3 className="w-8 h-8 opacity-90" />
-							<TrendingUp className="w-5 h-5 opacity-75" />
+
+						{/* Platform Fees Card */}
+						<div
+							onClick={() => setSelectedRevenueType('platform_fees')}
+							className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all transform hover:scale-105"
+						>
+							<div className="flex items-center justify-between mb-4">
+								<div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+									<TrendingUp className="w-6 h-6 text-white" />
+								</div>
+							</div>
+							<p className="text-white/80 text-sm mb-1">Platform Fees</p>
+							<p className="text-2xl font-bold text-white mb-2">
+								{formatCurrency(periodRevenueData?.platform_fees || dashboardData?.stats?.platform_fees || 0)}
+							</p>
+							<p className="text-white/70 text-xs">7% commission from ticket sales</p>
 						</div>
-						<p className="text-green-100 text-sm font-medium mb-1">Last 30 Days</p>
-						<p className="text-3xl font-bold">
-							{formatCurrency(analytics?.revenue || 0)}
-						</p>
-					</div>
-					<div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg">
-						<div className="flex items-center justify-between mb-2">
-							<DollarSign className="w-8 h-8 opacity-90" />
-							<TrendingUp className="w-5 h-5 opacity-75" />
+
+						{/* Withdrawal Fees Card */}
+						<div
+							onClick={() => setSelectedRevenueType('withdrawal_fees')}
+							className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all transform hover:scale-105"
+						>
+							<div className="flex items-center justify-between mb-4">
+								<div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+									<Wallet className="w-6 h-6 text-white" />
+								</div>
+							</div>
+							<p className="text-white/80 text-sm mb-1">Withdrawal Fees</p>
+							<p className="text-2xl font-bold text-white mb-2">
+								{formatCurrency(periodRevenueData?.withdrawal_fees || dashboardData?.stats?.withdrawal_fees || 0)}
+							</p>
+							<p className="text-white/70 text-xs">Fees from partner withdrawals</p>
 						</div>
-						<p className="text-blue-100 text-sm font-medium mb-1">Platform Fees (30 days)</p>
-						<p className="text-3xl font-bold">
-							{formatCurrency(analytics?.platform_fees || 0)}
-						</p>
+
+						{/* Promotions Revenue Card */}
+						<div
+							onClick={() => setSelectedRevenueType('promotions')}
+							className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all transform hover:scale-105"
+						>
+							<div className="flex items-center justify-between mb-4">
+								<div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+									<Zap className="w-6 h-6 text-white" />
+								</div>
+							</div>
+							<p className="text-white/80 text-sm mb-1">Promotions</p>
+							<p className="text-2xl font-bold text-white mb-2">
+								{formatCurrency(periodRevenueData?.promotion_revenue || dashboardData?.stats?.promotion_revenue || 0)}
+							</p>
+							<p className="text-white/70 text-xs">Revenue from event promotions</p>
+						</div>
 					</div>
 				</div>
 			)}
@@ -247,6 +395,113 @@ export default function Revenue() {
 					</div>
 				)}
 			</div>
+
+			{/* Revenue Chart Modal */}
+			{selectedRevenueType !== null && (
+				<div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+					<div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+						<div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
+							<h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+								{selectedRevenueType === 'platform_fees' && 'Platform Fees Revenue'}
+								{selectedRevenueType === 'withdrawal_fees' && 'Withdrawal Fees Revenue'}
+								{selectedRevenueType === 'promotions' && 'Promotions Revenue'}
+								{!selectedRevenueType && 'Total Revenue'}
+							</h2>
+							<button
+								onClick={() => {
+									setSelectedRevenueType(null);
+									setRevenueChartData(null);
+								}}
+								className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+							>
+								<X className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+							</button>
+						</div>
+
+						<div className="p-6">
+							{isLoadingChart ? (
+								<div className="flex items-center justify-center py-12">
+									<Loader className="w-8 h-8 animate-spin text-[#27aae2]" />
+									<span className="ml-3 text-gray-600 dark:text-gray-400">Loading chart data...</span>
+								</div>
+							) : revenueChartData ? (
+								<div className="space-y-6">
+									{/* Total Summary */}
+									<div className="bg-gradient-to-r from-[#27aae2] to-[#1e8bb8] rounded-xl p-6 text-white">
+										<p className="text-sm opacity-90 mb-1">Total Revenue</p>
+										<p className="text-3xl font-bold">{formatCurrency(revenueChartData.total || 0)}</p>
+										<p className="text-sm opacity-80 mt-1">
+											{timePeriod === 'today' ? 'Today' :
+											 timePeriod === '7_days' ? 'Last 7 Days' :
+											 timePeriod === '30_days' ? 'Last 30 Days' :
+											 'All Time'}
+										</p>
+									</div>
+
+									{/* Chart */}
+									<div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+										<h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Revenue Trend</h3>
+										<div className="h-64 flex items-center justify-center">
+											{revenueChartData.data && revenueChartData.data.length > 0 ? (
+												<div className="w-full">
+													<ResponsiveContainer width="100%" height={250}>
+														<AreaChart data={revenueChartData.data}>
+															<defs>
+																<linearGradient id="gradient-revenue-modal" x1="0" y1="0" x2="0" y2="1">
+																	<stop offset="5%" stopColor="#27aae2" stopOpacity={0.3}/>
+																	<stop offset="95%" stopColor="#27aae2" stopOpacity={0.05}/>
+																</linearGradient>
+															</defs>
+															<CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" opacity={0.3} />
+															<XAxis dataKey="label" stroke="#6b7280" style={{ fontSize: '11px' }} />
+															<YAxis stroke="#6b7280" tickFormatter={(value) => formatCurrency(value)} style={{ fontSize: '11px' }} />
+															<Tooltip formatter={(value: any) => [formatCurrency(value), 'Revenue']} />
+															<Area type="monotone" dataKey="value" stroke="#27aae2" strokeWidth={2} fill="url(#gradient-revenue-modal)" />
+														</AreaChart>
+													</ResponsiveContainer>
+												</div>
+											) : (
+												<p className="text-gray-500 dark:text-gray-400">No data available for this period</p>
+											)}
+										</div>
+									</div>
+
+									{/* Data Table */}
+									{revenueChartData.data && revenueChartData.data.length > 0 && (
+										<div>
+											<h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Detailed Data</h3>
+											<div className="overflow-x-auto">
+												<table className="w-full text-sm">
+													<thead>
+														<tr className="border-b border-gray-200 dark:border-gray-700">
+															<th className="text-left py-3 px-4 text-gray-700 dark:text-gray-300">Date</th>
+															<th className="text-right py-3 px-4 text-gray-700 dark:text-gray-300">Amount</th>
+														</tr>
+													</thead>
+													<tbody>
+														{revenueChartData.data.map((item: any, index: number) => (
+															<tr key={index} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+																<td className="py-3 px-4 text-gray-900 dark:text-white">{item.label}</td>
+																<td className="py-3 px-4 text-right font-semibold text-gray-900 dark:text-white">
+																	{formatCurrency(item.value)}
+																</td>
+															</tr>
+														))}
+													</tbody>
+												</table>
+											</div>
+										</div>
+									)}
+								</div>
+							) : (
+								<div className="text-center py-12 text-gray-500 dark:text-gray-400">
+									No chart data available
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }

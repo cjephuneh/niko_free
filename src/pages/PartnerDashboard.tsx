@@ -58,9 +58,12 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
         }
 
         // Fetch dashboard data to get pending earnings
-        const dashboardData = await getPartnerDashboard();
-        if (dashboardData?.stats?.pending_earnings !== undefined) {
-          setPendingEarnings(dashboardData.stats.pending_earnings);
+        const dashboardDataResponse = await getPartnerDashboard();
+        setDashboardData(dashboardDataResponse);
+        if (dashboardDataResponse?.stats?.pending_earnings !== undefined) {
+          const pendingEarnings = parseFloat(dashboardDataResponse.stats.pending_earnings || 0);
+          setPendingEarnings(pendingEarnings);
+          setAvailableBalance(pendingEarnings);
         }
 
         // Then fetch fresh profile data
@@ -101,34 +104,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
       }
     };
 
-    const fetchFinancialData = async () => {
-      try {
-        const token = getPartnerToken();
-        if (!token) return;
-
-        // Fetch dashboard data which includes financial stats
-        const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.partner.dashboard}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          const stats = data.stats || {};
-          
-          // Get current balance (pending earnings - available to withdraw)
-          const pendingEarnings = parseFloat(stats.pending_earnings || 0);
-          setAvailableBalance(pendingEarnings);
-        }
-      } catch (err) {
-        console.error('Error fetching financial data:', err);
-      }
-    };
-
     fetchPartnerData();
-    fetchFinancialData();
   }, [navigate]);
 
   const menuItems = [
@@ -422,7 +398,7 @@ export default function PartnerDashboard({ onNavigate }: PartnerDashboardProps) 
 
           {/* Content Area */}
           <div className="px-2 sm:px-4 lg:px-8 py-3 sm:py-4 lg:py-6 pt-[7.5rem] sm:pt-32 md:pt-20 lg:pt-24">
-            {activeTab === 'overview' && <Overview onWithdrawClick={() => setWithdrawOpen(true)} />}
+            {activeTab === 'overview' && <Overview onWithdrawClick={() => setWithdrawOpen(true)} dashboardData={dashboardData} />}
             {activeTab === 'events' && (
               <MyEvents 
                 onCreateEvent={() => setCreateEventOpen(true)}

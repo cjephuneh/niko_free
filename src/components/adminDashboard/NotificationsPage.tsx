@@ -154,11 +154,8 @@ export default function NotificationsPage() {
                       onClick={() => {
                         // Handle navigation to event details
                         if (note.event_id) {
-                          // Switch to events tab and trigger event selection
-                          // The parent AdminDashboard will handle this via a custom event
-                          window.dispatchEvent(new CustomEvent('admin-navigate-event', { 
-                            detail: { eventId: note.event_id } 
-                          }));
+                          // Navigate to the actual event detail page
+                          window.location.href = `/event-detail/${note.event_id}`;
                         } else if (note.action_url) {
                           // For other action URLs, navigate directly
                           if (note.action_url.startsWith('/')) {
