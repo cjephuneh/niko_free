@@ -774,7 +774,7 @@ export default function EventDetailPage({ eventId, onNavigate }: EventDetailPage
                         <p className="font-semibold text-gray-900 dark:text-white">
                           {eventData.attendee_count || 0} attending
                         </p>
-                        {eventData.tickets_left !== null && eventData.tickets_left !== undefined && (
+                        {eventData.tickets_left !== null && eventData.tickets_left !== undefined && !eventData.is_unlimited && !eventData.ticket_types?.some((tt) => tt.quantity_total === null || tt.quantity_total === undefined) && (
                           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                             {eventData.tickets_left} tickets left
                           </p>

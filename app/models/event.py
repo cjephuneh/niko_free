@@ -48,6 +48,7 @@ class Event(db.Model):
     # Statistics
     view_count = db.Column(db.Integer, default=0)
     attendee_count = db.Column(db.Integer, default=0)
+    share_count = db.Column(db.Integer, default=0)
     total_tickets_sold = db.Column(db.Integer, default=0)
     revenue = db.Column(db.Numeric(10, 2), default=0.00)
     
@@ -98,6 +99,7 @@ class Event(db.Model):
         if include_stats:
             data['view_count'] = self.view_count
             data['attendee_count'] = self.attendee_count
+            data['share_count'] = self.share_count
             data['total_tickets_sold'] = self.total_tickets_sold
             data['revenue'] = float(self.revenue)
             

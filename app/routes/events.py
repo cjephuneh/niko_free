@@ -3,7 +3,15 @@ from datetime import datetime
 from sqlalchemy import or_, and_
 from app import db
 from app.models.event import Event, EventHost, EventInterest, EventPromotion
-from app.models.category import Category, Location
+from     share_data = {
+        'link': f"{frontend_url}/events/{event_id}",
+        'whatsapp': f"https://wa.me/?text=Check out this event: {event.title} - {frontend_url}/events/{event_id}",
+        'linkedin': f"https://www.linkedin.com/sharing/share-offsite/?url={frontend_url}/events/{event_id}",
+        'email': f"mailto:?subject={event.title}&body=Check out this event: {event.title} - {frontend_url}/events/{event_id}",
+        'title': event.title,
+        'description': event.description[:200] if event.description else '',
+        'share_count': event.share_count
+    }ls.category import Category, Location
 from app.models.user import User
 from app.utils.decorators import optional_user, user_required
 from app.utils.file_upload import upload_file
@@ -195,11 +203,15 @@ def get_locations():
 
 @bp.route('/<int:event_id>/share', methods=['POST'])
 def generate_share_link(event_id):
-    """Generate shareable link for event"""
+    """Generate shareable link for event and track share count"""
     event = Event.query.get(event_id)
     
     if not event:
         return jsonify({'error': 'Event not found'}), 404
+    
+    # Increment share count
+    event.share_count += 1
+    db.session.commit()
     
     from flask import current_app
     frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:3000')

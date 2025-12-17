@@ -793,14 +793,23 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
                             <MapPin className="w-5 h-5 text-[#27aae2] mt-0.5 flex-shrink-0" />
                             <div>
                               <p className="text-sm font-medium text-gray-900 dark:text-white">Location</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {getEventLocation(selectedEventForDetails)}
-                              </p>
-                              {selectedEventForDetails.venue_address && !selectedEventForDetails.is_online && (
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {selectedEventForDetails.venue_address}
-                                </p>
-                              )}
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                {(() => {
+                                  const location = getEventLocation(selectedEventForDetails);
+                                  const hasVenueName = selectedEventForDetails.venue_name && selectedEventForDetails.venue_name.trim();
+                                  const hasVenueAddress = selectedEventForDetails.venue_address && selectedEventForDetails.venue_address.trim();
+                                  const isDifferentAddress = hasVenueName && hasVenueAddress && selectedEventForDetails.venue_name !== selectedEventForDetails.venue_address;
+
+                                  return (
+                                    <>
+                                      <p>{location}</p>
+                                      {isDifferentAddress && !selectedEventForDetails.is_online && (
+                                        <p className="text-xs mt-1">{selectedEventForDetails.venue_address}</p>
+                                      )}
+                                    </>
+                                  );
+                                })()}
+                              </div>
                             </div>
                           </div>
 

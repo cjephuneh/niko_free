@@ -487,6 +487,14 @@ export default function CreateEvent({ isOpen, onClose, onEventCreated, eventId }
         setError('End time must be after start time for one-day events');
         return;
       }
+      if (!isOneDayEvent && formData.endDate && formData.startDate) {
+        const startDateObj = new Date(formData.startDate);
+        const endDateObj = new Date(formData.endDate);
+        if (endDateObj < startDateObj) {
+          setError('End date cannot be before start date for multi-day events');
+          return;
+        }
+      }
     }
     
     // Step 3 validation: Categories

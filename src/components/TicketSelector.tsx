@@ -409,11 +409,9 @@ export default function TicketSelector({
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h4 className="font-bold text-gray-900 dark:text-white">{ticket.name}</h4>
-                  {ticket.price > 0 && (
+                  {ticket.price > 0 && ticket.available !== undefined && ticket.available !== null && (
                     <p className={`text-xs ${ticket.available === 0 ? 'text-red-600 dark:text-red-400 font-semibold' : 'text-gray-500 dark:text-gray-400'}`}>
-                      {ticket.available !== undefined && ticket.available !== null 
-                        ? (ticket.available === 0 ? 'Sold Out' : `${ticket.available} tickets left`)
-                        : 'Unlimited tickets available'}
+                      {ticket.available === 0 ? 'Sold Out' : `${ticket.available} tickets left`}
                     </p>
                   )}
                 </div>
