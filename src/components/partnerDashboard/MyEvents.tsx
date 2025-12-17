@@ -2,7 +2,7 @@ import { Calendar, MapPin, Users, Heart, Plus, Trash2, Edit, Sparkles, X, AlertT
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { getPartnerEvents, deleteEvent, updatePromoCode, deletePromoCode } from '../../services/partnerService';
-import { API_BASE_URL } from '../../config/api';
+import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
 import CreateEvent from './CreateEvent';
 import PromoteEventModal from './PromoteEventModal';
 
@@ -47,7 +47,7 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
     return () => {
       delete (window as any).refreshPartnerEvents;
     };
-  }, [filter]);
+  }, []);
 
   const fetchEvents = async () => {
     try {
@@ -333,41 +333,43 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
 
   const handleToggleTicket = async (ticketTypeId: number, currentStatus: boolean) => {
     try {
-      // TODO: Call API to toggle ticket availability
       const { getPartnerToken } = await import('../../services/partnerService');
       const token = getPartnerToken();
       
-      const response = await fetch(`${API_BASE_URL}/api/partner/ticket-types/${ticketTypeId}/toggle`, {
+      const response = await fetch(API_ENDPOINTS.partner.toggleTicket(ticketTypeId), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ is_available: !currentStatus })
       });
 
       if (response.ok) {
+        const data = await response.json();
+        const newStatus = data.ticket_type?.is_active ?? !currentStatus;
+        
         // Update local state
         setSelectedEventForDetails((prev: any) => ({
           ...prev,
           ticket_types: prev.ticket_types.map((tt: any) => 
-            tt.id === ticketTypeId ? { ...tt, is_available: !currentStatus } : tt
+            tt.id === ticketTypeId ? { ...tt, is_available: newStatus, is_active: newStatus } : tt
           )
         }));
         
         // Refresh events list
         fetchEvents();
         
-        toast.success(`Ticket ${!currentStatus ? 'enabled' : 'disabled'} successfully!`, {
+        toast.success(`Ticket ${newStatus ? 'enabled' : 'disabled'} successfully!`, {
           position: 'top-right',
           autoClose: 3000,
         });
       } else {
-        throw new Error('Failed to update ticket status');
+        const errorData = await response.json().catch(() => ({ error: 'Failed to update ticket status' }));
+        throw new Error(errorData.error || 'Failed to update ticket status');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error toggling ticket:', err);
-      toast.error('Failed to update ticket status', {
+      toast.error(err.message || 'Failed to update ticket status', {
         position: 'top-right',
         autoClose: 3000,
       });

@@ -1,11 +1,12 @@
 import { TrendingUp, DollarSign, Wallet, ArrowDownRight, Calendar, Users, Eye, Download, ArrowUpRight, ChevronLeft, ChevronRight, X, MapPin, Clock, Tag, Ticket, Sparkles, Globe, Video } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getPartnerEvents, getPartnerToken, getPartnerProfile } from '../../services/partnerService';
+import { getPartnerEvents, getPartnerToken } from '../../services/partnerService';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
 import { createPortal } from 'react-dom';
 
 interface OverviewProps {
   onWithdrawClick?: () => void;
+  dashboardData?: any;
 }
 
 interface EventDetails {
@@ -29,7 +30,7 @@ interface EventDetails {
   status: string;
 }
 
-export default function Overview({ onWithdrawClick }: OverviewProps) {
+export default function Overview({ onWithdrawClick, dashboardData }: OverviewProps) {
   const [currentEventsPage, setCurrentEventsPage] = useState(0);
   const [historyEventsPage, setHistoryEventsPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,8 +50,25 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
   // Fetch data on mount
   useEffect(() => {
     fetchData();
-    fetchFinancialData();
-  }, []);
+    // Only fetch financial data if not provided via props
+    if (!dashboardData) {
+      fetchFinancialData();
+    } else {
+      // Use provided dashboard data
+      const stats = dashboardData.stats || {};
+      const totalEarnings = parseFloat(stats.total_earnings || 0);
+      const withdrawnEarnings = parseFloat(stats.withdrawn_earnings || 0);
+      const pendingEarnings = parseFloat(stats.pending_earnings || 0);
+      const grossRevenue = totalEarnings > 0 ? totalEarnings / 0.93 : 0;
+      
+      setFinancialData({
+        netEarnings: totalEarnings,
+        amountWithdrawn: withdrawnEarnings,
+        currentBalance: pendingEarnings,
+        grossRevenue: grossRevenue
+      });
+    }
+  }, [dashboardData]);
 
   const fetchFinancialData = async () => {
     try {
@@ -93,12 +111,21 @@ export default function Overview({ onWithdrawClick }: OverviewProps) {
     try {
       setIsLoading(true);
       
-      // Fetch current events (upcoming + ongoing)
-      const currentResponse = await getPartnerEvents('upcoming');
-      const ongoingResponse = await getPartnerEvents('ongoing');
+      // Fetch all approved events at once instead of separate calls
+      const allEventsResponse = await getPartnerEvents('approved');
+      const allEvents = allEventsResponse.events || [];
       
-      const upcoming = currentResponse.events || [];
-      const ongoing = ongoingResponse.events || [];
+      // Filter by date client-side
+      const now = new Date();
+      const upcoming = allEvents.filter((event: any) => {
+        const startDate = new Date(event.start_date);
+        return startDate > now && event.status === 'approved';
+      });
+      const ongoing = allEvents.filter((event: any) => {
+        const startDate = new Date(event.start_date);
+        const endDate = event.end_date ? new Date(event.end_date) : startDate;
+        return startDate <= now && endDate >= now && event.status === 'approved';
+      });
       const allCurrent = [...upcoming, ...ongoing];
       
       // Format current events

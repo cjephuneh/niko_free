@@ -30,6 +30,7 @@ interface PartnerStats {
   total_partners: number;
   pending_partners: number;
   suspended_partners: number;
+  rejected_partners: number;
   active_partners: number;
 }
 
@@ -37,7 +38,7 @@ export default function PartnersSection({}: PartnersProps) {
   const [allPartners, setAllPartners] = React.useState<Partner[]>([]);
   const [partnerStats, setPartnerStats] = React.useState<PartnerStats | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [activeTab, setActiveTab] = React.useState<'all' | 'pending' | 'approved' | 'suspended'>('all');
+  const [activeTab, setActiveTab] = React.useState<'all' | 'pending' | 'approved' | 'suspended' | 'rejected'>('all');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [categoryFilter, setCategoryFilter] = React.useState('All');
   const [selectedPartner, setSelectedPartner] = React.useState<Partner | null>(null);
@@ -125,6 +126,15 @@ export default function PartnersSection({}: PartnersProps) {
             totalRevenue: p.total_revenue ? `KES ${parseFloat(p.total_revenue).toLocaleString()}` : undefined,
             rating: p.rating || 0,
           }));
+          
+          // Debug: Log suspended partners
+          const suspendedPartners = partners.filter(p => p.status === 'suspended');
+          console.log('Total partners fetched:', partners.length);
+          console.log('Suspended partners found:', suspendedPartners.length);
+          if (suspendedPartners.length > 0) {
+            console.log('Suspended partner names:', suspendedPartners.map(p => p.name));
+          }
+          
           setAllPartners(partners);
         }
       } catch (error) {
@@ -163,7 +173,26 @@ export default function PartnersSection({}: PartnersProps) {
 
     // Filter by status tab
     if (activeTab !== 'all') {
-      filtered = filtered.filter(p => p.status === activeTab);
+      if (activeTab === 'suspended') {
+        filtered = filtered.filter(p => {
+          const isSuspended = p.status === 'suspended';
+          if (isSuspended) {
+            console.log('Found suspended partner:', p.name, p.status);
+          }
+          return isSuspended;
+        });
+        console.log('Suspended tab - Total partners:', allPartners.length);
+        console.log('Suspended tab - Suspended partners:', filtered.length);
+        console.log('All partner statuses:', allPartners.map(p => ({ name: p.name, status: p.status })));
+      } else if (activeTab === 'rejected') {
+        filtered = filtered.filter(p => p.status === 'rejected');
+        console.log('Rejected tab - Total partners:', allPartners.length);
+        console.log('Rejected tab - Rejected partners:', filtered.length);
+      } else if (activeTab === 'approved') {
+        filtered = filtered.filter(p => p.status === 'approved');
+      } else if (activeTab === 'pending') {
+        filtered = filtered.filter(p => p.status === 'pending');
+      }
     }
 
     // Filter by search query
@@ -373,12 +402,29 @@ export default function PartnersSection({}: PartnersProps) {
       const data = await response.json();
       if (response.ok) {
         toast.success('Partner unsuspended successfully! Account is now active.');
-        // Update local state instead of reloading
-        setAllPartners(prevPartners => 
-          prevPartners.map(p => 
-            p.id === partnerId ? { ...p, status: 'approved' } : p
-          )
-        );
+        // Refresh partners list from API
+        const refreshResponse = await fetch(API_ENDPOINTS.admin.partners, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          const refreshedPartners = (refreshData.partners || []).map((p: any) => ({
+            id: String(p.id),
+            name: p.business_name || p.name,
+            email: p.email,
+            category: p.category?.name || 'N/A',
+            submittedDate: p.created_at ? new Date(p.created_at).toLocaleDateString() : '',
+            suspendedDate: p.updated_at && p.status === 'suspended' ? new Date(p.updated_at).toLocaleDateString() : undefined,
+            status: p.status,
+            totalEvents: p.total_events || 0,
+            totalRevenue: p.total_revenue ? `KES ${parseFloat(p.total_revenue).toLocaleString()}` : undefined,
+            rating: p.rating || 0,
+          }));
+          setAllPartners(refreshedPartners);
+        }
         // Refresh stats
         const statsResponse = await fetch(API_ENDPOINTS.admin.partnerStats, {
           headers: {
@@ -396,6 +442,67 @@ export default function PartnersSection({}: PartnersProps) {
     } catch (error) {
       console.error('Error unsuspending partner:', error);
       toast.error('Error unsuspending partner');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Handle unreject partner
+  const [unrejectModalOpen, setUnrejectModalOpen] = React.useState(false);
+  const [partnerToUnreject, setPartnerToUnreject] = React.useState<Partner | null>(null);
+  const [unrejectReason, setUnrejectReason] = React.useState('');
+
+  const handleUnrejectPartner = (partner: Partner) => {
+    setPartnerToUnreject(partner);
+    setUnrejectReason('');
+    setUnrejectModalOpen(true);
+  };
+
+  const confirmUnrejectPartner = async () => {
+    if (!partnerToUnreject || !unrejectReason.trim()) {
+      toast.error('Please provide a reason for unrejecting the partner');
+      return;
+    }
+
+    setActionLoading(partnerToUnreject.id);
+    try {
+      const response = await fetch(API_ENDPOINTS.admin.unrejectPartner(Number(partnerToUnreject.id)), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+        },
+        body: JSON.stringify({ reason: unrejectReason.trim() }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('Partner record deleted. Email is now available for fresh registration.');
+        
+        // Remove partner from local list (since it's been deleted)
+        setAllPartners(prev => prev.filter(p => p.id !== partnerToUnreject.id));
+        
+        // Refresh stats
+        const statsResponse = await fetch(API_ENDPOINTS.admin.partnerStats, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+          },
+        });
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setPartnerStats(statsData);
+        }
+        
+        setUnrejectModalOpen(false);
+        setPartnerToUnreject(null);
+        setUnrejectReason('');
+      } else {
+        toast.error(data.error || 'Failed to unreject partner');
+      }
+    } catch (error) {
+      console.error('Error unrejecting partner:', error);
+      toast.error('Error unrejecting partner');
     } finally {
       setActionLoading(null);
     }
@@ -441,10 +548,35 @@ export default function PartnersSection({}: PartnersProps) {
             author: 'Admin',
           });
           
-          // Update local state
-          setAllPartners(prev => prev.map(p => 
-            p.id === partnerId ? { ...p, status: 'suspended', suspendedDate: new Date().toLocaleDateString() } : p
-          ));
+          // Refresh partners list from API to get accurate data
+          const refreshResponse = await fetch(API_ENDPOINTS.admin.partners, {
+            headers: {
+              'Content-Type': 'application/json',
+              ...(getToken() && { Authorization: `Bearer ${getToken()}` }),
+            },
+          });
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json();
+            const refreshedPartners = (refreshData.partners || []).map((p: any) => ({
+              id: String(p.id),
+              name: p.business_name || p.name,
+              email: p.email,
+              category: p.category?.name || 'N/A',
+              submittedDate: p.created_at ? new Date(p.created_at).toLocaleDateString() : '',
+              suspendedDate: p.updated_at && p.status === 'suspended' ? new Date(p.updated_at).toLocaleDateString() : undefined,
+              status: p.status,
+              totalEvents: p.total_events || 0,
+              totalRevenue: p.total_revenue ? `KES ${parseFloat(p.total_revenue).toLocaleString()}` : undefined,
+              rating: p.rating || 0,
+            }));
+            setAllPartners(refreshedPartners);
+            console.log('Partners refreshed after suspend. Suspended count:', refreshedPartners.filter(p => p.status === 'suspended').length);
+          } else {
+            // Fallback to local update
+            setAllPartners(prev => prev.map(p => 
+              p.id === partnerId ? { ...p, status: 'suspended', suspendedDate: new Date().toLocaleDateString() } : p
+            ));
+          }
           
           // Refresh stats
           const statsResponse = await fetch(API_ENDPOINTS.admin.partnerStats, {
@@ -519,7 +651,7 @@ export default function PartnersSection({}: PartnersProps) {
     <div>
       {/* Partner Statistics Cards */}
       {activeTab === 'all' && partnerStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
           <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
             <div className="flex items-center justify-between">
               <div>
@@ -564,6 +696,18 @@ export default function PartnersSection({}: PartnersProps) {
               </div>
               <div className="bg-white/20 rounded-xl p-3">
                 <CheckCircle className="w-8 h-8" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-2xl p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-100 text-sm font-medium mb-1">Rejected</p>
+                <p className="text-3xl font-bold">{partnerStats.rejected_partners || 0}</p>
+              </div>
+              <div className="bg-white/20 rounded-xl p-3">
+                <XCircle className="w-8 h-8" />
               </div>
             </div>
           </div>
@@ -639,6 +783,17 @@ export default function PartnersSection({}: PartnersProps) {
             <XCircle className="w-4 h-4" />
             Suspended
           </button>
+          <button
+            onClick={() => setActiveTab('rejected')}
+            className={`px-4 py-2 font-semibold transition-colors border-b-2 flex items-center gap-2 ${
+              activeTab === 'rejected'
+                ? 'border-[#27aae2] text-[#27aae2]'
+                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+            }`}
+          >
+            <XCircle className="w-4 h-4" />
+            Rejected
+          </button>
         </div>
       </div>
 
@@ -668,8 +823,36 @@ export default function PartnersSection({}: PartnersProps) {
       ) : filteredPartners.length === 0 ? (
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
           <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">No partners found</p>
-          <p className="text-gray-400 text-sm mt-2">Try adjusting your filters</p>
+          <p className="text-gray-500 text-lg">
+            {activeTab === 'suspended' 
+              ? 'No suspended partners found' 
+              : activeTab === 'rejected'
+              ? 'No rejected partners found'
+              : 'No partners found'}
+          </p>
+          <p className="text-gray-400 text-sm mt-2">
+            {activeTab === 'suspended' 
+              ? 'There are currently no suspended partners. Suspend a partner from the Active tab to see them here.' 
+              : activeTab === 'rejected'
+              ? 'There are currently no rejected partners. Reject a partner from the Pending tab to see them here.'
+              : 'Try adjusting your filters'}
+          </p>
+          {activeTab === 'suspended' && (
+            <button
+              onClick={() => setActiveTab('approved')}
+              className="mt-4 px-4 py-2 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1e8bb8] transition-colors"
+            >
+              Go to Active Partners
+            </button>
+          )}
+          {activeTab === 'rejected' && (
+            <button
+              onClick={() => setActiveTab('pending')}
+              className="mt-4 px-4 py-2 bg-[#27aae2] text-white rounded-lg font-semibold hover:bg-[#1e8bb8] transition-colors"
+            >
+              Go to Pending Partners
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -691,6 +874,7 @@ export default function PartnersSection({}: PartnersProps) {
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       partner.status === 'pending' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' :
                       partner.status === 'suspended' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
+                      partner.status === 'rejected' ? 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300' :
                       'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                     }`}>
                       {partner.status.toUpperCase()}
@@ -734,17 +918,52 @@ export default function PartnersSection({}: PartnersProps) {
                   </>
                 )}
                 {partner.status === 'suspended' && (
-                  <button
-                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      await handleUnsuspendPartner(partner.id);
-                    }}
-                    disabled={actionLoading === partner.id}
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    <span>{actionLoading === partner.id ? 'Processing...' : 'Unsuspend'}</span>
-                  </button>
+                  <>
+                    <button
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 shadow-lg"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await handleUnsuspendPartner(partner.id);
+                      }}
+                      disabled={actionLoading === partner.id}
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>{actionLoading === partner.id ? 'Processing...' : 'Unsuspend'}</span>
+                    </button>
+                    <button
+                      className="px-4 py-2 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPartner(partner);
+                      }}
+                    >
+                      View Details
+                    </button>
+                  </>
+                )}
+                {partner.status === 'rejected' && (
+                  <>
+                    <button
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUnrejectPartner(partner);
+                      }}
+                      disabled={actionLoading === partner.id}
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      <span>{actionLoading === partner.id ? 'Processing...' : 'Unreject'}</span>
+                    </button>
+                    <button
+                      className="px-4 py-2 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedPartner(partner);
+                      }}
+                    >
+                      View Details
+                    </button>
+                  </>
                 )}
                 {partner.status === 'approved' && (
                   <>
@@ -769,15 +988,17 @@ export default function PartnersSection({}: PartnersProps) {
                     </button>
                   </>
                 )}
-                <button
-                  className="px-4 py-2 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedPartner(partner);
-                  }}
-                >
-                  View Details
-                </button>
+                {partner.status !== 'suspended' && partner.status !== 'rejected' && (
+                  <button
+                    className="px-4 py-2 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:border-[#27aae2] hover:text-[#27aae2] transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPartner(partner);
+                    }}
+                  >
+                    View Details
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -1321,6 +1542,200 @@ export default function PartnersSection({}: PartnersProps) {
               >
                 Yes
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unreject Partner Modal */}
+      {unrejectModalOpen && partnerToUnreject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full relative animate-fadeIn max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 rounded-t-2xl z-10">
+              <button
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-2xl font-bold transition-colors w-8 h-8 flex items-center justify-center"
+                onClick={() => {
+                  setUnrejectModalOpen(false);
+                  setPartnerToUnreject(null);
+                  setUnrejectReason('');
+                }}
+              >
+                &times;
+              </button>
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-8 h-8 text-white" />
+                <h2 className="text-2xl font-bold text-white">Unreject Partner Application</h2>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {/* Partner Info */}
+              <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
+                    <span className="text-white text-xl font-bold">
+                      {partnerToUnreject.name.charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white">{partnerToUnreject.name}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{partnerToUnreject.email}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                  ✅ This will reopen the partner's application for corrections. They will receive an email and SMS with the reason.
+                </p>
+              </div>
+
+              {/* Reason Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Reason for Unrejecting <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                  This reason will be sent to the partner via email and SMS to help them understand what corrections are needed.
+                </p>
+                <textarea
+                  value={unrejectReason}
+                  onChange={(e) => setUnrejectReason(e.target.value)}
+                  placeholder="Explain why you're reopening this partner's application and what corrections they need to make..."
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                  rows={6}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  {unrejectReason.length}/500 characters
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+                  onClick={() => {
+                    setUnrejectModalOpen(false);
+                    setPartnerToUnreject(null);
+                    setUnrejectReason('');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  onClick={confirmUnrejectPartner}
+                  disabled={actionLoading === partnerToUnreject.id || !unrejectReason.trim()}
+                >
+                  {actionLoading === partnerToUnreject.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Unrejecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Confirm Unreject</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unreject Partner Modal */}
+      {unrejectModalOpen && partnerToUnreject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full relative animate-fadeIn max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 rounded-t-2xl z-10">
+              <button
+                className="absolute top-4 right-4 text-white hover:text-gray-200 text-2xl font-bold transition-colors w-8 h-8 flex items-center justify-center"
+                onClick={() => {
+                  setUnrejectModalOpen(false);
+                  setPartnerToUnreject(null);
+                  setUnrejectReason('');
+                }}
+              >
+                &times;
+              </button>
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-8 h-8 text-white" />
+                <h2 className="text-2xl font-bold text-white">Unreject Partner Application</h2>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              {/* Partner Info */}
+              <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center shadow-lg">
+                    <span className="text-white text-xl font-bold">
+                      {partnerToUnreject.name.charAt(0)}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white">{partnerToUnreject.name}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{partnerToUnreject.email}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-green-700 dark:text-green-300 font-medium">
+                  ✅ This will reopen the partner's application for corrections. They will receive an email and SMS with the reason.
+                </p>
+              </div>
+
+              {/* Reason Input */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                  Reason for Unrejecting <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                  This reason will be sent to the partner via email and SMS to help them understand what corrections are needed.
+                </p>
+                <textarea
+                  value={unrejectReason}
+                  onChange={(e) => setUnrejectReason(e.target.value)}
+                  placeholder="Explain why you're reopening this partner's application and what corrections they need to make..."
+                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all resize-none"
+                  rows={6}
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  {unrejectReason.length}/500 characters
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  className="flex-1 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
+                  onClick={() => {
+                    setUnrejectModalOpen(false);
+                    setPartnerToUnreject(null);
+                    setUnrejectReason('');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  onClick={confirmUnrejectPartner}
+                  disabled={actionLoading === partnerToUnreject.id || !unrejectReason.trim()}
+                >
+                  {actionLoading === partnerToUnreject.id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Unrejecting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      <span>Confirm Unreject</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
