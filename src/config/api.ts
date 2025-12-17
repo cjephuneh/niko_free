@@ -4,9 +4,9 @@
  */
 
 // Base URL for the API - use environment variable or default to localhost for development
-export const API_BASE_URL = "https://nikofree-arhecnfueegrasf8.canadacentral-01.azurewebsites.net";
+// export const API_BASE_URL = "https://nikofree-arhecnfueegrasf8.canadacentral-01.azurewebsites.net";
 
-// export const API_BASE_URL = "http://localhost:8000";
+export const API_BASE_URL = "http://localhost:8000";
 
 // API Endpoints
 export const API_ENDPOINTS = {
@@ -33,6 +33,7 @@ export const API_ENDPOINTS = {
     partner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}`,
     approvePartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/approve`,
     rejectPartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/reject`,
+    resendPartnerCredentials: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/resend-credentials`,
     rejectionReasons: `${API_BASE_URL}/api/admin/rejection-reasons`,
     suspendPartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/suspend`,
     activatePartner: (id: number) => `${API_BASE_URL}/api/admin/partners/${id}/activate`,

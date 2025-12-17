@@ -336,55 +336,45 @@ export default function BecomePartner({ onNavigate }: BecomePartnerProps) {
 
     setIsGeneratingAbout(true);
     try {
+      // Use Gemini API service
+      const geminiService = await import('../services/geminiService');
+      const { generatePartnerDescription } = geminiService;
+      
       // Get category name
       const selectedCategory = categories.find(cat => cat.id === formData.categories[0]);
       const categoryName = selectedCategory?.name || 'Events';
       
-      // Create a prompt based on available information
-      const interests = customInterests.length > 0 ? customInterests.join(', ') : 'various activities';
-      const prompt = `Write a professional and engaging business description (2-3 sentences) for "${formData.businessName}", an event organizer in ${formData.location || 'Kenya'} specializing in ${categoryName} events. They organize events related to ${interests}. Make it compelling and professional.`;
-
-      // Call GitHub Copilot Chat API or OpenAI API
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_OPENAI_API_KEY || ''}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a professional business description writer. Create concise, engaging, and professional descriptions.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          max_tokens: 150,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate description');
+      // Prepare interests
+      const allInterests = [...customInterests];
+      if (formData.interests && formData.interests.trim()) {
+        allInterests.push(formData.interests.trim());
       }
-
-      const data = await response.json();
-      const generatedText = data.choices[0]?.message?.content?.trim() || '';
       
-      if (generatedText) {
-        setFormData({ ...formData, about: generatedText });
+      console.log('Generating description with params:', {
+        businessName: formData.businessName,
+        category: categoryName,
+        location: formData.location,
+        interests: allInterests.length > 0 ? allInterests : undefined,
+      });
+      
+      const description = await generatePartnerDescription({
+        businessName: formData.businessName,
+        category: categoryName,
+        location: formData.location,
+        interests: allInterests.length > 0 ? allInterests : undefined,
+      });
+      
+      console.log('Generated description:', description);
+      
+      if (description && description.trim()) {
+        setFormData({ ...formData, about: description.trim() });
+      } else {
+        throw new Error('Empty description received from AI');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating description:', error);
-      // Fallback to a template-based description
-      const selectedCategory = categories.find(cat => cat.id === formData.categories[0]);
-      const categoryName = selectedCategory?.name || 'Events';
-      const fallbackDescription = `${formData.businessName} is a premier event organizer based in ${formData.location || 'Kenya'}, specializing in ${categoryName} events. We are passionate about creating memorable experiences that bring people together and celebrate the best of ${customInterests.length > 0 ? customInterests.slice(0, 3).join(', ') : 'our community'}. With a commitment to excellence and attention to detail, we ensure every event is executed flawlessly.`;
-      setFormData({ ...formData, about: fallbackDescription });
+      const errorMessage = error?.message || 'Failed to generate description. Please try again.';
+      alert(errorMessage);
     } finally {
       setIsGeneratingAbout(false);
     }
