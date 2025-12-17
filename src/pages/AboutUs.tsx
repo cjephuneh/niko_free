@@ -56,7 +56,7 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
                 Wellness Is the<br />New Luxury
               </h1>
               <p className="text-xl md:text-2xl text-white/90 max-w-4xl mx-auto leading-relaxed mb-8">
-                We're building a new culture of going out — one where people choose experiences that <span className="font-semibold text-white">uplift, energize, and expand their lives.</span>
+                We're building a new culture of going out, one where people choose experiences that <span className="font-semibold text-white">uplift, energize, and expand their lives.</span>
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -117,7 +117,7 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
                   Our platform brings together curated events, activities, and experiences designed to help you reconnect with yourself, your community, and the world around you.
                 </p>
                 <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-                  We believe that the most meaningful luxury today is <span className="font-semibold text-[#27aae2]">wellness</span> — the kind that fits naturally into everyday living. We also use <span className="font-semibold text-[#27aae2]">AI</span> to generate engaging and accurate event descriptions, helping you understand what each experience offers before you attend.
+                  We believe that the most meaningful luxury today is <span className="font-semibold text-[#27aae2]">wellness</span>, the kind that fits naturally into everyday living. We also use <span className="font-semibold text-[#27aae2]">AI</span> to generate engaging and accurate event descriptions, helping you understand what each experience offers before you attend.
                 </p>
               </div>
             </div>
@@ -131,10 +131,10 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
                   <Target className="w-10 h-10 text-white" />
                 </div>
                 <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">
-                  ✨ Our Mission
+                  Our Mission
                 </h2>
                 <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 leading-relaxed mb-6">
-                  To make wellness <span className="font-bold text-[#27aae2]">social, exciting, and accessible</span> by helping people discover experiences that add real value to their lives — mentally, emotionally, and socially.
+                  To make wellness <span className="font-bold text-[#27aae2]">social, exciting, and accessible</span> by helping people discover experiences that add real value to their lives: mentally, emotionally, and socially.
                 </p>
                 <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed italic">
                   We exist to inspire a new generation of intentional living, where going out means feeling better, not drained.
@@ -151,7 +151,7 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
                 <span className="text-sm font-semibold text-[#27aae2]">OUR PURPOSE</span>
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-                🌟 Why Niko Free Exists
+                Why Niko Free Exists
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
                 We're on a mission to transform how people spend their time and energy
@@ -178,7 +178,7 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
                   <Sparkles className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  2. 📱 Breaking the Doom-Scroll Cycle
+                  2. Breaking the Doom-Scroll Cycle
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                   Instead of losing hours scrolling on your phone, discover meaningful, energizing activities that reconnect you with real life.
@@ -191,7 +191,7 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
                   <Heart className="w-8 h-8 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                  3. 💚 Wellness, Without the Stereotypes
+                  3. Wellness, Without the Stereotypes
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                   Wellness is more than meditation or fitness. It's whatever is good for you — connection, joy, creativity, nature, discovery, and shared experiences.
@@ -200,72 +200,145 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
             </div>
           </div>
 
-          {/* What We Offer Section */}
-          <div className="py-5 md:py-10" data-aos="fade-up">
-            <div className="text-center mb-16">
+          {/* What We Offer Section - For Users */}
+          <div className="py-8 md:py-12" data-aos="fade-up">
+            <div className="text-center mb-12 md:mb-16">
               <div className="inline-flex items-center gap-2 bg-[#27aae2]/10 dark:bg-[#27aae2]/20 px-4 py-2 rounded-full mb-4">
                 <CheckCircle className="w-4 h-4 text-[#27aae2]" />
-                <span className="text-sm font-semibold text-[#27aae2]">WHAT WE OFFER</span>
+                <span className="text-sm font-semibold text-[#27aae2]">FOR EVENT SEEKERS</span>
               </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-                Everything You Need for<br />Meaningful Experiences
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-3 px-4">
+                Everything You Need for<br className="hidden sm:block" />Meaningful Experiences
               </h2>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {/* Offer 1 */}
-              <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-6 border border-gray-200 dark:border-gray-600 hover:shadow-xl transition-all" data-aos="flip-left" data-aos-delay="0">
-                <div className="w-12 h-12 bg-[#27aae2]/10 dark:bg-[#27aae2]/20 rounded-xl flex items-center justify-center mb-4">
-                  <Ticket className="w-6 h-6 text-[#27aae2]" />
+              <div className="group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-5 md:p-6 border border-gray-200 dark:border-gray-600 hover:shadow-2xl hover:border-[#27aae2]/50 transition-all duration-300 hover:-translate-y-1" data-aos="fade-up" data-aos-delay="0">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-blue-500/10 to-[#27aae2]/20 dark:bg-[#27aae2]/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Ticket className="w-6 h-6 md:w-7 md:h-7 text-[#27aae2]" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                  🎟️ Paid & Free Events
+                <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Paid & Free Events
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-relaxed">
                   Whether you're exploring on a budget or looking for a premium experience, we make wellness accessible for everyone.
                 </p>
               </div>
 
               {/* Offer 2 */}
-              <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-6 border border-gray-200 dark:border-gray-600 hover:shadow-xl transition-all" data-aos="flip-left" data-aos-delay="100">
-                <div className="w-12 h-12 bg-[#27aae2]/10 dark:bg-[#27aae2]/20 rounded-xl flex items-center justify-center mb-4">
-                  <Shield className="w-6 h-6 text-[#27aae2]" />
+              <div className="group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-5 md:p-6 border border-gray-200 dark:border-gray-600 hover:shadow-2xl hover:border-[#27aae2]/50 transition-all duration-300 hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-purple-500/10 to-purple-500/20 dark:bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Users className="w-6 h-6 md:w-7 md:h-7 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                  🎫 Flexible Ticket Options
+                <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Community Built Around Intention
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                  Event partners can choose between limited-ticket and unlimited-ticket setups, giving them complete control.
+                <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-relaxed">
+                  Niko Free represents a movement of people choosing to live with purpose and embrace experiences that uplift their lives.
                 </p>
               </div>
 
               {/* Offer 3 */}
-              <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-6 border border-gray-200 dark:border-gray-600 hover:shadow-xl transition-all" data-aos="flip-left" data-aos-delay="200">
-                <div className="w-12 h-12 bg-[#27aae2]/10 dark:bg-[#27aae2]/20 rounded-xl flex items-center justify-center mb-4">
-                  <Calendar className="w-6 h-6 text-[#27aae2]" />
+              <div className="group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-5 md:p-6 border border-gray-200 dark:border-gray-600 hover:shadow-2xl hover:border-[#27aae2]/50 transition-all duration-300 hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-green-500/10 to-green-500/20 dark:bg-green-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Calendar className="w-6 h-6 md:w-7 md:h-7 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                  🗓️ 15+ Categories
+                <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  15+ Categories
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-relaxed">
                   From sports & fitness to music & culture, social activities and more. Something for every lifestyle.
                 </p>
               </div>
 
               {/* Offer 4 */}
-              <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-6 border border-gray-200 dark:border-gray-600 hover:shadow-xl transition-all" data-aos="flip-left" data-aos-delay="300">
-                <div className="w-12 h-12 bg-[#27aae2]/10 dark:bg-[#27aae2]/20 rounded-xl flex items-center justify-center mb-4">
-                  <Zap className="w-6 h-6 text-[#27aae2]" />
+              <div className="group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-5 md:p-6 border border-gray-200 dark:border-gray-600 hover:shadow-2xl hover:border-[#27aae2]/50 transition-all duration-300 hover:-translate-y-1" data-aos="fade-up" data-aos-delay="300">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-orange-500/10 to-orange-500/20 dark:bg-orange-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Zap className="w-6 h-6 md:w-7 md:h-7 text-orange-600 dark:text-orange-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
-                  ⚡ Instant Booking
+                <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Instant Booking
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-relaxed">
                   Effortless bookings, secure payments, instant confirmations. Fast, transparent payouts for partners.
                 </p>
               </div>
             </div>
           </div>
+
+          {/* What We Offer Section - For Partners */}
+          <div className="py-8 md:py-12" data-aos="fade-up">
+            <div className="text-center mb-12 md:mb-16">
+              <div className="inline-flex items-center gap-2 bg-purple-500/10 dark:bg-purple-500/20 px-4 py-2 rounded-full mb-4">
+                <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">FOR EVENT PARTNERS</span>
+              </div>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-3 px-4">
+                Why Partner with <br className="hidden sm:block" />Niko Free
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              {/* Partner Offer 1 */}
+              <div className="group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-5 md:p-6 border border-gray-200 dark:border-gray-600 hover:shadow-2xl hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1" data-aos="fade-up" data-aos-delay="0">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-blue-500/10 to-blue-500/20 dark:bg-blue-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Ticket className="w-6 h-6 md:w-7 md:h-7 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Flexible Ticketing Options
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-relaxed">
+                  Design ticket structures that maximize attendance and revenue with limited or unlimited tickets, multiple ticket types, and targeted promotions.
+                </p>
+              </div>
+
+              {/* Partner Offer 2 */}
+              <div className="group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-5 md:p-6 border border-gray-200 dark:border-gray-600 hover:shadow-2xl hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1" data-aos="fade-up" data-aos-delay="100">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-purple-500/10 to-purple-500/20 dark:bg-purple-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-6 h-6 md:w-7 md:h-7 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  AI-Enhanced Event Descriptions
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-relaxed">
+                  Leverage our AI tools to craft event descriptions that clearly communicate value and attract the right audience.
+                </p>
+              </div>
+
+              {/* Partner Offer 3 */}
+              <div className="group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-5 md:p-6 border border-gray-200 dark:border-gray-600 hover:shadow-2xl hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1" data-aos="fade-up" data-aos-delay="200">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-green-500/10 to-green-500/20 dark:bg-green-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Shield className="w-6 h-6 md:w-7 md:h-7 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Secure Payments & Transparent Payouts
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-relaxed">
+                  Get paid quickly and securely with our trusted payment system. Track your earnings with full transparency and receive timely payouts.
+                </p>
+              </div>
+
+              {/* Partner Offer 4 */}
+              <div className="group bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-5 md:p-6 border border-gray-200 dark:border-gray-600 hover:shadow-2xl hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1" data-aos="fade-up" data-aos-delay="300">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-orange-500/10 to-orange-500/20 dark:bg-orange-500/20 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="w-6 h-6 md:w-7 md:h-7 text-orange-600 dark:text-orange-400" />
+                </div>
+                <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white mb-2">
+                  Simple, Efficient Event Management
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-relaxed">
+                  Launch and manage your events seamlessly through a powerful, intuitive dashboard built to save time and reduce effort.
+                </p>
+              </div>
+            </div>
+          </div>
+
+
+
+
+
+
 
           {/* Vision Section with Image */}
           <div className="py-16 md:py-24" data-aos="fade-up">
@@ -276,13 +349,13 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
                   <span className="text-sm font-semibold text-[#27aae2]">OUR VISION</span>
                 </div>
                 <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white leading-tight">
-                  🚀 Building a Wellness-First Community
+                  Building a Wellness-First Community
                 </h2>
                 <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
                   A world where wellness is <span className="font-semibold text-[#27aae2]">fun, social, and seamlessly woven</span> into how people live.
                 </p>
                 <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
-                  A community where <span className="font-semibold">choosing yourself</span> — your joy, your growth, your peace — becomes the norm.
+                  A community where <span className="font-semibold">choosing yourself</span> (your joy, your growth, your peace) becomes the norm.
                 </p>
                 <div className="pt-6">
                   <button
@@ -332,7 +405,7 @@ export default function AboutUs({ onNavigate }: AboutUsProps) {
                   Join Us and Redefine<br />How You Go Out
                 </h2>
                 <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
-                  <span className="font-semibold">Niko Free</span> — Wellness that fits your life.
+                  <span className="font-semibold">Niko Free</span>: Wellness that fits your life.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <button

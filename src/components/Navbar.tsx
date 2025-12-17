@@ -1,7 +1,8 @@
 import { Menu, X, LogIn, Moon, Sun, User, Shield } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import LoginModal from './LoginModal';
-import logo from '../images/homenavbar.png';
+import transparent2 from '../images/TRANSPARENT 2.png';
+import transparent5 from '../images/TRANSPARENT 5.png';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { getUser, isAdmin } from '../services/authService';
@@ -31,6 +32,17 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
 
   const userIsAdmin = user && isAdmin();
 
+  // Determine which logo to use based on current page and theme
+  const getLogo = () => {
+    if (currentPage === 'landing') {
+      // Home page: always TRANSPARENT 5
+      return transparent5;
+    } else {
+      // Other pages: TRANSPARENT 2 for light mode, TRANSPARENT 5 for dark mode
+      return isDarkMode ? transparent5 : transparent2;
+    }
+  };
+
   // Close user menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,7 +71,7 @@ export default function Navbar({ onNavigate, currentPage = 'landing' }: NavbarPr
               className="flex items-center space-x-2"
             >
               <img 
-                src={logo} 
+                src={getLogo()} 
                 alt="Niko Free Logo" 
                 className="h-6 sm:h-7 md:h-8 lg:h-10 w-auto transform hover:scale-105 transition-transform"
               />

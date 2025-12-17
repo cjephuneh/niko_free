@@ -25,6 +25,7 @@ import {
   Mountain,
   Clock,
   DollarSign,
+  PartyPopper,
 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
@@ -619,7 +620,7 @@ export default function LandingPage({
             "Music & Dance": Music,
             "Music & Culture": Music,
             Culture: Theater,
-            Dance: Music,
+            Dance: PartyPopper,
             "Pets & Animals": Dog,
             "Coaching & Support": Target,
             "Business & Networking": Briefcase,
@@ -1232,7 +1233,7 @@ export default function LandingPage({
                             2M+
                           </p> */}
                           <p className="text-[10px] sm:text-xs text-gray-200">
-  Free <br /> & Paid Events
+  Free & <br /> Paid Events
 </p>
 
                         </div>
