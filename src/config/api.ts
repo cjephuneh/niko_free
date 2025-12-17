@@ -132,6 +132,7 @@ export const API_ENDPOINTS = {
     verify: '/api/tickets/verify',
     qr: (bookingId: number) => `/api/tickets/${bookingId}/qr`,
     download: (bookingId: number) => `/api/tickets/${bookingId}/download`,
+    releaseExpired: '/api/tickets/release-expired',
   },
   
   // Payments
