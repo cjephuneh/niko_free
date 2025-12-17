@@ -41,6 +41,11 @@ function AppContent() {
   const location = useLocation();
   const { setAuthData } = useAuth();
 
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   // Handle Google OAuth callback
   useEffect(() => {
     const handleGoogleCallback = async () => {

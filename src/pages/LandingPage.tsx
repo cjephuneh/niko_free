@@ -108,9 +108,10 @@ export default function LandingPage({
   const [scrollCount, setScrollCount] = useState(0);
   const lastScrollY = React.useRef(0);
   const [showPartnerLoginModal, setShowPartnerLoginModal] = useState(false);
-  const [categoryRotation, setCategoryRotation] = useState(0);
+  // Randomize initial category position and direction on page load
+  const [categoryRotation, setCategoryRotation] = useState(() => Math.floor(Math.random() * 20));
   const [rotationDirection, setRotationDirection] = useState<"left" | "right">(
-    "right"
+    () => Math.random() > 0.5 ? "right" : "left"
   );
   const [searchPlaceholder, setSearchPlaceholder] =
     useState("Search events...");
@@ -279,23 +280,34 @@ export default function LandingPage({
     return () => clearInterval(typingInterval);
   }, []);
 
-  // Auto-rotate categories every 5 seconds with random direction
+  // Auto-rotate categories with random interval and direction
   React.useEffect(() => {
-    const intervalId = setInterval(() => {
+    const rotate = () => {
       // Randomly choose direction
       const randomDirection = Math.random() > 0.5 ? "right" : "left";
       setRotationDirection(randomDirection);
 
+      // Randomly rotate by 1-3 positions for more variation
+      const rotationAmount = Math.floor(Math.random() * 3) + 1;
+
       setCategoryRotation((prev) => {
         if (randomDirection === "right") {
-          return prev + 1;
+          return prev + rotationAmount;
         } else {
-          return prev - 1;
+          return prev - rotationAmount;
         }
       });
-    }, 5000); // Change every 5 seconds
 
-    return () => clearInterval(intervalId);
+      // Schedule next rotation with random interval (3-7 seconds)
+      const nextInterval = (Math.random() * 4000) + 3000; // 3000-7000ms
+      timeoutId = setTimeout(rotate, nextInterval);
+    };
+
+    // Start first rotation after random initial delay (2-5 seconds)
+    const initialDelay = (Math.random() * 3000) + 2000;
+    let timeoutId = setTimeout(rotate, initialDelay);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Helper function to map event data
@@ -497,7 +509,9 @@ export default function LandingPage({
             };
           });
 
-        setCantMissEvents(events);
+        // Shuffle events array for random display order on each page load
+        const shuffledEvents = [...events].sort(() => Math.random() - 0.5);
+        setCantMissEvents(shuffledEvents);
       } catch (err) {
         console.error("Error fetching promoted events:", err);
         // Keep empty array on error
@@ -573,7 +587,9 @@ export default function LandingPage({
             inBucketlist: event.in_bucketlist || false,
           };
         });
-        setUpcomingEvents(events);
+        // Shuffle events array for random display order on each page load
+        const shuffledEvents = [...events].sort(() => Math.random() - 0.5);
+        setUpcomingEvents(shuffledEvents);
       } catch (err) {
         console.error("Error fetching upcoming events:", err);
         setUpcomingEvents([]);
@@ -590,7 +606,7 @@ export default function LandingPage({
         setIsLoadingCategories(true);
         const response = await getCategories();
         const cats = (response.categories || []).map((cat: any) => {
-          // Map category names to icons (keep existing mapping)
+          // Map category names to icons
           const iconMap: { [key: string]: any } = {
             Travel: Bus,
             Hiking: Mountain,
@@ -614,13 +630,37 @@ export default function LandingPage({
             Gaming: Gamepad2,
           };
 
+          // Map category names to colors
+          const colorMap: { [key: string]: string } = {
+            Travel: "#0EA5E9",
+            Hiking: "#059669",
+            "Sports & Fitness": "#10B981",
+            "Social Activities": "#A855F7",
+            "Hobbies & Interests": "#F59E0B",
+            Religious: "#6366F1",
+            Autofest: "#FFA500",
+            "Health & Wellbeing": "#EC4899",
+            "Music & Dance": "#EF4444",
+            "Music & Culture": "#EF4444",
+            Culture: "#F59E0B",
+            Dance: "#EF4444",
+            "Pets & Animals": "#F97316",
+            "Coaching & Support": "#14B8A6",
+            "Business & Networking": "#475569",
+            Technology: "#8B5CF6",
+            "Live Plays": "#E11D48",
+            "Art & Photography": "#10B981",
+            Shopping: "#D946EF",
+            Gaming: "#7C3AED",
+          };
+
           return {
             name: cat.name, // Store original name for matching
             displayName: cat.name === "Travel" ? "Explore- 🇰🇪" : cat.name, // Display name for UI
             slug: cat.slug || cat.name.toLowerCase().replace(/\s+/g, "-"), // Store slug for API calls
             icon: iconMap[cat.name] || Users,
             count: cat.event_count || 0, // Use count from API
-            iconColor: "#27aae2", // Default color
+            iconColor: colorMap[cat.name] || "#27aae2", // Use specific color or default
           };
         });
 
