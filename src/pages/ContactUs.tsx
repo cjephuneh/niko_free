@@ -1,4 +1,4 @@
-import { Mail, Phone, MapPin, Send, MessageCircle } from 'lucide-react';
+import { Mail, Phone, Send, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -110,16 +110,21 @@ export default function ContactUs({ onNavigate }: ContactUsProps) {
             </div>
 
             <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow" data-aos="fade-up" data-aos-delay="300">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mb-4">
-                <MapPin className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4">
+                <MessageCircle className="w-6 h-6 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Visit Us</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">WhatsApp Us</h3>
               <p className="text-gray-600 dark:text-gray-300 mb-3">
-                Come say hello
+                Chat with us directly
               </p>
-              <p className="text-gray-700 dark:text-gray-200 font-medium">
-                Nairobi, Kenya
-              </p>
+              <a 
+                href="https://wa.me/254700000000" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[#27aae2] hover:underline font-medium"
+              >
+                +254 700 000 000
+              </a>
             </div>
           </div>
 

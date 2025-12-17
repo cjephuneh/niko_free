@@ -1,4 +1,4 @@
-import { TrendingUp, DollarSign, Wallet, ArrowDownRight, Calendar, Users, Eye, Download, ArrowUpRight, ChevronLeft, ChevronRight, X, MapPin, Clock, Tag, Ticket, Sparkles, Globe, Video } from 'lucide-react';
+import { TrendingUp, DollarSign, Wallet, ArrowDownRight, Calendar, Users, Eye, Download, ArrowUpRight, ChevronLeft, ChevronRight, X, MapPin, Clock, Tag, Ticket, Sparkles, Globe, Video, Share2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getPartnerEvents, getPartnerToken } from '../../services/partnerService';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
@@ -448,13 +448,20 @@ export default function Overview({ onWithdrawClick, dashboardData }: OverviewPro
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">{event.attendees}</span>
                   </div>
-                  {/* <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center text-gray-600 dark:text-gray-400">
                       <Eye className="w-3 h-3 mr-1" />
                       <span>Views</span>
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">{event.views}</span>
-                  </div> */}
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center text-gray-600 dark:text-gray-400">
+                      <Share2 className="w-3 h-3 mr-1" />
+                      <span>Shares</span>
+                    </div>
+                    <span className="font-semibold text-gray-900 dark:text-white">0</span>
+                  </div>
                   {event.totalTickets > 0 ? (
                     <>
                       <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
@@ -575,6 +582,13 @@ export default function Overview({ onWithdrawClick, dashboardData }: OverviewPro
                       <span>Total Views</span>
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">{event.views}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center text-gray-600 dark:text-gray-400">
+                      <Share2 className="w-3 h-3 mr-1" />
+                      <span>Shares</span>
+                    </div>
+                    <span className="font-semibold text-gray-900 dark:text-white">0</span>
                   </div>
                   <button 
                     onClick={() => handleViewDetails(event)}

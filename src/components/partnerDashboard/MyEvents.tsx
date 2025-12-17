@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Users, Heart, Plus, Trash2, Edit, Sparkles, X, AlertTriangle, Clock, DollarSign, Tag, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Calendar, MapPin, Users, Heart, Plus, Trash2, Edit, Sparkles, X, AlertTriangle, Clock, DollarSign, Tag, ToggleLeft, ToggleRight, Share2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { getPartnerEvents, deleteEvent, updatePromoCode, deletePromoCode } from '../../services/partnerService';
@@ -536,6 +536,10 @@ export default function MyEvents({ onCreateEvent }: MyEventsProps) {
                         <div className="flex items-center space-x-1">
                           <Heart className="w-3.5 h-3.5" />
                           <span>{event.bucketlist_count || 0}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>0</span>
                         </div>
                       </div>
 
